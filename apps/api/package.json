@@ -1,0 +1,58 @@
+{
+    "name": "api",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "dist/server.js",
+    "scripts": {
+        "contratos": "npm --prefix ../../packages/contratos run build",
+        "predev": "npm run contratos",
+        "dev": "tsx watch src/server.ts",
+        "prebuild": "npm run contratos",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "db:local": "node prisma/marketplace-db/local/cargar_local.mjs",
+        "db:local:reiniciar": "node prisma/marketplace-db/local/cargar_local.mjs --reiniciar",
+        "db:probar": "npm --prefix prisma/marketplace-db run probar",
+        "db:docs": "node prisma/marketplace-db/local/diccionario.mjs",
+        "db:superadmin": "tsx src/scripts/superadmin.ts",
+        "db:demo": "tsx src/scripts/datos-demo.ts",
+        "db:demo:limpiar": "tsx src/scripts/datos-demo.ts --limpiar",
+        "db:pull": "prisma db pull && prisma generate",
+        "db:generate": "prisma generate",
+        "db:validate": "prisma validate",
+        "db:studio": "prisma studio"
+    },
+    "prisma": {
+        "schema": "prisma/schema"
+    },
+    "dependencies": {
+        "@marketplace/contratos": "*",
+        "@prisma/client": "^5.10.0",
+        "@supabase/supabase-js": "^2.118.0",
+        "bcrypt": "^5.1.1",
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "exceljs": "^4.4.0",
+        "express": "^4.18.3",
+        "express-rate-limit": "^8.7.0",
+        "helmet": "^8.3.0",
+        "jsonwebtoken": "^9.0.2",
+        "multer": "^2.4.0",
+        "nodemailer": "^10.1.0",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^5.0.2",
+        "@types/cookie-parser": "^1.4.10",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/jsonwebtoken": "^9.0.6",
+        "@types/multer": "^2.3.0",
+        "@types/node": "^20.11.24",
+        "@types/nodemailer": "^8.0.2",
+        "prisma": "^5.10.0",
+        "tsx": "^4.7.1",
+        "typescript": "^5.3.3"
+    }
+}

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Fotos subidas en desarrollo (en producción van a Supabase Storage)
+apps/api/uploads/
+
+*.log
+.DS_Store

@@ -1,0 +1,52 @@
+import Link from 'next/link';
+import { TITULAR } from '@/lib/legal';
+import { BRAND_NAME, LogoMark } from './logo';
+
+/** Pie del marketplace: columnas de la maqueta + enlaces legales reales. */
+export function Footer() {
+  const correo = TITULAR.correo;
+
+  return (
+    <footer className="market-footer">
+      <div className="footer-brand">
+        <Link href="/" aria-label={`${BRAND_NAME}, ir al inicio`}>
+          <LogoMark size={45} claro />
+        </Link>
+        <p>Comprar y vender en los comercios de tu ciudad, de forma simple.</p>
+      </div>
+
+      <div>
+        <strong>Explorar</strong>
+        <Link href="/">Inicio</Link>
+        <Link href="/tiendas">Tiendas</Link>
+        <Link href="/rubros">Rubros</Link>
+      </div>
+
+      <div>
+        <strong>{BRAND_NAME}</strong>
+        <Link href="/vendor/nueva-tienda">Sumá tu comercio</Link>
+        <Link href="/vendor">Panel de vendedor</Link>
+        <Link href="/categorias">Categorías de productos</Link>
+      </div>
+
+      <div>
+        <strong>Ayuda</strong>
+        <Link href="/preguntas">Preguntas frecuentes</Link>
+        {correo ? (
+          <>
+            <a href={`mailto:${correo}`}>Centro de ayuda</a>
+            <a href={`mailto:${correo}`}>Contacto</a>
+          </>
+        ) : (
+          <Link href="/cuenta">Mi cuenta</Link>
+        )}
+        <Link href="/terminos">Términos y Condiciones</Link>
+        <Link href="/privacidad">Privacidad</Link>
+      </div>
+
+      <p className="footer-bottom">
+        © {new Date().getFullYear()} {BRAND_NAME} · Hecho con comercios de San Juan
+      </p>
+    </footer>
+  );
+}

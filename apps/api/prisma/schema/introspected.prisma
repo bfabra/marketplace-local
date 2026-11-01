@@ -1,0 +1,117 @@
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bloqueos_cuenta {
+  id                                                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id                                          String    @db.Uuid
+  motivo                                              String
+  tiendas                                             Json      @default("[]")
+  bloqueado_por                                       String?   @db.Uuid
+  bloqueado_en                                        DateTime  @default(now()) @db.Timestamptz(6)
+  desbloqueado_por                                    String?   @db.Uuid
+  desbloqueado_en                                     DateTime? @db.Timestamptz(6)
+  nota_desbloqueo                                     String?
+  perfiles_bloqueos_cuenta_bloqueado_porToperfiles    perfiles? @relation("bloqueos_cuenta_bloqueado_porToperfiles", fields: [bloqueado_por], references: [id], onUpdate: NoAction)
+  perfiles_bloqueos_cuenta_desbloqueado_porToperfiles perfiles? @relation("bloqueos_cuenta_desbloqueado_porToperfiles", fields: [desbloqueado_por], references: [id], onUpdate: NoAction)
+  perfiles_bloqueos_cuenta_usuario_idToperfiles       perfiles  @relation("bloqueos_cuenta_usuario_idToperfiles", fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([bloqueado_por])
+  @@index([desbloqueado_por])
+  @@index([usuario_id, bloqueado_en(sort: Desc)], map: "bloqueos_cuenta_usuario_idx")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model favoritos {
+  usuario_id  String    @db.Uuid
+  producto_id String    @db.Uuid
+  creado_en   DateTime  @default(now()) @db.Timestamptz(6)
+  productos   productos @relation(fields: [producto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  perfiles    perfiles  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([usuario_id, producto_id])
+  @@index([producto_id])
+  @@index([usuario_id, creado_en(sort: Desc)], map: "favoritos_usuario_creado_idx")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model rubros {
+  id                                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  padre_id                            String?                 @db.Uuid
+  nombre                              String
+  slug                                String
+  nivel                               Int                     @default(1) @db.SmallInt
+  orden                               Int                     @default(0)
+  activo                              Boolean                 @default(true)
+  creado_en                           DateTime                @default(now()) @db.Timestamptz(6)
+  actualizado_en                      DateTime                @default(now()) @db.Timestamptz(6)
+  rubros                              rubros?                 @relation("rubrosTorubros", fields: [padre_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_rubros                        rubros[]                @relation("rubrosTorubros")
+  tienda_especialidades               tienda_especialidades[]
+  tiendas_tiendas_rubro_idTorubros    tiendas[]               @relation("tiendas_rubro_idTorubros")
+  tiendas_tiendas_subrubro_idTorubros tiendas[]               @relation("tiendas_subrubro_idTorubros")
+
+  @@index([padre_id, orden], map: "rubros_padre_id_idx")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model seguidores_tienda {
+  usuario_id String   @db.Uuid
+  tienda_id  String   @db.Uuid
+  creado_en  DateTime @default(now()) @db.Timestamptz(6)
+  tiendas    tiendas  @relation(fields: [tienda_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  perfiles   perfiles @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([usuario_id, tienda_id])
+  @@index([tienda_id])
+  @@index([usuario_id, creado_en(sort: Desc)], map: "seguidores_tienda_usuario_creado_idx")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tienda_especialidades {
+  tienda_id String  @db.Uuid
+  rubro_id  String  @db.Uuid
+  rubros    rubros  @relation(fields: [rubro_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tiendas   tiendas @relation(fields: [tienda_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([tienda_id, rubro_id])
+  @@index([rubro_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model datos_cuenta {
+  usuario_id            String    @id @db.Uuid
+  dni                   String?   @unique
+  google_sub            String?   @unique
+  terminos_version      String?
+  terminos_aceptados_en DateTime? @db.Timestamptz(6)
+  sesiones_desde        DateTime? @db.Timestamptz(6)
+  creado_en             DateTime  @default(now()) @db.Timestamptz(6)
+  actualizado_en        DateTime  @default(now()) @db.Timestamptz(6)
+  perfiles              perfiles  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model recuperaciones_clave {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id String    @db.Uuid
+  token_hash String    @unique
+  vence_en   DateTime  @db.Timestamptz(6)
+  usada_en   DateTime? @db.Timestamptz(6)
+  creado_en  DateTime  @default(now()) @db.Timestamptz(6)
+  perfiles   perfiles  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([usuario_id, creado_en(sort: Desc)], map: "recuperaciones_clave_usuario_idx")
+  @@schema("public")
+}

@@ -1,0 +1,21 @@
+{
+  "name": "marketplace-local",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marketplace de comercios locales: API, web, base de datos y contratos compartidos",
+  "workspaces": [
+    "packages/contratos",
+    "apps/api",
+    "apps/api/prisma/marketplace-db",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w api -w web",
+    "typecheck": "npm run contratos && tsc --noEmit -p apps/api && tsc --noEmit -p apps/web",
+    "contratos": "npm run build -w @marketplace/contratos",
+    "db:local": "npm run db:local -w api",
+    "db:probar": "npm run probar -w marketplace-db"
+  }
+}

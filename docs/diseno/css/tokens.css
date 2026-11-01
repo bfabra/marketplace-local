@@ -1,0 +1,67 @@
+/* ============================================================
+   COMPRALOCAL — DESIGN TOKENS
+   Fuente: maqueta Figma Make "Tu comercio local" (palette-brand)
+   ============================================================ */
+
+:root {
+  /* ─── Marca ─── */
+  --primary: #09305f;
+  --primary-hover: #06264c;
+  --primary-soft: #e9f0f7;
+  --primary-deep: #061f3b;
+  --accent: #fd6910;
+  --accent-soft: #fff0e7;
+  --accent-light: #ffc49c;
+
+  /* ─── Superficies y texto ─── */
+  --surface: #ffffff;
+  --canvas: #f7f9fb;
+  --canvas-deep: #edf1f5;
+  --text: #14283e;
+  --muted: #687788;
+  --border: #dbe3eb;
+
+  /* ─── Estados ─── */
+  --success: #256a4a;
+  --success-bg: #e8f6ed;
+  --error: #a43838;
+  --error-line: #cf4d4d;
+  --error-bg: #fcecec;
+
+  /* ─── Tipografía (Manrope, como en la maqueta) ─── */
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* La maqueta usa 6–11 px sobre un frame reducido. Se escala a
+     tamaños legibles en una web real (mínimo 11 px). */
+  --fs-2xs: 0.6875rem;  /* 11px  (maqueta 6–7px)  */
+  --fs-xs: 0.75rem;     /* 12px  (maqueta 8px)    */
+  --fs-sm: 0.8125rem;   /* 13px  (maqueta 9px)    */
+  --fs-md: 0.875rem;    /* 14px  (maqueta 10px)   */
+  --fs-base: 0.9375rem; /* 15px  (maqueta 11–12px)*/
+  --fs-lg: 1.0625rem;   /* 17px                   */
+  --fs-xl: 1.375rem;    /* 22px                   */
+  --fs-2xl: 1.75rem;    /* 28px                   */
+  --fs-3xl: 2.125rem;   /* 34px                   */
+  --fs-display: clamp(2.125rem, 4vw, 3.0625rem); /* 34–49px */
+
+  /* ─── Radios y elevación ─── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 13px;
+  --radius-full: 999px;
+  --shadow-card: 0 8px 25px rgba(43, 65, 53, 0.05);
+  --shadow-hover: 0 12px 30px rgba(20, 40, 62, 0.09);
+  --shadow-pop: 0 15px 40px rgba(20, 40, 62, 0.17);
+
+  /* ─── Layout ─── */
+  --container: 1200px;
+  --header-h: 76px;
+  --z-header: 30;
+  --z-cart: 40;
+  --z-modal: 80;
+}
+
+@media (max-width: 720px) {
+  :root { --header-h: 66px; }
+}

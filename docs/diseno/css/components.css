@@ -1,0 +1,144 @@
+/* ============================================================
+   COMPRALOCAL — COMPONENTS
+   Botones, campos, alertas, checkbox, separadores
+   ============================================================ */
+
+/* ─── Botones ─── */
+.btn {
+  min-height: 46px; width: 100%; padding: 0 18px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  font-size: var(--fs-md); font-weight: 800;
+  transition: background 0.2s, transform 0.15s, border-color 0.2s, color 0.2s;
+}
+.btn:active { transform: translateY(1px); }
+.btn.primary { border: 0; background: var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.primary .icon { margin-left: auto; }
+.btn.primary:disabled { opacity: 0.72; cursor: wait; }
+.btn.secondary, .btn.social { border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.btn.secondary:hover { border-color: var(--primary); color: var(--primary); }
+.btn.social:hover { background: var(--canvas); }
+
+.spinner {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+
+.text-link,
+.switch-copy button, .simple-header button, .terms button {
+  padding: 0; border: 0; background: transparent;
+  color: var(--primary); font-size: inherit; font-weight: 700;
+}
+.text-link:hover { text-decoration: underline; }
+
+/* ─── Campos ─── */
+.field { display: block; position: relative; margin-bottom: 16px; color: var(--text); }
+.field > span, .upload-side > label {
+  display: block; margin-bottom: 7px; font-size: var(--fs-sm); font-weight: 700;
+}
+.field > div {
+  height: 46px; padding: 0 13px;
+  display: flex; align-items: center; gap: 9px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface); color: #99a39e;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input {
+  width: 100%; height: 100%; padding: 0; border: 0; outline: 0;
+  background: transparent; color: var(--text); font-size: var(--fs-md);
+}
+.field input::placeholder, .field textarea::placeholder { color: #a7afab; }
+.field.focus > div, .field > div:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent);
+}
+.field.error > div { border-color: var(--error-line); box-shadow: 0 0 0 3px rgba(207, 77, 77, 0.08); }
+.field > small:not(.counter) { display: block; margin-top: 5px; color: #c44141; font-size: var(--fs-xs); }
+.field select {
+  width: 100%; height: 46px; padding: 0 13px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  outline: 0; background: var(--surface); color: var(--text); font-size: var(--fs-md);
+}
+.field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent); }
+.field textarea {
+  width: 100%; height: 88px; padding: 12px 13px; resize: none;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  outline: 0; background: var(--surface); color: var(--text); font-size: var(--fs-md);
+}
+.field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent); }
+.field .counter { position: absolute; bottom: 8px; right: 10px; color: #a5ada9; font-size: var(--fs-2xs); }
+
+.pass-toggle {
+  padding: 0; border: 0; background: transparent; color: inherit;
+  display: flex; align-items: center; cursor: pointer;
+}
+.pass-toggle:hover { color: var(--primary); }
+
+/* ─── Checkbox ─── */
+.checkbox { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--fs-sm); cursor: pointer; }
+.checkbox input { position: absolute; opacity: 0; }
+.checkbox > span {
+  width: 17px; height: 17px; display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 4px; color: transparent; background: var(--surface);
+}
+.checkbox input:checked + span { color: #fff; background: var(--primary); border-color: var(--primary); }
+.checkbox input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Separador ─── */
+.separator { margin: 21px 0 14px; display: flex; align-items: center; color: #98a19c; font-size: var(--fs-xs); }
+.separator::before, .separator::after { content: ""; height: 1px; background: var(--border); flex: 1; }
+.separator span { padding: 0 12px; }
+
+/* ─── Alertas ─── */
+.alert { margin-bottom: 18px; padding: 12px 13px; border-radius: var(--radius-md); display: flex; gap: 10px; align-items: flex-start; }
+.alert > div { display: flex; flex-direction: column; }
+.alert strong { font-size: var(--fs-sm); }
+.alert span { margin-top: 2px; font-size: var(--fs-xs); opacity: 0.8; }
+.alert.success { color: var(--success); background: var(--success-bg); }
+.alert.error { color: var(--error); background: var(--error-bg); }
+
+/* ─── Estados vacíos ─── */
+.market-empty {
+  min-height: 320px; padding: 55px 20px;
+  border: 1px dashed var(--border); border-radius: 12px; background: var(--surface);
+  text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.market-empty > i {
+  width: 58px; height: 58px; border-radius: 50%; background: var(--primary-soft);
+  color: var(--primary); display: grid; place-items: center;
+}
+.market-empty h2 { margin: 16px 0 6px; font-size: var(--fs-lg); }
+.market-empty p { max-width: 400px; color: var(--muted); font-size: var(--fs-sm); line-height: 1.6; }
+.market-empty button {
+  margin-top: 17px; padding: 10px 16px; border: 0; border-radius: var(--radius-sm);
+  background: var(--primary); color: #fff; font-size: var(--fs-xs); font-weight: 800;
+}
+/* ════════════════════════════════════════════════
+   VALIDACIÓN DE CAMPOS EN ROJO (FIELD ERROR)
+   ════════════════════════════════════════════════ */
+.field.field-error span {
+  color: #dc2626 !important; /* Nombre/etiqueta de la casilla en rojo */
+  font-weight: 700;
+}
+
+.field.field-error input,
+.field.field-error select,
+.field.field-error textarea {
+  border-color: #dc2626 !important; /* Borde del campo en rojo */
+  background-color: #fef2f2 !important; /* Fondo suave rojizo opcional */
+}
+
+.field.field-error input:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.upload-box:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 3%, transparent);
+}

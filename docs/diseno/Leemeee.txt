@@ -1,0 +1,13 @@
+Navegación desde las pantallas del comprador esta realizado por el momento.
+
+Ordenar / decisión (oct 2026):
+- La cuenta se crea primero como comprador.
+- “Convertirme en Comercio” vive en: menú de usuario, Mi cuenta (sidebar), pie del sitio, y como CTA opcional tras registrarse con éxito.
+- No forzamos el alta de comercio en el mismo paso del registro.
+- Detalle en AGENTS.md §3.5.
+
+LEGACY (no portar / no confundir):
+- Tipografía: Manrope · Primario: #09305f (ver AGENTS.md §3.2–3.3 y css/tokens.css).
+- Auth vigente: js/pages/auth.js — NO usar login.js ni register.js.
+- Panel comerciante vigente: js/pages/merchant.js — NO usar js/pages/merchant/*.js (stubs).
+- Lista completa: LEGACY.md.

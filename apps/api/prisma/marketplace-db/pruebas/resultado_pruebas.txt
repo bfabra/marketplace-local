@@ -1,0 +1,398 @@
+
+1. Cuentas
+  ✓ El perfil se crea solo al registrarse
+  ✓ Solo puede haber un superadmin
+
+2. Tiendas y planes
+  ✓ La tienda nueva exige el rubro principal
+  ✓ Al crear una tienda, el dueño es quien la crea (aunque mande otro id)
+  ✓ Una tienda nueva queda "pendiente" aunque pida "activa"
+  ✓ No se activa una tienda sin cuenta de Mercado Pago
+  ✓ El admin activa las tiendas con cuenta de Mercado Pago vinculada
+  ✓ Ana no puede cambiarse el estado de su tienda
+  ✓ Ana no puede leer los tokens de Mercado Pago, ni los propios
+  ✓ Beto puede tener más de una tienda
+  ✓ Pero no dos tiendas con plan gratis
+
+3. Empleados y permisos
+  ✓ Beto no puede invitar empleados a la tienda de Ana
+  ✓ La invitación solo la acepta el correo invitado
+  ✓ Carla aceptó y es empleada activa de la Tienda A
+  ✓ El plan gratis no permite empleados (límite 0)
+
+4. Catálogo
+  ✓ Publicar sin variantes no está permitido
+  ✓ La variante queda en la tienda del producto aunque se mande otra
+  ✓ Carla (rol Catálogo) publica el producto con talles M y L
+  ✓ Calzado de mujer varía por Talle y Color y hereda Material de Indumentaria y calzado
+  ✓ Carla no ve los pedidos de la tienda (no tiene ese permiso)
+  ✓ Beto no ve los borradores de la Tienda A
+  ✓ Beto no puede modificar productos de la Tienda A
+  ✓ Beto no puede crear productos en la Tienda A
+  ✓ El plan gratis publica 10 productos
+  ✓ El producto 11 se rechaza por el límite del plan
+  ✓ Un visitante ve los productos publicados de tiendas activas
+  ✓ La búsqueda tolera errores de tipeo ("zapatila" encuentra zapatillas)
+  ✓ Búsqueda sin acento y filtrada por talle L encuentra la remera
+
+5. Compra a dos tiendas
+  ✓ No se puede comprar con entrega en una localidad sin tarifa
+  ✓ Se crea una compra con subtotal $40.000 + envío $2.500 = $42.500
+  ✓ La compra se divide en una parte por tienda
+  ✓ El ítem guarda la variante elegida ("Color: Rojo / Talle: M")
+  ✓ El carrito queda vacío
+  ✓ El stock queda reservado mientras paga (5 − 2 = 3 disponibles)
+  ✓ Si Ana cambia el precio después, el pedido conserva el precio pagado
+
+6. Pago (aviso de Mercado Pago)
+  ✓ Un usuario no puede confirmar un pago por su cuenta
+  ✓ Un aviso repetido no cobra dos veces
+  ✓ Se descuenta el stock al confirmar (5 → 3)
+  ✓ Se crea una sola entrega con una recolección por tienda
+
+7. Quién ve qué
+  ✓ Diego ve su compra con el estado de cada tienda por separado
+  ✓ Ana ve solo la parte de su tienda
+  ✓ Ana ve los ítems de su parte, no los de Beto
+  ✓ Ana puede ver el nombre de su comprador
+  ✓ Beto ve solo la parte de su tienda
+
+8. Preparación, recolección y entrega
+  ✓ El comercio no puede marcar "entregado" (lo hace la plataforma)
+  ✓ El comercio no puede cambiar el total de su parte
+  ✓ Ana marca su parte "lista para recolección"
+  ✓ Rita ve sus dos recolecciones asignadas
+  ✓ Rita ve la dirección de entrega
+  ✓ Rita no puede retirar en la Tienda B si no está lista
+  ✓ Queda registrado cuánto esperó Rita en la Tienda B (12 minutos)
+  ✓ Con todo recolectado, la entrega sale "en camino" sola
+  ✓ Al entregar, las dos partes quedan "entregado"
+  ✓ El historial registra cada cambio de estado
+  ✓ Diego recibió avisos de cada cambio
+
+9. Cancelación de una sola tienda
+  ✓ Cancelar sin motivo no está permitido
+  ✓ Al cancelar, el stock vuelve (+1)
+  ✓ Se genera un reembolso solo por la parte de Beto ($20.000)
+  ✓ La parte de Ana sigue su curso
+
+10. Cambio de plan y vencimiento
+  ✓ Al bajar de Premium (12 publicados) a Starter, quedan 10 publicados
+  ✓ Los 2 más recientes pasan a "pausado por límite del plan", sin borrarse
+  ✓ Carla queda suspendida (el plan gratis no admite empleados)
+  ✓ Suspendida, Carla ya no ve los borradores de la tienda
+  ✓ Una suscripción impaga hace 3 días queda "en gracia" y la tienda sigue activa
+  ✓ Terminada la gracia (7 días), la Tienda B queda "vencida"
+  ✓ Los productos de una tienda vencida dejan de verse en el marketplace
+  ✓ Pero Beto sigue viendo su catálogo (nada se borró)
+
+11. Auditoría, preguntas y consumidor
+  ✓ Ana ve la auditoría de su tienda
+  ✓ Ana no ve la auditoría de la Tienda B
+  ✓ Nadie puede borrar la auditoría
+  ✓ Diego pregunta (y no puede escribirse la respuesta él mismo)
+  ✓ Ana responde y queda registrado quién respondió
+  ✓ El Botón de Arrepentimiento funciona sin iniciar sesión y da un código
+  ✓ Un visitante no puede leer las solicitudes de otros
+
+12. Correcciones de la revisión
+  ✓ Cancelada la última parte con entrega, se devuelve el envío una sola vez ($2.500)
+  ✓ Y la entrega queda cancelada ("fallido")
+  ✓ Un pago por menos del total no confirma el pedido
+  ✓ El pedido sigue pendiente de pago
+  ✓ Con el monto correcto ($7.500) se confirma
+  ✓ Los pedidos con más de 24 h sin pago se cierran solos
+  ✓ Y liberan el stock reservado
+  ✓ Un comercio no puede reabrir una parte rechazada
+  ✓ Si Mercado Pago aprueba después de un rechazo, el pedido se reabre y se confirma
+  ✓ Al renombrar una categoría, sus subcategorías actualizan la ruta
+  ✓ Calzado sigue heredando los atributos después del cambio
+  ✓ Una categoría no puede quedar dentro de sus propias subcategorías
+  ✓ Cancelada la suscripción, sin otra vigente, la tienda queda "vencida"
+
+13. Panel de administración
+  ✓ El superadmin ve todas las cifras del tablero
+  ✓ Moderación ve tiendas y productos, pero no ventas ni usuarios
+  ✓ Alguien sin rol de plataforma no ve el tablero
+  ✓ El tablero no se puede llamar desde el navegador
+  ✓ Moderación no puede cambiar la configuración general
+  ✓ La configuración valida el rango permitido
+  ✓ La configuración conserva el tipo del parámetro
+  ✓ Un parámetro que no existe da error
+  ✓ El superadmin cambia la configuración y la base la usa al instante
+  ✓ La configuración muestra quién hizo el último cambio
+  ✓ El registro de actividad muestra el cambio con el valor anterior y el nuevo
+  ✓ El registro de actividad se pagina sin repetir movimientos
+  ✓ Solo la primera página trae el resumen del filtro
+  ✓ La actividad se filtra por tipo de acción
+  ✓ La actividad se filtra por período (desde incluido, hasta excluido)
+  ✓ La actividad se busca por referencia, autor o tienda sin importar mayúsculas
+  ✓ La actividad separa lo que hicieron las personas de lo que hizo el sistema
+  ✓ Un período al revés da error
+  ✓ La exportación trae todos los movimientos del filtro
+
+14. Moderación de tiendas y productos
+  ✓ Una tienda sin productos aprobados manda a revisión lo que publica
+  ✓ Una tienda con historial publica sin revisión
+  ✓ Moderación puede pedir revisión de todo lo que publique una tienda
+  ✓ El dueño no puede cambiar la revisión de su tienda
+  ✓ Al publicar, el producto queda esperando revisión
+  ✓ El vendedor no puede sacarlo de revisión cambiando el motivo
+  ✓ Un producto en revisión no se ve en el sitio
+  ✓ La cola de moderación muestra el producto con su tienda
+  ✓ Rechazar pide una nota para el vendedor
+  ✓ El rechazo deja el producto pausado con la nota de moderación
+  ✓ El vendedor no puede borrar la nota de moderación
+  ✓ Corregido y publicado de nuevo, vuelve a revisión
+  ✓ Moderación aprueba: queda publicado, sin nota y con quién lo aprobó
+  ✓ Aprobar dos veces avisa que ya no está en revisión
+  ✓ El vendedor no puede volver a publicar un producto pausado por moderación
+  ✓ Moderación lo reactiva
+  ✓ Con revisión automática y buen historial, publica al instante
+  ✓ Suspender una tienda pide un motivo
+  ✓ El dueño ve por qué suspendieron su tienda
+  ✓ Cambiar al mismo estado avisa que ya está así
+  ✓ El listado de tiendas busca por correo del dueño y trae sus cifras
+  ✓ La ficha de la tienda muestra sus otras tiendas y el historial con el motivo
+  ✓ La ficha del producto trae variantes e historial de moderación
+  ✓ El tablero de moderación cuenta los productos en revisión
+  ✓ El listado de tiendas no se puede llamar desde el navegador
+  ✓ Un cliente no puede moderar productos
+
+15. Catálogo y territorio
+  ✓ Moderación crea una categoría y una subcategoría
+  ✓ No puede haber dos categorías con el mismo nombre en el mismo lugar
+  ✓ Una categoría no puede quedar dentro de sus propias subcategorías (desde el panel)
+  ✓ Renombrar no cambia la dirección web
+  ✓ Las opciones de un atributo no se repiten
+  ✓ Un atributo de texto no puede generar variantes
+  ✓ Las subcategorías heredan las variantes de la categoría
+  ✓ Un atributo heredado no se vuelve a cargar en la subcategoría
+  ✓ Con productos cargados, la categoría no cambia sus variantes
+  ✓ Una categoría con productos no se mueve a otra con distintas variantes
+  ✓ El tipo de un atributo en uso no se cambia
+  ✓ El menú respeta el orden que fija moderación
+  ✓ Ocultar una categoría oculta también sus subcategorías y la saca de los carritos
+  ✓ Sus productos dejan de verse en el sitio
+  ✓ La tienda los sigue viendo en su panel, con su categoría
+  ✓ El producto oculto sale del carrito del cliente
+  ✓ Una subcategoría no se muestra si su categoría está oculta
+  ✓ Al mostrarla de nuevo, sus productos vuelven al sitio
+  ✓ No se borra una categoría con subcategorías
+  ✓ No se borra una categoría con productos
+  ✓ Una categoría y un atributo sin uso se borran
+  ✓ Moderación no edita el territorio
+  ✓ La ficha de la categoría trae su camino, sus productos y los atributos propios en uso
+  ✓ La ficha de una subcategoría muestra de dónde hereda cada atributo
+  ✓ El listado de categorías suma los productos de las subcategorías
+  ✓ Los cambios de categorías quedan en el registro de actividad
+  ✓ No se repite una provincia
+  ✓ Una provincia sin localidades activas no se activa
+  ✓ No se repite una localidad en la misma provincia
+  ✓ No se carga una dirección en una provincia donde todavía no estamos
+  ✓ Logística cobra el envío y valida el costo
+  ✓ Activada la provincia, ya se cargan direcciones ahí
+  ✓ Al desactivar una localidad no se ofrece más, pero las direcciones de ahí siguen
+  ✓ No se borra una localidad con tiendas o direcciones
+  ✓ Una localidad cargada por error se borra
+  ✓ El territorio muestra cada localidad con su tarifa y sus direcciones
+  ✓ El territorio no se puede leer desde el navegador
+
+16. Usuarios: bloqueo de cuentas
+  ✓ El listado de usuarios filtra vendedores y busca por correo
+  ✓ Nadie se bloquea a sí mismo
+  ✓ El superadmin no se puede bloquear
+  ✓ A alguien del equipo solo lo bloquea el superadmin
+  ✓ Bloquear pide un motivo
+  ✓ Soporte bloquea la cuenta y se suspenden sus tiendas pendientes y activas
+  ✓ Bloquear dos veces avisa que ya está bloqueada
+  ✓ Las tiendas quedan suspendidas con un motivo que ve la dueña
+  ✓ Una cuenta bloqueada no puede iniciar sesión
+  ✓ Nadie se escribe su propio último ingreso
+  ✓ Un cliente no puede bloquear cuentas
+  ✓ Al desbloquear, las tiendas vuelven a su estado salvo las que moderación cambió
+  ✓ Desbloqueada, puede entrar y queda anotado su último ingreso
+  ✓ La ficha muestra el historial de bloqueos con quién bloqueó y desbloqueó
+  ✓ El bloqueo queda en el registro de actividad
+  ✓ El superadmin sí puede bloquear a alguien del equipo
+  ✓ El listado de usuarios no se puede llamar desde el navegador
+
+17. Pedidos y reembolsos
+  ✓ La vista global de pedidos busca por número y muestra cada tienda
+  ✓ Busca también por el nombre de la tienda
+  ✓ Los pagos del pedido solo los ve finanzas
+  ✓ Finanzas no cancela pedidos
+  ✓ Finanzas devuelve dinero a mano y el pedido queda "reembolsado en parte"
+  ✓ No se devuelve más de lo que se pagó por la parte
+  ✓ Un cliente no puede crearse un reembolso
+  ✓ El comprador recibe el aviso del reembolso
+  ✓ Cancelar pide un motivo
+  ✓ Cancelar dos veces avisa que ya está cancelada
+  ✓ Al cancelar se devuelve solo lo que faltaba y el envío, pendientes para finanzas
+  ✓ Vuelve el stock de lo cancelado
+  ✓ El historial muestra quién canceló y por qué
+  ✓ La vista "con reembolsos pendientes" muestra el pedido
+  ✓ Rechazar un reembolso pide una nota
+  ✓ Procesar dos veces avisa que ya se procesó
+  ✓ Con todo devuelto, el pedido queda "reembolsado" y cada devolución tiene su referencia
+  ✓ La vista global de pedidos no se puede llamar desde el navegador
+
+18. Planes y suscripciones
+  ✓ Soporte no edita planes
+  ✓ El plan gratis no tiene precio ni se desactiva
+  ✓ Un plan nuevo necesita precio y un nombre que no exista
+  ✓ Finanzas crea un plan nuevo al final de la lista
+  ✓ Un plan con precio no vuelve a cero
+  ✓ Bajar el límite de un plan pausa en el acto lo que sobra en sus tiendas
+  ✓ Los planes muestran cuántas tiendas los usan y cuánto facturan
+  ✓ La vista "por vencer" muestra la suscripción que vence en 3 días
+  ✓ Extender pide días válidos y un motivo
+  ✓ Extender suma los días al vencimiento
+  ✓ Registrar un pago cobra el precio del plan y corre el vencimiento un mes
+  ✓ Una referencia de pago no se registra dos veces
+  ✓ El plan gratis no se cancela ni se extiende
+  ✓ Cancelada la suscripción, la tienda vence
+  ✓ La ficha de la suscripción muestra pagos, uso y quién hizo cada cambio
+  ✓ Una suscripción cancelada ya no se extiende
+  ✓ El tablero suma cuentas bloqueadas (soporte) y suscripciones por vencer (finanzas)
+  ✓ Las suscripciones no se pueden leer desde el navegador
+
+19. Compra solo con retiro en el local
+  ✓ Se compra sin dirección cuando todo se retira en el local
+
+20. El equipo de la plataforma también compra
+  ✓ El equipo carga el carrito como cualquier cuenta
+  ✓ El equipo guarda favoritos
+
+21. Los roles de las tiendas los define la plataforma
+  ✓ El dueño no crea roles para su tienda
+  ✓ El dueño no edita los permisos de un rol predefinido
+  ✓ Solo el superadmin define los roles de las tiendas
+  ✓ Un rol con un nombre que ya existe no se crea
+  ✓ El dueño ve el rol nuevo para asignarlo
+  ✓ Un rol con invitaciones pendientes no se borra
+  ✓ Al borrar un rol, las invitaciones viejas pasan a otro rol predefinido
+  ✓ El superadmin ve los roles con su uso en las tiendas
+  ✓ La lista de roles de la plataforma no se lee desde el navegador
+
+22. Seguir tiendas
+  ✓ El cliente sigue una tienda (seguirla dos veces no la duplica)
+  ✓ No se sigue una tienda que no está disponible
+  ✓ Las sugerencias traen las tiendas seguidas y sus productos
+  ✓ El dueño no sigue su propia tienda
+  ✓ El dueño ve en su panel cuántos lo siguen y cuántos se sumaron esta semana
+  ✓ Quien no es de la tienda no ve sus seguidores desde el panel
+  ✓ Nadie ve a quién sigue otra persona
+  ✓ La página pública muestra cuántos siguen a la tienda
+  ✓ Sin sesión no se sigue una tienda
+  ✓ El cliente deja de seguir la tienda
+
+23. Rubros
+  ✓ La lista estándar tiene 17 rubros y Alquileres tres niveles
+  ✓ Los rubros principales traen su descripción
+  ✓ En Juguetes y niños, Juguetes va antes que Juegos de mesa
+  ✓ La dueña elige rubro, subrubro y especialidades
+  ✓ Las especialidades tienen que ser del subrubro elegido
+  ✓ El subrubro tiene que ser del rubro
+  ✓ Una vez cargado, el rubro no se puede dejar vacío
+  ✓ Al cambiar de subrubro se van las especialidades del anterior
+  ✓ Al cambiar de rubro sin elegir subrubro, el subrubro queda vacío
+  ✓ Sin permiso de configuración no se cambia el rubro
+  ✓ La página pública muestra el rubro declarado
+  ✓ El superadmin agrega un subrubro
+  ✓ No se repite un nombre en el mismo lugar
+  ✓ Un rubro no lleva un cuarto nivel
+  ✓ El superadmin cambia la descripción de un rubro
+  ✓ Vacía, la descripción se quita
+  ✓ Los subrubros no llevan descripción
+  ✓ La descripción tiene hasta 120 caracteres
+  ✓ Se reordena entre sus hermanos
+  ✓ Desactivar un rubro desactiva todo lo que tiene adentro
+  ✓ No se activa un subrubro si su rubro está inactivo
+  ✓ Un rubro inactivo no se puede elegir
+  ✓ El rubro inactivo no aparece en la lista para elegir
+  ✓ Solo el superadmin edita los rubros
+  ✓ No se borra un rubro que usan las tiendas
+  ✓ No se borra un rubro con subrubros adentro
+  ✓ Se borra un rubro sin uso
+  ✓ El admin ve el rubro de cada tienda y cuántas lo usan
+  ✓ Los cambios de rubros quedan en la auditoría
+  ✓ pkg_catalogo.rubros cumple su contrato
+  ✓ pkg_catalogo.rubro cumple su contrato
+  ✓ pkg_catalogo.tiendas cumple su contrato
+  ✓ pkg_tiendas.detalle cumple su contrato
+  ✓ pkg_admin.rubros cumple su contrato
+  ✓ El contrato detecta una respuesta con otra forma
+
+24. Categorías estándar
+  ✓ La lista estándar trae las categorías con sus subcategorías y Alquileres con tres niveles
+  ✓ Productos veterinarios pasa por revisión y el resto no
+  ✓ pkg_catalogo.categorias cumple su contrato
+  ✓ El producto no puede quedar en una categoría principal
+  ✓ En Alquileres también hay que elegir el tercer nivel
+  ✓ Con categoría, subcategoría y tipo el producto se crea
+  ✓ Tampoco se puede pasar un producto a una categoría principal
+  ✓ Un producto veterinario pasa por moderación aunque la tienda publique sin revisión
+  ✓ Los demás productos de la tienda se publican al instante
+  ✓ Moderación lo aprueba y queda publicado
+  ✓ Si cambia lo que se ve de un producto veterinario publicado, vuelve a revisión
+  ✓ En otras categorías, editar un producto publicado no lo manda a revisión
+  ✓ Solo moderación decide qué categorías pasan por revisión
+  ✓ El panel muestra la revisión propia y la heredada
+
+25. Atributos estándar
+  ✓ Se suman Industria y empresas (con sus subcategorías) y Vinos en Alimentos y bebidas
+  ✓ Cada categoría suma los productos publicados de sus subcategorías
+  ✓ La ropa varía por Talle y Color; carteras no piden talle y el color es un dato simple
+  ✓ Celulares varía por Memoria y Color; en el resto de Tecnología el color es un dato simple
+  ✓ La subcategoría puede convertir en variante un atributo que la categoría tiene como dato
+  ✓ Todo alquiler se cobra por unidad (variante obligatoria) y hereda la ficha de su subcategoría
+  ✓ Fuera de las variantes, ningún atributo estándar es obligatorio
+  ✓ Las experiencias de turismo tienen su propia ficha y el equipamiento no
+  ✓ La ficha sigue el orden de la lista: primero lo de la categoría, después lo de la subcategoría
+  ✓ Un alquiler sin unidad de cobro no se guarda
+  ✓ Con precio por día y por evento se guarda con dos variantes
+
+26. Importar productos desde la plantilla
+  ✓ La vista previa no guarda nada y avisa qué no se va a poder publicar por el límite del plan
+  ✓ Si un producto falla no se guarda ninguno y se informa cuál y por qué
+  ✓ Al confirmar se crean todos con sus variantes y nombres repetidos no chocan
+  ✓ Publicar respeta la revisión por categoría y el plan: el que no entra queda en borrador
+  ✓ Quien no es de la tienda no puede importar
+  ✓ Hay un máximo de productos por archivo
+
+27. Cuentas completas: DNI, domicilio, términos, Google y recuperar la contraseña
+  ✓ El registro guarda en un paso la cuenta, el DNI sin puntos, los términos y el domicilio principal
+  ✓ Sin aceptar los términos no se crea la cuenta
+  ✓ Un DNI no puede estar en dos cuentas
+  ✓ El DNI son 7 u 8 números
+  ✓ Si el registro falla no queda nada a medias
+  ✓ Nadie más ve el DNI de una cuenta
+  ✓ El dueño ve sus datos privados
+  ✓ Los pedidos de recuperación de contraseña no se ven desde la app
+  ✓ Desde "Mi cuenta" el DNI se cambia, pero no a uno de otra cuenta
+  ✓ Con Google, una cuenta nueva exige aceptar los términos
+  ✓ Con Google se crea la cuenta sin contraseña y con su foto
+  ✓ La segunda vez entra a la misma cuenta, aunque cambie el correo
+  ✓ Si ya tenía cuenta con ese correo, Google se vincula a ella
+  ✓ Pedir un enlace con un correo sin cuenta no revela nada
+  ✓ El enlace nuevo anula al anterior
+  ✓ Con el enlace se cambia la contraseña y se cierran las sesiones abiertas
+  ✓ El enlace sirve una sola vez
+  ✓ Un enlace vencido no sirve
+  ✓ Hay un máximo de pedidos por hora
+
+28. Teléfonos y ubicación de la tienda
+  ✓ Se guardan varios teléfonos; las filas vacías se descartan y el primero es el principal
+  ✓ El panel muestra los teléfonos y la ubicación
+  ✓ pkg_tiendas.detalle con teléfonos cumple su contrato
+  ✓ Un tipo de teléfono desconocido no se guarda
+  ✓ Un número con letras no se guarda
+  ✓ Hasta 5 teléfonos
+  ✓ Una ubicación fuera del mapa no se guarda
+  ✓ Sin teléfonos el principal queda vacío y la ubicación se puede quitar
+  ✓ Quien no es de la tienda no cambia sus teléfonos
+  ✓ Todas las tablas tienen seguridad por filas (RLS)
+  ✓ Todas las tablas con actualizado_en lo mantienen al día
+
+Resultado: 340 pruebas correctas, 0 fallidas.

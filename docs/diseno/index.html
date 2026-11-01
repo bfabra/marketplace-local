@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CompraLocal — El marketplace de los comercios locales de San Juan. Comprá cerca, apoyá tu comunidad." />
+  <meta name="theme-color" content="#09305f" />
+  <title>CompraLocal — Marketplace de Comercios Locales · San Juan</title>
+  <link rel="icon" type="image/svg+xml" href="public/brand/logos/Logo.svg" />
+
+  <!-- Tipografía de la maqueta: Manrope -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="loading-screen" class="loading-screen">
+      <img src="public/brand/logos/Logo_nombre.svg" alt="CompraLocal" style="height:68px;width:auto;" />
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+  <noscript>CompraLocal necesita JavaScript para funcionar.</noscript>
+
+  <!-- Núcleo -->
+  <script src="js/utils.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/router.js"></script>
+
+  <!-- Componentes -->
+  <script src="js/components/icons.js"></script>
+  <script src="js/components/brand.js"></script>
+  <script src="js/components/forms.js"></script>
+  <script src="js/components/cards.js"></script>
+  <script src="js/components/header.js"></script>
+  <script src="js/components/footer.js"></script>
+  <script src="js/components/modals.js"></script>
+
+  <!-- Páginas · Marketplace -->
+  <script src="js/pages/home.js"></script>
+  <script src="js/pages/category.js"></script>
+  <script src="js/pages/stores.js"></script>
+  <script src="js/pages/store.js"></script>
+  <script src="js/pages/search.js"></script>
+  <script src="js/pages/product.js"></script>
+  <script src="js/pages/cart.js"></script>
+  <script src="js/pages/checkout.js"></script>
+  <script src="js/pages/profile.js"></script>
+  <script src="js/pages/merchant.js"></script>
+  <script src="js/pages/faq.js"></script>
+
+  <!-- Páginas · Acceso y alta de comercio -->
+  <script src="js/pages/auth.js"></script>
+  <script src="js/pages/onboarding.js"></script>
+  <script src="js/pages/styleguide.js"></script>
+
+  <!-- Arranque -->
+  <script src="js/app.js"></script>
+</body>
+</html>
