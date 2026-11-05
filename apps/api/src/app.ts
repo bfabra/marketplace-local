@@ -32,13 +32,24 @@ app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Estado del API y de la base
-app.get('/api/health', async (_req, res, next) => {
+// Estado del API y de la base (si falla, devolvemos detalle acotado para operar el deploy).
+app.get('/api/health', async (_req, res) => {
   try {
     const estado = await llamar<{ tablas: number }>(prisma, Prisma.sql`select pkg_sistema.estado() as r`);
     res.json({ ok: true, db: 'conectada', ...estado });
   } catch (error) {
-    next(error);
+    console.error('[health]', error);
+    const raw = error instanceof Error ? error.message : String(error);
+    const detalle = raw
+      .replace(/postgresql:\/\/[^@\s]+@/gi, 'postgresql://***@')
+      .slice(0, 400);
+    res.status(503).json({
+      ok: false,
+      db: 'error',
+      detalle,
+      pista:
+        'Revisá DATABASE_URL en Render y que en Supabase existan las migraciones (select pkg_sistema.estado() en SQL Editor). Ver docs/DESPLIEGUE.md § health 503.',
+    });
   }
 });
 
