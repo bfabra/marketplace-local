@@ -48,7 +48,7 @@
                     ${user.avatar ? `<img src="${esc(user.avatar)}" style="width:100%;height:100%;object-fit:cover;" />` : (user.initials || 'CL')}
                   </div>
                   <span class="hide-mobile">${esc(user.name ? user.name.split(' ')[0] : 'Mi Cuenta')}</span>
-                  ${Icon('grid-dots', 18)}
+                  ${Icon('arrow-down', 12) || '▾'}
                 </button>
 
                 <!-- MENÚ FLOTANTE DINÁMICO (CLIENTE VS COMERCIO) -->
@@ -61,7 +61,7 @@
                   ${isMerchant ? `
                     <!-- MENÚ DE COMERCIANTE -->
                     <div style="padding:6px 0;">
-                      <button type="button" class="dropdown-item" data-action="go-merchant-tab" data-tab="profile" style="font-weight:700;color:var(--primary, #09305f);">
+                      <button type="button" class="dropdown-item" data-action="go-merchant-tab" data-tab="profile" style="font-weight:700;color:var(--primary, #fd6910);">
                         ${window.Icon('shop', 16) || '🏪'} Perfil Comerciante
                       </button>
                       <button type="button" class="dropdown-item" data-action="go-merchant-tab" data-tab="sales">
@@ -80,7 +80,7 @@
                   ` : `
                     <!-- MENÚ DE CLIENTE -->
                     <div style="padding:6px 0;">
-                      <button type="button" class="dropdown-item" data-go="profile" onclick="window.Store.set({userMenuOpen: false});" style="font-weight:700;color:var(--primary, #09305f);">
+                      <button type="button" class="dropdown-item" data-go="profile" onclick="window.Store.set({userMenuOpen: false});" style="font-weight:700;color:var(--primary, #fd6910);">
                         ${Icon('user', 16) || '👤'} Mi perfil
                       </button>
                       <button type="button" class="dropdown-item" data-action="open-fav-stores" onclick="window.Store.set({userMenuOpen: false});">

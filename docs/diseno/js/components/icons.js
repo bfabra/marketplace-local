@@ -4,7 +4,6 @@
 (function () {
   const PATHS = {
     arrow: '<path d="m9 18 6-6-6-6" />',
-    'arrow-down': '<path d="m6 9 6 6 6-6" />',
     back: '<path d="m15 18-6-6 6-6" />',
     check: '<path d="m5 12 4 4L19 6" />',
     eye: '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" />',
@@ -23,7 +22,6 @@
     close: '<path d="m6 6 12 12M18 6 6 18" />',
     food: '<path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 3v18M17 3c3 2 3 8 0 10" />',
     grid: '<rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" />',
-    'grid-dots': '<rect x="4" y="4" width="6" height="6" rx="1.2" /><rect x="14" y="4" width="6" height="6" rx="1.2" /><rect x="4" y="14" width="6" height="6" rx="1.2" /><rect x="14" y="14" width="6" height="6" rx="1.2" />',
     heart: '<path d="M20.8 5.7a5.3 5.3 0 0 0-7.5 0L12 7l-1.3-1.3a5.3 5.3 0 1 0-7.5 7.5L12 22l8.8-8.8a5.3 5.3 0 0 0 0-7.5Z" />',
     home: '<path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10M9 20v-6h6v6" />',
     laptop: '<rect x="5" y="4" width="14" height="11" rx="1" /><path d="M3 19h18l-2-4H5l-2 4Z" />',

@@ -325,6 +325,9 @@
                 <button type="button" data-action="set-merchant-tab" data-tab="products" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; ${activeTab === 'products' ? 'background: #09305f; color: #fff;' : 'background: #fff; color: #0f172a;'}">
                   <span>Mis Productos</span>
                 </button>
+                <button type="button" data-action="set-merchant-tab" data-tab="chat" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; ${activeTab === 'chat' ? 'background: #09305f; color: #fff;' : 'background: #fff; color: #0f172a;'}">
+                  <span>Mensajes y Consultas</span>
+                </button>
                 <button type="button" data-action="set-merchant-tab" data-tab="roles" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; ${activeTab === 'roles' ? 'background: #09305f; color: #fff;' : 'background: #fff; color: #0f172a;'}">
                   <span>Roles y Empleados</span>
                 </button>
@@ -339,6 +342,7 @@
               ${activeTab === 'orders' ? this.renderOrdersTab(activeStore) : ''}
               ${activeTab === 'sales' ? this.renderSalesTab(activeStore) : ''}
               ${activeTab === 'products' ? this.renderProductsTab(stores, activeStore) : ''}
+              ${activeTab === 'chat' ? this.renderChatTab(activeStore) : ''}
               ${activeTab === 'roles' ? this.renderRolesTab(activeStore) : ''}
               ${activeTab === 'security' ? this.renderSecurityTab() : ''}
             </main>
@@ -745,8 +749,11 @@
         return Number(m) === currentMonth && Number(y) === currentYear;
       }).length + 5;
 
-      const totalFollowers = 142;
-      const savedProductsCount = 28;
+      const followingState = window.Store?.state?.following || {};
+      const totalFollowers = Object.entries(followingState).filter(([storeId, isFollowed]) => isFollowed && storeId === activeStore.id).length || 3;
+      
+      const favoriteProducts = window.Store?.state?.favoriteProducts || [];
+      const savedProductsCount = favoriteProducts.length;
 
       return `
         <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 24px;">
@@ -764,14 +771,14 @@
               <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Operaciones (Mes Actual)</span>
               <strong style="font-size: 24px; font-weight: 800; color: #09305f;">${currentMonthOps} ventas</strong>
             </div>
-            <div onclick="window.Actions['open-followers-modal']()" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;">
+            <div onclick="window.Actions['open-followers-modal']('${activeStore.id}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;">
               <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Seguidores de Tienda</span>
               <strong style="font-size: 24px; font-weight: 800; color: #fd6910;">${totalFollowers} usuarios</strong>
               <span style="font-size: 11px; color: #09305f; text-decoration: underline; font-weight: 700;">Ver listado →</span>
             </div>
-            <div onclick="window.Actions['open-saved-products-modal']()" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;">
-              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Productos Guardados</span>
-              <strong style="font-size: 24px; font-weight: 800; color: #2563eb;">${savedProductsCount} en favoritos</strong>
+            <div onclick="window.Actions['open-saved-products-modal']('${activeStore.id}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;">
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Productos en Favoritos</span>
+              <strong style="font-size: 24px; font-weight: 800; color: #2563eb;">${savedProductsCount} guardados</strong>
               <span style="font-size: 11px; color: #09305f; text-decoration: underline; font-weight: 700;">Ver favoritos →</span>
             </div>
           </div>
@@ -829,6 +836,53 @@
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px;">
             ${productsHtml}
+          </div>
+        </div>`;
+    },
+
+    renderChatTab(activeStore) {
+      window.Store.state.chats = window.Store.state.chats || {};
+      const chatMessages = window.Store.state.chats[activeStore.id] || [
+        { sender: 'store', text: `¡Hola! Gracias por comunicarte con ${activeStore.name}. ¿En qué podemos ayudarte hoy?` }
+      ];
+
+      return `
+        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 16px; height: 520px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Mensajes y Consultas de Clientes — ${esc(activeStore.name)}</h2>
+            <p style="font-size: 13px; color: #64748b; margin: 0;">Respondé en tiempo real a las consultas enviadas por los usuarios desde su perfil de tienda.</p>
+          </div>
+
+          <div style="display: flex; flex: 1; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #f8fafc;">
+            <div style="width: 260px; border-right: 1px solid #cbd5e1; background: #fff; display: flex; flex-direction: column;">
+              <div style="padding: 14px; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 800; color: #09305f; background: #f8fafc;">
+                CONVERSACIONES ACTIVAS (1)
+              </div>
+              <div style="padding: 12px; background: #e0f2fe; border-left: 4px solid #0284c7; cursor: pointer;">
+                <strong style="font-size: 13px; color: #0f172a; display: block;">Cliente General</strong>
+                <span style="font-size: 11px; color: #475569; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chat activo</span>
+              </div>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; background: #f8fafc;">
+              <div style="padding: 12px 16px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 13px; font-weight: 800; color: #09305f;">Chat con Cliente</span>
+                <span style="font-size: 11px; color: #166534; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">En línea</span>
+              </div>
+
+              <div id="merchant-chat-msgs-box" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                ${chatMessages.map(m => `
+                  <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; ${m.sender === 'store' ? 'background: #09305f; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px;' : 'background: #fff; color: #0f172a; border: 1px solid #cbd5e1; align-self: flex-start; border-bottom-left-radius: 2px;'}">
+                    ${esc(m.text)}
+                  </div>
+                `).join('')}
+              </div>
+
+              <form onsubmit="event.preventDefault(); window.Forms['merchant-send-chat'](this, '${activeStore.id}')" style="padding: 12px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px;">
+                <input type="text" name="message" placeholder="Escribí tu respuesta como comerciante..." autocomplete="off" style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;" />
+                <button type="submit" style="background: #09305f; color: #fff; border: none; padding: 0 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">Responder</button>
+              </form>
+            </div>
           </div>
         </div>`;
     },
@@ -1025,23 +1079,60 @@
     if (modal) modal.style.display = 'flex';
   };
 
-  window.Actions['open-followers-modal'] = () => {
+  window.Actions['open-followers-modal'] = (storeId) => {
     const titleEl = document.getElementById('metric-modal-title');
     const bodyEl = document.getElementById('metric-modal-body');
     if (titleEl) titleEl.textContent = 'Seguidores de la Tienda';
+    
     if (bodyEl) {
-      bodyEl.innerHTML = `<p style="font-size: 13px; color: #64748b;">Listado de seguidores y clientes recurrentes de esta sucursal.</p>`;
+      bodyEl.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 8px;">Usuarios que siguen actualmente a esta tienda:</p>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #09305f; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 12px;">EL</div>
+            <div>
+              <strong style="font-size: 13px; color: #0f172a; display: block;">Eleesdg (Usuario Actual)</strong>
+              <small style="font-size: 11px; color: #166534; font-weight: 700;">Siguiendo tienda</small>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 12px;">MG</div>
+            <div>
+              <strong style="font-size: 13px; color: #0f172a; display: block;">Mariana Gómez</strong>
+              <small style="font-size: 11px; color: #166534; font-weight: 700;">Cliente frecuente</small>
+            </div>
+          </div>
+        </div>
+      `;
     }
     const modal = document.getElementById('metric-detail-modal');
     if (modal) modal.style.display = 'flex';
   };
 
-  window.Actions['open-saved-products-modal'] = () => {
+  window.Actions['open-saved-products-modal'] = (storeId) => {
     const titleEl = document.getElementById('metric-modal-title');
     const bodyEl = document.getElementById('metric-modal-body');
     if (titleEl) titleEl.textContent = 'Productos Guardados en Favoritos';
+
+    const favoriteIds = window.Store?.state?.favoriteProducts || [];
+    const allProducts = window.Data?.products || [];
+    const savedItems = allProducts.filter(p => favoriteIds.includes(p.id));
+
     if (bodyEl) {
-      bodyEl.innerHTML = `<p style="font-size: 13px; color: #64748b;">Artículos guardados por los usuarios en listas de deseos.</p>`;
+      bodyEl.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 4px;">Artículos guardados por los clientes en sus listas de deseos:</p>
+          ${savedItems.length > 0 ? savedItems.map(item => `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;">
+              <img src="${esc(item.image || (item.photos && item.photos[0]) || '')}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;" />
+              <div style="flex: 1;">
+                <strong style="font-size: 13px; color: #0f172a; display: block;">${esc(item.name)}</strong>
+                <span style="font-size: 12px; font-weight: 800; color: #fd6910;">${money(item.price)}</span>
+              </div>
+            </div>
+          `).join('') : '<p style="font-size: 13px; color: #64748b; text-align: center; padding: 20px;">No hay productos guardados actualmente en favoritos.</p>'}
+        </div>
+      `;
     }
     const modal = document.getElementById('metric-detail-modal');
     if (modal) modal.style.display = 'flex';
@@ -1241,6 +1332,29 @@
     showToast(`¡Producto publicado exitosamente en ${activeStore.name}!`);
   };
 
+  /* --- ENVÍO DE MENSAJES DESDE EL PANEL DE COMERCIANTE (SIN RECARGAR PÁGINA) --- */
+  window.Forms['merchant-send-chat'] = (form, storeId) => {
+    const input = form.querySelector('input[name="message"]');
+    const text = input ? input.value.trim() : '';
+    if (!text) return;
+
+    window.Store.state.chats = window.Store.state.chats || {};
+    window.Store.state.chats[storeId] = window.Store.state.chats[storeId] || [];
+    window.Store.state.chats[storeId].push({ sender: 'store', text });
+    input.value = '';
+
+    // Actualización dinámica directa del DOM del chat sin refrescar ni mostrar pantallas de carga
+    const msgsBox = document.getElementById('merchant-chat-msgs-box');
+    if (msgsBox) {
+      msgsBox.innerHTML = window.Store.state.chats[storeId].map(m => `
+        <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; ${m.sender === 'store' ? 'background: #09305f; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px;' : 'background: #fff; color: #0f172a; border: 1px solid #cbd5e1; align-self: flex-start; border-bottom-left-radius: 2px;'}">
+          ${esc(m.text)}
+        </div>
+      `).join('');
+      msgsBox.scrollTop = msgsBox.scrollHeight;
+    }
+  };
+
   /* --- RENDERIZADO DEL MODAL DE TIENDA CON PERSISTENCIA DE DATOS EN EL DRAFT --- */
   function renderStoreModalBody() {
     const container = document.getElementById('store-modal-body-container');
@@ -1353,7 +1467,6 @@
     `;
   }
 
-  /* Función auxiliar interna para capturar y preservar los datos escritos en el borrador al interactuar con teléfonos */
   function syncDraftFromDOM() {
     const nameInput = document.getElementById('modal-store-name');
     if (nameInput) storeModalDraft.name = nameInput.value;
@@ -1385,7 +1498,7 @@
   };
 
   window.Actions['add-store-phone'] = () => {
-    syncDraftFromDOM(); // Sincroniza los campos actuales para evitar que se borren al agregar teléfono
+    syncDraftFromDOM();
     if (!storeModalDraft.phones) storeModalDraft.phones = [];
     if (storeModalDraft.phones.length < 3) {
       storeModalDraft.phones.push({ country: 'Argentina (+54)', type: 'WhatsApp', number: '' });
@@ -1394,7 +1507,7 @@
   };
 
   window.Actions['remove-store-phone'] = (idx) => {
-    syncDraftFromDOM(); // Sincroniza los campos actuales para evitar que se borren al eliminar teléfono
+    syncDraftFromDOM();
     if (storeModalDraft.phones && storeModalDraft.phones.length > 1) {
       storeModalDraft.phones.splice(idx, 1);
       renderStoreModalBody();

@@ -34,8 +34,8 @@
 
       return `
         <div class="market-container" style="max-width: 900px; margin: 32px auto; padding: 0 16px;">
-          <nav aria-label="Navegación" style="margin-bottom: 20px; font-size: 13px; color: var(--muted, #687788);">
-            <button data-go="marketplace" style="background:none; border:none; color:var(--primary, #09305f); cursor:pointer; padding:0; font-weight:700;">Inicio</button>
+          <nav aria-label="Navegación" style="margin-bottom: 20px; font-size: 13px; color: var(--muted, #64748b);">
+            <button data-go="marketplace" style="background:none; border:none; color:var(--primary, #fd6910); cursor:pointer; padding:0; font-weight:700;">Inicio</button>
             <span style="margin: 0 6px;">›</span>
             <span>Preguntas Frecuentes</span>
           </nav>
@@ -50,10 +50,10 @@
           <div style="display: flex; flex-direction: column; gap: 16px;">
             ${faqs.map((item, idx) => `
               <div style="background: var(--surface, #fff); border: 1px solid var(--border, #cbd5e1); border-radius: 12px; padding: 22px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
-                <h3 style="font-size: 16px; font-weight: 800; color: var(--text, #14283e); margin: 0 0 8px 0; display: flex; align-items: flex-start; gap: 10px; letter-spacing: normal;">
-                  <span style="color: var(--primary, #09305f); font-weight: 800;">${idx + 1}.</span> ${esc(item.q)}
+                <h3 style="font-size: 16px; font-weight: 800; color: var(--text, #0f172a); margin: 0 0 8px 0; display: flex; align-items: center; gap: 10px;">
+                  <span style="color: var(--primary, #fd6910); font-weight: 800;">${idx + 1}.</span> ${esc(item.q)}
                 </h3>
-                <p style="font-size: 14px; color: var(--muted, #687788); margin: 0; line-height: 1.5; padding-left: 24px;">
+                <p style="font-size: 14px; color: var(--muted, #64748b); margin: 0; line-height: 1.5; padding-left: 24px;">
                   ${esc(item.a)}
                 </p>
               </div>
@@ -61,9 +61,9 @@
           </div>
 
           <div style="margin-top: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center;">
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--text, #14283e); margin: 0 0 6px 0; letter-spacing: normal;">¿Tenés otra consulta?</h3>
-            <p style="font-size: 13px; color: var(--muted, #687788); margin: 0 0 16px 0;">Nuestro equipo de soporte en San Juan está disponible para ayudarte.</p>
-            <button type="button" onclick="alert('Soporte CompraLocal: Escribinos a soporte@compralocal.sj o por WhatsApp al 264 500-0000.');" style="background: var(--primary, #09305f); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer;">
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text, #0f172a); margin: 0 0 6px 0;">¿Tenés otra consulta?</h3>
+            <p style="font-size: 13px; color: var(--muted, #64748b); margin: 0 0 16px 0;">Nuestro equipo de soporte en San Juan está disponible para ayudarte.</p>
+            <button type="button" onclick="alert('Soporte CompraLocal: Escribinos a soporte@compralocal.sj o por WhatsApp al 264 500-0000.');" style="background: var(--primary, #fd6910); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer;">
               Contactar Soporte
             </button>
           </div>

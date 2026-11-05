@@ -1,9 +1,6 @@
 /**
- * LEGACY — no cargar en index.html.
- * Fuente de verdad de registro: js/pages/auth.js (#signup).
- * Ver docs/diseno/LEGACY.md.
- *
- * COMPRALOCAL — REGISTER PAGE (obsoleto)
+ * COMPRALOCAL — REGISTER PAGE
+ * Registro de nuevos clientes y acceso a comerciantes (/registro)
  */
 
 function renderRegister() {

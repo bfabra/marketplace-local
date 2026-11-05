@@ -3,9 +3,9 @@ dist/
 .next/
 
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
+!.env.*.example
 
 # Fotos subidas en desarrollo (en producción van a Supabase Storage)
 apps/api/uploads/

@@ -8,6 +8,7 @@ import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
 import { formatPrice } from '@/lib/utils';
 import { Icon } from '@/components/ui/icon';
+import { FavoriteButton } from '@/components/ui/favorite-button';
 
 export const enlaceProducto = (tiendaSlug: string, productoSlug: string) =>
   `/tiendas/${tiendaSlug}?producto=${encodeURIComponent(productoSlug)}`;
@@ -58,27 +59,30 @@ export function MarketProductCard({
 
   return (
     <article className="market-product-card">
-      <Link
-        href={href}
-        scroll={false}
-        className="product-image-button"
-        aria-label={`Ver detalle de ${producto.nombre}`}
-        onClick={(e) => {
-          if (!onAbrir || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-          e.preventDefault();
-          onAbrir();
-        }}
-      >
-        {producto.imagen ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={producto.imagen} alt={producto.nombre} loading="lazy" />
-        ) : (
-          <i className="product-sin-foto" aria-hidden="true">
-            <Icon name="image" size={36} strokeWidth={1.4} />
-          </i>
-        )}
-        <span>Ver detalle</span>
-      </Link>
+      <div className="market-product-media">
+        <Link
+          href={href}
+          scroll={false}
+          className="product-image-button"
+          aria-label={`Ver detalle de ${producto.nombre}`}
+          onClick={(e) => {
+            if (!onAbrir || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            onAbrir();
+          }}
+        >
+          {producto.imagen ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={producto.imagen} alt={producto.nombre} loading="lazy" />
+          ) : (
+            <i className="product-sin-foto" aria-hidden="true">
+              <Icon name="image" size={36} strokeWidth={1.4} />
+            </i>
+          )}
+          <span>Ver detalle</span>
+        </Link>
+        <FavoriteButton productoId={producto.id} nombre={producto.nombre} className="market-product-fav" />
+      </div>
       <small>{producto.categoria?.nombre ?? 'Producto'}</small>
       <h3>{producto.nombre}</h3>
       <div className="market-product-pie">

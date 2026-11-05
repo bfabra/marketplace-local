@@ -98,12 +98,16 @@ export function ProductoModal({
     setErrorCarrito(null);
   }
 
-  async function agregarAlCarrito() {
+  async function agregarAlCarrito(irCheckout = false) {
     if (!variante) return;
     setAgregando(true);
     setErrorCarrito(null);
     try {
       await agregar(variante.id, cantidad);
+      if (irCheckout) {
+        window.location.href = '/checkout';
+        return;
+      }
       toast({
         titulo: `Agregaste ${cantidad} ${cantidad === 1 ? 'unidad' : 'unidades'} al carrito`,
         texto: producto?.nombre,
@@ -177,7 +181,10 @@ export function ProductoModal({
 
             <div className="product-modal-info">
               <span>FICHA DE PRODUCTO</span>
-              <h2>{producto.nombre}</h2>
+              <div className="product-modal-titulo">
+                <h2>{producto.nombre}</h2>
+                <FavoriteButton productoId={producto.id} nombre={producto.nombre} />
+              </div>
               <small>
                 {producto.categoria}
                 {conTienda && (
@@ -238,10 +245,21 @@ export function ProductoModal({
                   {variante && variante.stock > 0 && (
                     <QuantityStepper valor={cantidad} max={variante.stock} onChange={setCantidad} disabled={agregando} />
                   )}
+                </div>
+                <div className="product-modal-acciones">
                   <button
                     type="button"
                     className="market-primary-button"
-                    onClick={agregarAlCarrito}
+                    onClick={() => agregarAlCarrito(true)}
+                    disabled={!variante || variante.stock === 0 || agregando}
+                  >
+                    {agregando ? <span className="spinner" /> : null}
+                    {agregando ? 'Preparando…' : 'Comprar ahora'}
+                  </button>
+                  <button
+                    type="button"
+                    className="product-modal-agregar"
+                    onClick={() => agregarAlCarrito(false)}
                     disabled={!variante || variante.stock === 0 || agregando}
                   >
                     {agregando ? <span className="spinner" /> : <Icon name="cart" size={18} />}
@@ -253,7 +271,6 @@ export function ProductoModal({
                     {errorCarrito} {errorCarrito.includes('carrito') && <Link href="/carrito">Ver carrito</Link>}
                   </p>
                 )}
-                <FavoriteButton productoId={producto.id} nombre={producto.nombre} conTexto />
               </div>
             </div>
           </>

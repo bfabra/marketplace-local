@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { Manrope } from 'next/font/google';
 import { AuthProvider } from '@/components/layout/auth-provider';
 import { CartProvider } from '@/components/layout/cart-provider';
 import { FavoritesProvider } from '@/components/layout/favorites-provider';
@@ -11,13 +10,6 @@ import { AppShell } from '@/components/layout/app-shell';
 import { BRAND_NAME } from '@/components/layout/logo';
 import './globals.css';
 import '@/styles/marketplace.css';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-body',
-});
 
 export const metadata: Metadata = {
   title: { default: `${BRAND_NAME} · Comprá en los comercios de tu ciudad`, template: `%s · ${BRAND_NAME}` },
@@ -32,7 +24,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={manrope.variable}>
+    <html lang="es">
+      <head>
+        {/* Tipografía de la maqueta: Manrope (docs/diseno/index.html) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
         <a href="#contenido" className="saltar">
           Saltar al contenido

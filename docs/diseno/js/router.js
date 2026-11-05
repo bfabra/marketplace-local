@@ -4,7 +4,7 @@
 (function () {
   const ROUTES = [
     'login', 'signup', 'merchant', 'merchant-panel', 'review', 'success', 'styleguide',
-    'marketplace', 'categories', 'stores', 'store', 'search', 'product', 'cart', 'checkout', 'profile', 'faq'
+    'marketplace', 'categories', 'stores', 'store', 'search', 'product', 'cart', 'checkout', 'profile', 'faq', 'help', 'terms', 'about'
   ];
   const DEFAULT_ROUTE = 'marketplace';
 

@@ -15,7 +15,12 @@
       };
       
       const store_data = window.Data?.stores.find(s => s.id === product.storeId) || window.Data?.stores[0];
-      const relatedProducts = window.Data?.products.filter(p => p.id !== product.id && p.category === product.category).slice(0, 4) || [];
+      
+      // Productos de la misma tienda (excluyendo el producto actual)
+      const storeProducts = window.Data?.products.filter(p => p.storeId === product.storeId && p.id !== product.id).slice(0, 4) || [];
+      
+      // Productos de la misma categoría
+      const categoryProducts = window.Data?.products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4) || [];
 
       const price = window.Utils.money(product.price);
       const originalPrice = product.priceOriginal ? window.Utils.money(product.priceOriginal) : null;
@@ -30,6 +35,17 @@
       const stockLabel = stockStatus === 'in-stock' ? '✓ En stock'
         : stockStatus === 'low-stock' ? `⚠ Últimas ${product.stock} unidades`
         : '✕ Sin stock';
+
+      // Verificar si el producto está en favoritos del usuario
+      const s = window.Store?.state || {};
+      const favoriteProducts = s.favoriteProducts || [];
+      const isFavorite = favoriteProducts.includes(product.id);
+      const orangeColor = '#fd6910';
+
+      // Recopilar atributos específicos/dinámicos si existen
+      const attributesHtml = product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0
+        ? Object.entries(product.attributes).map(([key, val]) => `<li><strong>${window.Utils.esc(key)}:</strong> ${window.Utils.esc(val)}</li>`).join('')
+        : '';
 
       return `
         <div class="page-wrapper page-enter" style="padding-top: 24px; padding-bottom: 60px;">
@@ -58,12 +74,16 @@
 
                 <!-- Atributos / Lo que tenés que saber -->
                 <div style="margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
-                  <h3 style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 16px;">Lo que tenés que saber de este producto</h3>
+                  <h3 style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 16px;">Características del producto</h3>
                   <ul style="padding-left: 20px; font-size: 14px; line-height: 1.8; color: #334155;">
                     <li>Cantidad: 1 unidad.</li>
                     <li>Comercio certificado de ${store_data ? store_data.location : 'San Juan'}.</li>
                     <li>Envío unificado a domicilio en toda la provincia por $2.999.</li>
                     <li>Garantía directa del vendedor.</li>
+                    ${product.brand ? `<li>Marca: ${window.Utils.esc(product.brand)}</li>` : ''}
+                    ${product.sku ? `<li>SKU / Código: ${window.Utils.esc(product.sku)}</li>` : ''}
+                    ${product.condition ? `<li>Estado: ${window.Utils.esc(product.condition)}</li>` : ''}
+                    ${attributesHtml}
                   </ul>
                 </div>
 
@@ -82,7 +102,13 @@
                   
                   <div>
                     <span style="font-size: 11px; color: var(--muted); font-weight: 600;">Nuevo | +50 vendidos</span>
-                    <h1 style="font-size: 22px; font-weight: 800; color: var(--text); margin: 6px 0 12px 0;">${window.Utils.esc(product.name)}</h1>
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin: 6px 0 12px 0;">
+                      <h1 style="font-size: 22px; font-weight: 800; color: var(--text); margin: 0; line-height: 1.2;">${window.Utils.esc(product.name)}</h1>
+                      <!-- Icono de favorito al lado del nombre -->
+                      <button type="button" class="${isFavorite ? 'saved' : ''}" data-action="toggle-product-save" data-id="${product.id}" aria-pressed="${isFavorite}" aria-label="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}" style="background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: ${isFavorite ? orangeColor : '#64748b'}; flex-shrink: 0;" title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="${isFavorite ? orangeColor : 'none'}" stroke="${isFavorite ? orangeColor : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Price -->
@@ -103,28 +129,26 @@
                     <p style="font-size: 11px; color: #166534; margin: 4px 0 0 0;">Entrega directa a la puerta de tu casa en San Juan.</p>
                   </div>
 
-                  <!-- Acciones de compra diferenciadas -->
+                  <!-- Acciones de compra -->
                   <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <!-- Botón unificado a la acción global add-to-cart -->
-                    <button type="button" class="btn primary" style="width: 100%; height: 44px; font-weight: 800; cursor: pointer;" data-action="add-to-cart" data-id="${product.id}">
-                      Agregar al carrito
+                    <!-- Botón 1: Comprar ahora (Color azul, sin emojis) -->
+                    <button type="button" class="btn" style="width: 100%; height: 44px; font-weight: 800; cursor: pointer; background: #09305f; color: #fff; border: none; border-radius: 8px;" data-action="buy-now-redirect" data-id="${product.id}">
+                      Comprar ahora
                     </button>
-                    <!-- Botón Comprar ahora -->
-                    <button type="button" class="btn secondary" style="width: 100%; height: 44px; font-weight: 800; cursor: pointer;" data-action="buy-now-redirect" data-id="${product.id}">
-                      ⚡ Comprar ahora
+
+                    <!-- Botón 2: Agregar al carrito (Mismo color del fondo / superficie) -->
+                    <button type="button" class="btn" style="width: 100%; height: 44px; font-weight: 800; cursor: pointer; background: var(--surface, #fff); color: var(--text); border: 1px solid var(--border, #cbd5e1); border-radius: 8px;" data-action="add-to-cart" data-id="${product.id}">
+                      Agregar al carrito
                     </button>
                   </div>
 
-                  <!-- Store card mini -->
+                  <!-- Store card mini (Nombre de la tienda como enlace directo) -->
                   ${store_data ? `
                     <div style="border-top: 1px solid var(--border); padding-top: 16px;">
                       <span style="font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase;">Vendido por</span>
-                      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3); margin-top: 8px;">
-                        <div>
-                          <div style="font-weight: 800; font-size: 14px; color: var(--text);">${window.Utils.esc(store_data.name)}</div>
-                          <div style="font-size: 11px; color: var(--muted);">${window.Utils.esc(store_data.location)}</div>
-                        </div>
-                        <button type="button" class="btn secondary" data-action="open-store" data-id="${store_data.id}" style="font-size: 11px; padding: 6px 12px; cursor: pointer;">Ver tienda</button>
+                      <div style="margin-top: 6px;">
+                        <a data-action="open-store" data-id="${store_data.id}" style="font-weight: 800; font-size: 14px; color: var(--primary); text-decoration: none; cursor: pointer; display: block;">${window.Utils.esc(store_data.name)}</a>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">${window.Utils.esc(store_data.location)}</div>
                       </div>
                     </div>
                   ` : ''}
@@ -133,14 +157,34 @@
 
             </div>
 
-            <!-- Related Products -->
-            ${relatedProducts.length > 0 ? `
+            <!-- Fila 1: Más productos de la misma tienda -->
+            ${storeProducts.length > 0 ? `
               <div style="margin-top: 48px;">
                 <div class="market-section-heading">
-                  <div><span>DEL MISMO RUBRO</span><h2>Productos relacionados</h2></div>
+                  <div><span>DEL MISMO COMERCIO</span><h2>Más productos de ${window.Utils.esc(store_data ? store_data.name : 'esta tienda')}</h2></div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px;">
-                  ${relatedProducts.map(p => `
+                  ${storeProducts.map(p => `
+                    <div class="product-card" data-action="open-product" data-id="${window.Utils.esc(p.id)}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="width: 100%; height: 150px; border-radius: 8px; overflow: hidden; background: #f1f5f9;">
+                        <img src="${window.Utils.esc(p.image)}" alt="${window.Utils.esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
+                      </div>
+                      <strong style="font-size: 14px; color: var(--text);">${window.Utils.esc(p.name)}</strong>
+                      <span style="font-size: 16px; font-weight: 800; color: var(--primary);">${window.Utils.money(p.price)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Fila 2: Productos relacionados a la misma categoría -->
+            ${categoryProducts.length > 0 ? `
+              <div style="margin-top: 48px;">
+                <div class="market-section-heading">
+                  <div><span>MISMA CATEGORÍA</span><h2>Productos relacionados en ${window.Utils.esc(product.category)}</h2></div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px;">
+                  ${categoryProducts.map(p => `
                     <div class="product-card" data-action="open-product" data-id="${window.Utils.esc(p.id)}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 8px;">
                       <div style="width: 100%; height: 150px; border-radius: 8px; overflow: hidden; background: #f1f5f9;">
                         <img src="${window.Utils.esc(p.image)}" alt="${window.Utils.esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
@@ -159,7 +203,7 @@
   };
 
   window.Actions = window.Actions || {};
-  
+
   // Acción exclusiva para "Comprar ahora"
   window.Actions['buy-now-redirect'] = (el) => {
     let p = null;

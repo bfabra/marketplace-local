@@ -1,6 +1,5 @@
 /**
- * LEGACY — stub; no cargar. Panel real: js/pages/merchant.js (#merchant-panel).
- * Ver docs/diseno/LEGACY.md.
+ * COMPRALOCAL — MERCHANT DASHBOARD (FASE 3)
  */
 function renderMerchantDashboard() {
   const container = document.getElementById('page-content');

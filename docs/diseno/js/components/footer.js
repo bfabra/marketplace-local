@@ -13,14 +13,14 @@
           <button data-go="categories">Rubros</button>
         </div>
         <div><strong>CompraLocal</strong>
-          <a href="#styleguide">Acerca de la plataforma</a>
-          <a href="#signup">Sumá tu comercio</a>
-          <a href="#styleguide">Preguntas frecuentes</a>
+          <button data-go="about">Acerca de la plataforma</button>
+          <button data-go="merchant">Sumá tu comercio</button>
+          <button data-go="faq">Preguntas frecuentes</button>
         </div>
         <div><strong>Ayuda</strong>
-          <a href="mailto:ayuda@compralocal.demo">Centro de ayuda</a>
-          <a href="mailto:hola@compralocal.demo">Contacto</a>
-          <a href="#styleguide">Términos y privacidad</a>
+          <button data-go="help">Centro de ayuda</button>
+          <button data-action="open-contact-modal">Contacto</button>
+          <button data-go="terms">Términos y privacidad</button>
         </div>
         <p class="footer-bottom">© 2026 CompraLocal · Contenido demostrativo para prototipo</p>
       </footer>`;

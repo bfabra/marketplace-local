@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "dev:api": "npm run dev -w api",
+    "dev:api:supabase": "npm run dev:supabase -w api",
     "dev:web": "npm run dev -w web",
     "build": "npm run build -w api -w web",
     "typecheck": "npm run contratos && tsc --noEmit -p apps/api && tsc --noEmit -p apps/web",

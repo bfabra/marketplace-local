@@ -4,8 +4,8 @@
 //   node local/cargar_local.mjs --reiniciar  borra todo y carga desde cero
 //   node local/cargar_local.mjs --sin-datos  no carga seed.sql en una base nueva
 //
-// Toma DATABASE_URL de apps/api/.env. Registra lo aplicado en la misma tabla
-// que usa Supabase CLI (supabase_migrations.schema_migrations).
+// Toma DATABASE_URL de apps/api/.env.local (APP_ENV=local) o .env.
+// Registra lo aplicado en supabase_migrations.schema_migrations.
 // pg_cron no existe en local: las tareas de tareas_programadas.sql se llaman a mano.
 
 import pg from 'pg';
@@ -13,14 +13,24 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const raiz = fileURLToPath(new URL('..', import.meta.url));
-const archivoEnv = fileURLToPath(new URL('../../../.env', import.meta.url));
+const apiRoot = fileURLToPath(new URL('../../..', import.meta.url));
+const perfil = (process.env.APP_ENV || 'local').trim();
+const candidatos = [`.env.${perfil}`, '.env'];
 const args = new Set(process.argv.slice(2));
 const reiniciar = args.has('--reiniciar');
 const sinDatos = args.has('--sin-datos');
 
-if (!process.env.DATABASE_URL && existsSync(archivoEnv)) process.loadEnvFile(archivoEnv);
 if (!process.env.DATABASE_URL) {
-  console.error('Falta DATABASE_URL (en apps/api/.env).');
+  for (const nombre of candidatos) {
+    const archivoEnv = `${apiRoot}/${nombre}`;
+    if (existsSync(archivoEnv)) {
+      process.loadEnvFile(archivoEnv);
+      break;
+    }
+  }
+}
+if (!process.env.DATABASE_URL) {
+  console.error('Falta DATABASE_URL (en apps/api/.env.local o apps/api/.env).');
   process.exit(1);
 }
 

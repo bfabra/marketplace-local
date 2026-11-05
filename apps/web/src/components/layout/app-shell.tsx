@@ -4,7 +4,20 @@ import { usePathname } from 'next/navigation';
 
 // Pantallas que ya siguen la maqueta del diseñador: arman sus propios contenedores.
 // El panel comerciante (#merchant-panel) también usa layout market (cabecera + pie).
-const CON_DISENIO = ['/', '/rubros', '/tiendas', '/buscar', '/carrito', '/preguntas', '/cuenta', '/favoritos'];
+const CON_DISENIO = [
+  '/',
+  '/rubros',
+  '/tiendas',
+  '/buscar',
+  '/carrito',
+  '/preguntas',
+  '/acerca',
+  '/ayuda',
+  '/terminos',
+  '/privacidad',
+  '/cuenta',
+  '/favoritos',
+];
 const conDisenio = (path: string) =>
   CON_DISENIO.includes(path) ||
   /^\/tiendas\/[^/]+$/.test(path) ||

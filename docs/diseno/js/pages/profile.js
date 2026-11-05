@@ -33,27 +33,27 @@
     { name: 'Venezuela (+58)', code: '+58' }
   ];
 
-  const SAN_JUAN_DEPARTMENTS = [
-    'Capital',
-    'Rawson',
-    'Rivadavia',
-    'Chimbas',
-    'Santa Lucía',
-    'Pocito',
-    'Albardón',
-    'Caucete',
-    'San Martín',
-    'Angaco',
-    '25 de Mayo',
-    'Sarmiento',
-    'Ullum',
-    'Zonda',
-    'Iglesia',
-    'Jáchal',
-    'Calingasta',
-    'Valle Fértil',
-    '9 de Julio'
-  ];
+  const sanJuanDepartments = {
+    'Capital': ['San Juan'],
+    'Rivadavia': ['Rivadavia', 'La Bebida', 'Marquesado', 'Villa San Martín', 'Villa Tacú'],
+    'Santa Lucía': ['Santa Lucía', 'Alto de Sierra', 'Colonia Gutiérrez', 'La Legua', 'Villa Don Bosco', 'Villa Hipódromo'],
+    'Rawson': ['Villa Krause', 'Rawson', 'El Medanito', 'Médano de Oro', 'Villa Bolaños', 'Colonia Rodas', 'Colonia Fiorito'],
+    'Pocito': ['Villa Aberastain', 'Carpintería', 'La Rinconada', 'Quinto Cuartel', 'Villa Independencia'],
+    'Zonda': ['Villa Basilio Nievas', 'Zonda'],
+    'Ullum': ['Villa Ibáñez', 'Ullum'],
+    'Chimbas': ['Chimbas', 'Villa Paula Albarracín de Sarmiento', 'El Mogote', 'Villa Obrera', 'Barrio Andacollo'],
+    '9 de Julio': ['9 de Julio', 'Las Chacritas', 'Alto de Sierra', 'Villa Fiorito'],
+    'Albardón': ['Villa General San Martín', 'Campo Afuera', 'El Rincón', 'El Topón', 'La Cañada', 'Las Tapias', 'Las Lomitas', 'Las Tierritas', 'Las Piedritas'],
+    'Angaco': ['Villa El Salvador', 'Las Tapias', 'Villa Sefair', 'Villa Sefair-Talacasto'],
+    'San Martín': ['Villa San Martín', 'San Isidro', 'Dos Acequias', 'Villa Dominguito', 'Villa del Salvador', 'La Puntilla', 'Pie de Palo'],
+    'Caucete': ['Caucete', 'Villa Independencia', 'Bermejo', 'El Rincón', 'Las Talas', 'Los Médanos', 'Vallecito', 'Pie de Palo'],
+    '25 de Mayo': ['Santa Rosa', 'Villa Santa Rosa', 'Casuarinas', 'Las Casuarinas', 'La Chimbera', 'El Encón', 'Tupelí', 'Villa Borjas', 'Punta del Médano'],
+    'Sarmiento': ['Villa Media Agua', 'Los Berros', 'Cochagual', 'Cañada Honda', 'Cienaguita', 'Colonia Fiscal', 'Divisadero', 'Guanacache', 'Pedernal', 'Las Lagunas'],
+    'Calingasta': ['Barreal', 'Villa Calingasta', 'Tamberías', 'Sorocayense', 'Villa Pituil', 'Villa Nueva', 'Hilario', 'Puchuzum', 'Alto Verde'],
+    'Iglesia': ['Rodeo', 'Villa Iglesia', 'Bella Vista', 'Las Flores', 'Tudcum', 'Angualasto', 'Colola', 'Pismanta', 'Malimán', 'Colangüil', 'Achango', 'El Llano', 'Tocota', 'Maipirinque', 'Campanario-Zonda', 'El Chinquillo'],
+    'Jáchal': ['San José de Jáchal', 'Huaco', 'Mogna', 'Niquivil', 'La Falda', 'El Médano', 'Gran China', 'San Isidro', 'Pampa Vieja', 'Tamberías'],
+    'Valle Fértil': ['San Agustín del Valle Fértil', 'Astica', 'Usno', 'Baldes del Rosario', 'Chucuma', 'Los Baldecitos', 'La Majadita', 'La Mesada', 'Las Casuarinas']
+  };
 
   Pages.profile = {
     layout: 'market',
@@ -81,6 +81,7 @@
         houseBlock: '',
         floorApt: '',
         department: 'Capital',
+        locality: 'San Juan',
         references: 'Portón negro, timbre roto',
         avatar: null
       };
@@ -160,7 +161,7 @@
         ? '<img src="' + esc(user.avatar) + '" alt="' + esc(firstName) + '" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />'
         : initials.toUpperCase();
 
-      const rawPhone = user.phoneNumber || '2645160508';
+      const rawPhone = user.phoneNumber || '2645123456';
       const pType = user.phoneType || 'WhatsApp';
       const pCountry = user.phoneCountry || 'Argentina (+54)';
       
@@ -186,8 +187,8 @@
             </div>
           ` : ''}
 
-          <nav aria-label="Navegación" style="margin-bottom: 16px; font-size: 13px; color: var(--muted, #687788);">
-            <button data-go="marketplace" style="background:none; border:none; color:var(--primary, #09305f); cursor:pointer; padding:0; font-weight:700;">Inicio</button>
+          <nav aria-label="Navegación" style="margin-bottom: 16px; font-size: 13px; color: var(--muted, #64748b);">
+            <button data-go="marketplace" style="background:none; border:none; color:var(--primary, #fd6910); cursor:pointer; padding:0; font-weight:700;">Inicio</button>
             <span style="margin: 0 6px;">›</span>
             <span>Mi Cuenta</span>
           </nav>
@@ -221,9 +222,9 @@
             <aside style="background: var(--surface, #fff); border: 1px solid var(--border, #cbd5e1); border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
               
               <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid var(--border, #e2e8f0); margin-bottom: 16px;">
-                <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 16px; border-radius: 50%; background: var(--accent-soft, #fff0e7); display: flex; align-items: center; justify-content: center; border: 4px solid var(--primary, #09305f); box-shadow: 0 6px 16px rgba(253,105,16,0.25);">
+                <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 16px; border-radius: 50%; background: #fff0e7; display: flex; align-items: center; justify-content: center; border: 4px solid var(--primary, #fd6910); box-shadow: 0 6px 16px rgba(253,105,16,0.25);">
                   ${avatarHtml}
-                  <label title="Subir foto de perfil" style="position: absolute; bottom: 2px; right: 2px; background: var(--primary, #09305f); color: #fff; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; border: 3px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                  <label title="Subir foto de perfil" style="position: absolute; bottom: 2px; right: 2px; background: var(--primary, #fd6910); color: #fff; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; border: 3px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                     ${window.Icon('camera', 18)}
                     <input type="file" id="avatar-input" accept="image/*" style="display:none;" onchange="window.Actions['upload-avatar'](this)" />
                   </label>
@@ -291,8 +292,16 @@
         `<option value="${t}" ${user.phoneType === t ? 'selected' : ''}>${t}</option>`
       ).join('');
 
-      const deptOptions = SAN_JUAN_DEPARTMENTS.map(d =>
-        `<option value="${d}" ${(user.department || 'Capital') === d ? 'selected' : ''}>${d}</option>`
+      const deptKeys = Object.keys(sanJuanDepartments);
+      const currentDept = user.department || 'Capital';
+      const deptOptions = deptKeys.map(d =>
+        `<option value="${d}" ${currentDept === d ? 'selected' : ''}>${d}</option>`
+      ).join('');
+
+      const localities = sanJuanDepartments[currentDept] || ['San Juan'];
+      const currentLocality = user.locality || localities[0];
+      const localityOptions = localities.map(l =>
+        `<option value="${l}" ${currentLocality === l ? 'selected' : ''}>${l}</option>`
       ).join('');
 
       const disabledAttr = isEditing ? '' : 'disabled';
@@ -338,8 +347,8 @@
             </div>
 
             <div style="grid-column: 1 / -1;">
-              <label style="display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:6px;">Número de Teléfono (sin 0 ni 15, ej: 2645160508)</label>
-              <input type="tel" id="profile-phone-number" value="${esc(user.phoneNumber || '')}" placeholder="2645160508" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}" />
+              <label style="display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:6px;">Número de Teléfono (sin 0 ni 15, ej: 2645123456)</label>
+              <input type="tel" id="profile-phone-number" value="${esc(user.phoneNumber || '')}" placeholder="2645123456" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}" />
             </div>
 
             <!-- SECCIÓN DOMICILIO DETALLADO PARA EL CADETE -->
@@ -367,10 +376,17 @@
               <input type="text" id="profile-house-block" value="${esc(user.houseBlock || '')}" placeholder="Ej: Casa 3, Manzana B, Depto 2B" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}" />
             </div>
 
-            <div style="grid-column: 1 / -1;">
+            <div>
               <label style="display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:6px;">Departamento (San Juan)</label>
-              <select id="profile-department" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}">
+              <select id="profile-department" onchange="window.Actions['change-profile-department'](this.value)" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}">
                 ${deptOptions}
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:6px;">Localidad / Villa / Zona</label>
+              <select id="profile-locality" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}">
+                ${localityOptions}
               </select>
             </div>
 
@@ -694,6 +710,21 @@
     if (window.App && typeof window.App.render === 'function') window.App.render();
   };
 
+  window.Actions['change-profile-department'] = (deptValue) => {
+    const currentUser = window.Store.state.user || {};
+    const localities = sanJuanDepartments[deptValue] || ['San Juan'];
+    window.Store.set({
+      user: {
+        ...currentUser,
+        department: deptValue,
+        locality: localities[0]
+      }
+    });
+    if (window.App && typeof window.App.render === 'function') {
+      window.App.render();
+    }
+  };
+
   window.Actions['save-user-profile'] = (formEl) => {
     const fName = document.getElementById('profile-firstname').value.trim();
     const lName = document.getElementById('profile-lastname').value.trim();
@@ -707,11 +738,12 @@
     const neighborhood = document.getElementById('profile-neighborhood').value.trim();
     const houseBlock = document.getElementById('profile-house-block').value.trim();
     const department = document.getElementById('profile-department').value;
+    const locality = document.getElementById('profile-locality').value;
     const references = document.getElementById('profile-references').value.trim();
 
     const currentUser = window.Store.state.user || {};
     const fullName = `${fName} ${lName}`.trim();
-    const fullAddressString = `${street} ${number}${neighborhood ? ', ' + neighborhood : ''}${department ? ', ' + department : ''}, San Juan`;
+    const fullAddressString = `${street} ${number}${neighborhood ? ', ' + neighborhood : ''}${locality ? ', ' + locality : ''}${department ? ', ' + department : ''}, San Juan`;
 
     window.Store.set({
       user: {
@@ -727,6 +759,7 @@
         neighborhood,
         houseBlock,
         department,
+        locality,
         references,
         address: fullAddressString
       },

@@ -6,7 +6,7 @@
     `https://images.unsplash.com/${id}?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=${w}`;
 
   const photos = {
-    storefront: U('photo-1768180316485-2c7306ab38ff', 1600),
+    storefront: 'public/images/banner.jpg',
     boutique: U('photo-1770992255795-95993012028b', 1200),
     cafe: U('photo-1761897526055-cd1df45f49ad', 1200),
     street: U('photo-1783275463499-995361d01289', 1200),

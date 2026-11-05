@@ -18,7 +18,7 @@
         const count = c.count !== undefined ? c.count : (c.subcategories ? c.subcategories.length : 0);
         return `
           <button data-action="open-category" data-name="${esc(c.name)}">
-            <i>${Icon(c.icon || 'grid', 22)}</i>
+            <i>${window.Icon(c.icon || 'grid', 22)}</i>
             <strong>${esc(c.name)}</strong>
             <span>${count} ${count === 1 ? 'tienda' : 'tiendas'}</span>
           </button>`;
@@ -26,27 +26,26 @@
 
       const moreCategoryHtml = `
         <button data-go="categories">
-          <i style="color: var(--primary, #fd6910);">${Icon('grid', 22)}</i>
+          <i style="color: var(--primary, #fd6910);">${window.Icon('grid', 22)}</i>
           <strong style="color: var(--primary, #fd6910);">Más categorías</strong>
           <span>Ver todos (${categories.length})</span>
         </button>`;
 
-      // 2. TIENDAS DESTACADAS (Carrusel)
+      // 2. TIENDAS DESTACADAS (Carrusel) - Se elimina el data-action del wrapper para evitar conflictos con el botón de favorito
       const featuredStores = stores.slice(0, 10);
       const storesCardsHtml = featuredStores.map((s) => `
-        <div class="store-card-wrapper" data-action="open-store" data-id="${esc(s.id)}" style="min-width: calc(33.333% - 8px); flex: 0 0 auto; cursor: pointer;">
+        <div class="store-card-wrapper" style="min-width: calc(33.333% - 8px); flex: 0 0 auto;">
           ${Cards.store(s)}
         </div>
       `).join('');
 
-      // 3. TIENDAS SEPARADAS POR RUBRO (8 tiendas max, de más nuevas a más antiguas, 2 filas x 4 columnas)
+      // 3. TIENDAS SEPARADAS POR RUBRO
       const topRubros = categories.slice(0, 5);
       const storesByRubroHtml = topRubros.map(cat => {
-        // Filtramos por rubro y ordenamos de más nuevas a más antiguas (invertimos o usamos id/isNew si aplica)
         const rubroStores = stores
           .filter(s => s.category && s.category.toLowerCase().includes(cat.name.toLowerCase().substring(0, 5)))
-          .reverse() // De más nuevas a más antiguas
-          .slice(0, 8); // Máximo 8 tiendas
+          .reverse()
+          .slice(0, 8);
 
         if (rubroStores.length === 0) return '';
 
@@ -58,7 +57,7 @@
                 <span>RUBRO DESTACADO</span>
                 <h2>${esc(cat.name)}</h2>
               </div>
-              <button data-action="open-category" data-name="${esc(cat.name)}">Ver más ${Icon('arrow', 15)}</button>
+              <button data-action="open-category" data-name="${esc(cat.name)}">Ver más ${window.Icon('arrow', 15)}</button>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;">
               ${rubroCards}
@@ -72,31 +71,13 @@
         `;
       }).join('');
 
-      // 4. OFERTAS IMPERDIBLES (Carrusel automático + manual)
-      const offerProducts = products.slice(0, 8); // Más productos para el carrusel
+      // 4. OFERTAS IMPERDIBLES
+      const offerProducts = products.slice(0, 8);
       const offersHtml = offerProducts.map(p => {
-        const storeObj = stores.find(s => s.id === p.storeId) || stores[0];
-        const oldPrice = Math.round(p.price * 1.25);
-        return `
-          <div class="product-card" data-action="open-product" data-id="${esc(p.id)}" style="min-width: 240px; flex: 0 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; position: relative;">
-            <span style="position: absolute; top: 18px; left: 18px; background: #dc2626; color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; z-index: 2;">20% OFF</span>
-            <div style="width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #f1f5f9; pointer-events: none;">
-              <img src="${esc(p.image)}" alt="${esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
-            </div>
-            <strong style="font-size: 14px; color: var(--text); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(p.name)}</strong>
-            <div style="display: flex; align-items: baseline; gap: 8px; pointer-events: none;">
-              <span style="font-size: 16px; font-weight: 800; color: var(--primary);">${money(p.price)}</span>
-              <span style="font-size: 12px; color: var(--muted); text-decoration: line-through;">${money(oldPrice)}</span>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; pointer-events: none;">
-              <small style="font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px;">${Icon('location', 12)} ${esc(storeObj.location)}</small>
-              <small style="font-size: 11px; font-weight: 700; color: #16a34a;">Envío $2.999</small>
-            </div>
-          </div>
-        `;
+        return `<div style="min-width: 240px; flex: 0 0 auto; display: flex; flex-direction: column; position: relative;">${Cards.product(p)}</div>`;
       }).join('');
 
-      // 6. PRODUCTOS DIFERENCIADOS POR CATEGORÍA (8 productos max, 2 filas x 4 columnas en desktop, adaptable en móvil)
+      // 6. PRODUCTOS DIFERENCIADOS POR CATEGORÍA
       const popularCategoriesWithProducts = ['Indumentaria y moda', 'Hogar y decoración', 'Salud y cuidado personal'];
       const productsByCategoryHtml = popularCategoriesWithProducts.map((catName) => {
         const catProducts = products.filter(p => {
@@ -104,32 +85,17 @@
           if (catName === 'Hogar y decoración') return p.category === 'Decoración';
           if (catName === 'Salud y cuidado personal') return p.category === 'Belleza';
           return false;
-        }).slice(0, 8); // Máximo 8 productos
+        }).slice(0, 8);
 
         if (catProducts.length === 0) return '';
 
-        const cardsHtml = catProducts.map(p => {
-          const storeObj = stores.find(s => s.id === p.storeId) || stores[0];
-          return `
-            <div class="product-card" data-action="open-product" data-id="${esc(p.id)}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 8px;">
-              <div style="width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #f1f5f9; pointer-events: none;">
-                <img src="${esc(p.image)}" alt="${esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
-              </div>
-              <strong style="font-size: 14px; color: var(--text); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(p.name)}</strong>
-              <span style="font-size: 16px; font-weight: 800; color: var(--primary); pointer-events: none;">${money(p.price)}</span>
-              <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; pointer-events: none;">
-                <small style="font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px;">${Icon('location', 12)} ${esc(storeObj.location)}</small>
-                <small style="font-size: 11px; font-weight: 700; color: #16a34a;">Envío $2.999</small>
-              </div>
-            </div>
-          `;
-        }).join('');
+        const cardsHtml = catProducts.map(p => Cards.product(p)).join('');
 
         return `
           <section class="market-section" style="margin-top: 36px;">
             <div class="market-section-heading">
               <div><span>DESTACADOS EN SECTOR</span><h2>${esc(catName)}</h2></div>
-              <button data-action="open-category" data-name="${esc(catName)}">Ver más ${Icon('arrow', 15)}</button>
+              <button data-action="open-category" data-name="${esc(catName)}">Ver más ${window.Icon('arrow', 15)}</button>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;">
               ${cardsHtml}
@@ -179,25 +145,24 @@
           color: var(--text);
           flex-shrink: 0;
         }
-        /* Ocultar barra de scroll en carruseles */
         .auto-scroll-track::-webkit-scrollbar {
           display: none;
         }
       </style>
 
       <!-- HERO PRINCIPAL -->
-      <section class="market-hero" style="background-image:url('${photos.storefront}')">
-        <div class="market-hero-overlay"></div>
+<!-- HERO PRINCIPAL -->
+      <section class="market-hero" style="background-image:url('${photos.storefront}'); background-position: center 60%; background-size: cover;">        <div class="market-hero-overlay"></div>
         <div class="market-hero-content">
           <span>TODO CERCA TUYO · ENVÍO ÚNICO $2.999</span>
           <h1>Descubrí los comercios<br />de tu zona en San Juan</h1>
           <p>Negocios reales de la provincia, con entrega directa a la puerta de tu casa.</p>
           <form data-form="search" role="search">
-            ${Icon('search')}
+            ${window.Icon('search')}
             <input data-input="query" value="${esc(q)}" placeholder="¿Qué comercio, rubro o producto buscás?" aria-label="Buscar comercio, rubro o producto" />
             <button type="submit">Buscar</button>
           </form>
-          <small>${Icon('location', 14)} Comercios verificados en San Juan</small>
+          <small>${window.Icon('location', 14)} Comercios verificados en San Juan</small>
         </div>
       </section>
 
@@ -234,7 +199,7 @@
         <section class="market-section">
           <div class="market-section-heading">
             <div><span>EXPLORÁ POR RUBRO</span><h2>Encontrá lo que necesitás</h2></div>
-            <button data-go="categories">Ver más ${Icon('arrow', 15)}</button>
+            <button data-go="categories">Ver más ${window.Icon('arrow', 15)}</button>
           </div>
           <div class="home-category-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; padding-top: 8px; overflow: visible;">
             ${categoriesHtml}
@@ -259,7 +224,7 @@
         <!-- 3. TIENDAS SEPARADAS POR RUBRO -->
         ${storesByRubroHtml}
 
-        <!-- 4. OFERTAS IMPERDIBLES (Carrusel automático + manual) -->
+        <!-- 4. OFERTAS IMPERDIBLES -->
         <section class="market-section" style="position: relative; margin-top: 36px;">
           <div class="market-section-heading">
             <div><span>⚡ APROVECHÁ HOY</span><h2>Ofertas imperdibles</h2><p>Precios especiales de comercios cercanos con envío rápido.</p></div>
@@ -273,7 +238,7 @@
           </div>
         </section>
 
-        <!-- 5. BANNER PROMOCIONAL INTERMEDIO (PARA COMERCIANTES) -->
+        <!-- 5. BANNER PROMOCIONAL INTERMEDIO -->
         <section style="margin: 40px 0; background: linear-gradient(135deg, #fd6910 0%, #ff8c42 100%); border-radius: 16px; padding: 32px; color: #fff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
           <div style="max-width: 600px;">
             <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase;">¿Tenés un negocio en San Juan?</span>
@@ -297,7 +262,6 @@
     },
 
     mount(root) {
-      // 1. Control de scroll manual para los carruseles
       window.Actions = window.Actions || {};
       window.Actions['scroll-carousel'] = (el) => {
         const targetId = el.dataset.target;
@@ -313,7 +277,6 @@
         }
       };
 
-      // 2. Desplazamiento automático (autoplay) para el carrusel de ofertas imperdibles
       const offersTrack = root.querySelector('#offers-carousel');
       if (offersTrack) {
         let autoScrollInterval = setInterval(() => {
@@ -321,15 +284,13 @@
             clearInterval(autoScrollInterval);
             return;
           }
-          // Si llega al final, vuelve al inicio; sino avanza 280px
           if (offersTrack.scrollLeft + offersTrack.clientWidth >= offersTrack.scrollWidth - 10) {
             offersTrack.scrollTo({ left: 0, behavior: 'smooth' });
           } else {
             offersTrack.scrollBy({ left: 280, behavior: 'smooth' });
           }
-        }, 3500); // Pasa cada 3.5 segundos
+        }, 3500);
 
-        // Pausar autoplay cuando el cursor esté encima del carrusel de ofertas
         offersTrack.addEventListener('mouseenter', () => clearInterval(autoScrollInterval));
       }
     }

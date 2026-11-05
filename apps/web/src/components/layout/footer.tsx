@@ -24,23 +24,16 @@ export function Footer() {
 
       <div>
         <strong>{BRAND_NAME}</strong>
+        <Link href="/acerca">Acerca de la plataforma</Link>
         <Link href="/vendor/nueva-tienda">Sumá tu comercio</Link>
-        <Link href="/vendor">Panel de vendedor</Link>
-        <Link href="/categorias">Categorías de productos</Link>
+        <Link href="/preguntas">Preguntas frecuentes</Link>
       </div>
 
       <div>
         <strong>Ayuda</strong>
-        <Link href="/preguntas">Preguntas frecuentes</Link>
-        {correo ? (
-          <>
-            <a href={`mailto:${correo}`}>Centro de ayuda</a>
-            <a href={`mailto:${correo}`}>Contacto</a>
-          </>
-        ) : (
-          <Link href="/cuenta">Mi cuenta</Link>
-        )}
-        <Link href="/terminos">Términos y Condiciones</Link>
+        <Link href="/ayuda">Centro de ayuda</Link>
+        {correo ? <a href={`mailto:${correo}`}>Contacto</a> : <Link href="/ayuda">Contacto</Link>}
+        <Link href="/terminos">Términos y privacidad</Link>
         <Link href="/privacidad">Privacidad</Link>
       </div>
 

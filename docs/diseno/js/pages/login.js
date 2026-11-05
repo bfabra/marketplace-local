@@ -1,9 +1,6 @@
 /**
- * LEGACY — no cargar en index.html.
- * Fuente de verdad de auth: js/pages/auth.js (#login / #signup).
- * Ver docs/diseno/LEGACY.md.
- *
- * COMPRALOCAL — LOGIN & PASSWORD RECOVERY PAGE (obsoleto)
+ * COMPRALOCAL — LOGIN & PASSWORD RECOVERY PAGE
+ * Interfaz de inicio de sesión de clientes y comerciantes (/login y /recuperar-password)
  */
 
 function renderLogin() {

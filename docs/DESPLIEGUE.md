@@ -75,7 +75,19 @@ El único módulo que cambia es `apps/api/src/common/utils/images.ts`. El resto 
 4. **SMTP**  
    Sin `SMTP_HOST` en producción el API **no ofrece** recuperar contraseña (ver `env.ts`). Configurá Brevo/Resend antes de lanzar.
 
-## Variables de entorno
+## Variables de entorno del API (local vs Supabase)
+
+En `apps/api` hay un archivo por ambiente (no se versionan):
+
+| Archivo | Uso | Comando |
+|---------|-----|---------|
+| `.env.local` | PostgreSQL en tu PC | `npm run dev` / `npm run db:demo` |
+| `.env.supabase` | Proyecto Supabase | `npm run dev:supabase` / `npm run db:demo:supabase` |
+
+Plantillas: `.env.local.example` y `.env.supabase.example`.  
+`APP_ENV` elige el archivo (`local` por defecto).
+
+## Variables de entorno (producción)
 
 ### Web (Vercel)
 

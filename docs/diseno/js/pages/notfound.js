@@ -1,8 +1,5 @@
 /**
- * LEGACY — no cargar en index.html.
- * Ver docs/diseno/LEGACY.md.
- *
- * COMPRALOCAL — NOT FOUND (404) PAGE (obsoleto)
+ * COMPRALOCAL — NOT FOUND (404) PAGE
  */
 
 function renderNotFound() {

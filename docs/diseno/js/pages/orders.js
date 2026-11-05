@@ -1,9 +1,6 @@
 /**
- * LEGACY — no cargar en index.html.
- * Compras / envíos viven en js/pages/profile.js (#profile).
- * Ver docs/diseno/LEGACY.md.
- *
- * COMPRALOCAL — ORDERS PAGE (obsoleto)
+ * COMPRALOCAL — ORDERS PAGE
+ * Historial y seguimiento de pedidos del cliente (/mis-pedidos y /pedido/:id)
  */
 
 function renderOrders({ params = {}, query = {} } = {}) {

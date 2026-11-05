@@ -1326,6 +1326,29 @@
   border-radius: 10px;
   background: var(--surface);
   overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.market-product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.market-product-media {
+  position: relative;
+}
+
+.market-product-media .market-product-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .product-image-button {
@@ -1829,6 +1852,18 @@
   text-align: right;
 }
 
+.product-modal-titulo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.product-modal-titulo h2 {
+  margin: 0;
+  line-height: 1.2;
+}
+
 .product-modal-compra {
   width: 100%;
   margin-top: auto;
@@ -1843,17 +1878,41 @@
   gap: 8px;
 }
 
+.product-modal-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .product-modal-compra .market-primary-button {
   flex: 1;
   margin-top: 0;
+  width: 100%;
+}
+
+.product-modal-agregar {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.product-modal-agregar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .product-modal-compra .market-aviso {
   margin: 0;
-}
-
-.product-modal-compra .fav-btn-texto {
-  justify-self: center;
 }
 
 .product-modal-stock {
@@ -2260,6 +2319,156 @@
 .faq-soporte .market-primary-button:hover {
   background: var(--primary-hover, #06264c);
   color: #fff;
+}
+
+/* ════════ ACERCA / AYUDA (#about / #help) ════════ */
+.acerca-page,
+.ayuda-page {
+  max-width: 900px;
+  margin: 32px auto;
+  padding: 0 16px 80px;
+}
+
+.acerca-card,
+.ayuda-card,
+.ayuda-locked {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 36px 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.acerca-eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.acerca-hero {
+  text-align: center;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+}
+
+.acerca-hero h1,
+.ayuda-hero h1,
+.ayuda-locked h1 {
+  margin: 8px 0 12px;
+  color: var(--primary);
+  font-size: clamp(1.5rem, 2vw, 1.9rem);
+  font-weight: 800;
+}
+
+.acerca-hero p,
+.ayuda-hero p,
+.ayuda-locked p,
+.ayuda-contacto-texto {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.acerca-card h2,
+.ayuda-card h2 {
+  margin: 0 0 10px;
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.acerca-card section + section {
+  margin-top: 24px;
+}
+
+.acerca-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-top: 28px;
+}
+
+.acerca-grid h3 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.acerca-grid ul,
+.ayuda-atajos {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.acerca-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+  justify-content: center;
+}
+
+.ayuda-hero {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.ayuda-page .ayuda-card + .ayuda-card {
+  margin-top: 16px;
+}
+
+.ayuda-atajos {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ayuda-atajos a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ayuda-atajos a:hover {
+  background: var(--canvas);
+}
+
+.ayuda-locked {
+  max-width: 560px;
+  margin: 60px auto;
+  text-align: center;
+}
+
+.ayuda-locked-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #d97706;
+  display: grid;
+  place-items: center;
+}
+
+.ayuda-locked .mp-btn-crear {
+  margin-top: 20px;
+  display: inline-flex;
 }
 
 /* ════════ CARRITO (#cart) ════════ */
