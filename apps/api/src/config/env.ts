@@ -11,6 +11,9 @@ const apiRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
  * - APP_ENV=local     → .env.local     (PostgreSQL en la PC)
  * - APP_ENV=supabase  → .env.supabase  (proyecto en la nube)
  * Si no hay .env.{APP_ENV}, se intenta el .env clásico (compatibilidad).
+ *
+ * En Render/Vercel las vars vienen de process.env; dotenv no las pisa.
+ * Cadenas vacías del panel se tratan como “no definidas” (si no, rompe .default()).
  */
 const perfil = (process.env.APP_ENV || 'local').trim().toLowerCase();
 const cargado = dotenv.config({ path: path.join(apiRoot, `.env.${perfil}`) });
@@ -18,23 +21,39 @@ if (cargado.error) {
   dotenv.config({ path: path.join(apiRoot, '.env') });
 }
 
-const opcional = z
-  .string()
-  .optional()
-  .transform((v) => v?.trim() || undefined);
+/** Render a veces crea la key con valor ""; Zod no aplica .default() en ese caso. */
+const vacio = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
+
+const opcional = z.preprocess(
+  vacio,
+  z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() || undefined)
+);
 
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    PORT: z.string().transform(Number).default('3000'),
-    DATABASE_URL: z.string().url(),
-    JWT_SECRET: z.string().min(10),
-    WEB_ORIGIN: z.string().url().default('http://localhost:3001'),
-    REDIS_URL: z.string().optional(),
+    PORT: z.preprocess(vacio, z.string().default('3000')).transform(Number),
+    // No usamos .url(): claves con @ # % sin encode rompen el parseo y son válidas para Prisma.
+    DATABASE_URL: z.preprocess(
+      vacio,
+      z
+        .string({ required_error: 'Falta DATABASE_URL (URI de Supabase en el panel de Render)' })
+        .min(1)
+        .refine((s) => /^postgres(ql)?:\/\//i.test(s), 'DATABASE_URL debe empezar con postgresql://')
+    ),
+    JWT_SECRET: z.preprocess(
+      vacio,
+      z.string({ required_error: 'Falta JWT_SECRET' }).min(10, 'JWT_SECRET debe tener al menos 10 caracteres')
+    ),
+    WEB_ORIGIN: z.preprocess(vacio, z.string().url().default('http://localhost:3001')),
+    REDIS_URL: opcional,
     GOOGLE_CLIENT_ID: opcional,
     GOOGLE_MAPS_API_KEY: opcional,
     SMTP_HOST: opcional,
-    SMTP_PORT: z.string().default('587').transform(Number),
+    SMTP_PORT: z.preprocess(vacio, z.string().default('587')).transform(Number),
     SMTP_USER: opcional,
     SMTP_PASS: opcional,
     MAIL_FROM: opcional,
@@ -64,5 +83,20 @@ const envSchema = z
     }
   });
 
-export const env = envSchema.parse(process.env);
+function cargarEnv() {
+  const r = envSchema.safeParse(process.env);
+  if (r.success) return r.data;
+
+  console.error('\n[env] Variables de entorno inválidas o faltantes:\n');
+  for (const issue of r.error.issues) {
+    const donde = issue.path.length ? issue.path.join('.') : '(general)';
+    console.error(`  · ${donde}: ${issue.message}`);
+  }
+  console.error(
+    '\nEn Render → Environment: DATABASE_URL, JWT_SECRET, WEB_ORIGIN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.\nVer docs/DESPLIEGUE.md § Environment Variables.\n'
+  );
+  process.exit(1);
+}
+
+export const env = cargarEnv();
 export const appEnv = perfil;

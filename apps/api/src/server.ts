@@ -1,6 +1,14 @@
 import app from './app.js';
-import { env } from './config/env.js';
+import { env, appEnv } from './config/env.js';
+import { usaStorageRemoto } from './common/utils/images.js';
 
-app.listen(env.PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${env.PORT} en modo ${env.NODE_ENV}`);
+const server = app.listen(env.PORT, () => {
+  console.log(
+    `API lista · puerto ${env.PORT} · ${env.NODE_ENV} · perfil ${appEnv} · fotos ${usaStorageRemoto() ? 'Supabase Storage' : 'disco local'}`
+  );
+});
+
+server.on('error', (err) => {
+  console.error('[server] No se pudo escuchar el puerto:', err);
+  process.exit(1);
 });

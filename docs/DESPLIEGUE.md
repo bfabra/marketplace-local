@@ -211,6 +211,7 @@ Hay dos formas equivalentes. Preferí **Blueprint** (`render.yaml` en la raíz d
 
 - **`NPM_CONFIG_PRODUCTION=false`**: hace falta para instalar `typescript` / `prisma` (devDependencies) durante el build aunque `NODE_ENV=production`.
 - **Orden del build**: primero `prisma generate`, después `tsc`. Si generás después (o no generás), falla con `Property 'sql' does not exist on type 'typeof Prisma'` (TS2339).
+- **`start` sale con código 1**: casi siempre faltan o están mal las Environment Variables. En los logs buscá `[env] Variables de entorno inválidas` (lista el campo). Obligatorias: `DATABASE_URL`, `JWT_SECRET`; recomendadas: `WEB_ORIGIN`, `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. No dejes keys creadas con valor vacío (borralas o completalas). Si la clave de Postgres tiene `@ # % & / ?`, codificala en la URI (`@` → `%40`).
 - **`trust proxy`**: en producción el API confía 1 hop (proxy de Render) para rate-limit e IPs (`apps/api/src/app.ts`).
 - **Cookies `Secure`**: con `NODE_ENV=production` la cookie de sesión solo viaja por HTTPS. El smoke de login conviene hacerlo con la web en **Vercel**, no mezclando `localhost` HTTP → API Render.
 - **Cold start Free**: tras ~15 min sin tráfico el servicio se duerme; la 1.ª request despierta (30–60 s). Opcional: cron externo gratis pegándole a `/api/health` cada 10 min.
