@@ -1,0 +1,44 @@
+# Blueprint de Render · API Express (monorepo)
+# Docs: docs/DESPLIEGUE.md § «API en Render»
+#
+# Uso: Dashboard Render → New → Blueprint → conectar este repo.
+# Las variables sync: false se cargan a mano en el panel (secretos).
+
+services:
+  - type: web
+    name: tu-comercio-local-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: .
+    # Incluir devDependencies (typescript, prisma CLI) aunque NODE_ENV=production.
+    # prebuild del API: contratos + prisma generate; después tsc.
+    # Sin generate, Prisma.sql no existe y el build falla (TS2339).
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run build -w api
+    startCommand: npm run start -w api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEB_ORIGIN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false

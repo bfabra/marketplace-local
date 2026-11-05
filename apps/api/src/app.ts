@@ -23,9 +23,9 @@ import { correoDisponible } from './common/utils/correo.js';
 
 const app = express();
 
-// La web llama al API a través del proxy de Next.js, que corre en la misma máquina:
-// así req.ip es la IP real del visitante y no la del proxy.
-app.set('trust proxy', 'loopback');
+// Local: Next proxy en la misma máquina → loopback.
+// Producción (Render): un hop detrás del proxy de Render → confiar X-Forwarded-*.
+app.set('trust proxy', env.NODE_ENV === 'production' ? 1 : 'loopback');
 
 app.use(helmet());
 app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));

@@ -2,12 +2,23 @@
 
 Guía para publicar **Tu Comercio Local** con lo que ya está construido en este monorepo, usando **tiers gratuitos** (con límites). No es un plan de escala empresarial: es el camino más barato para una demo / MVP en internet.
 
+## Estado del plan (QA → prod)
+
+| Paso | Pieza | Estado |
+|------|--------|--------|
+| 1 | Base + Storage en **Supabase** (migraciones, bucket `productos`) | **Hecho** |
+| 2 | API en **Render** (HTTPS + env + health) | **En curso** |
+| 3 | Web en **Vercel** (`API_URL` → Render) | Pendiente |
+| 4 | Superadmin + smoke QA (login, tienda, foto) | Pendiente |
+| 5 | SMTP (Brevo/Resend) opcional | Pendiente |
+| 6 | Dominio propio (opcional) | Pendiente |
+
 ## Qué tenés hoy
 
 | Pieza | Ubicación | Notas para producción |
 |-------|-----------|------------------------|
 | Web | `apps/web` · Next.js 14 | Proxy `/api/*` → API (`next.config.mjs`). Cookies en el mismo dominio de la web. |
-| API | `apps/api` · Express + Prisma | JWT, rate-limit, helmet. Sube imágenes a disco local (`uploads/`). |
+| API | `apps/api` · Express + Prisma | JWT, rate-limit, helmet. Fotos: disco local **o** Supabase Storage según env. |
 | Base | `apps/api/prisma/marketplace-db` | Migraciones SQL **pensadas para Supabase** (RLS, `auth.uid()`, storage). |
 | Correo | `SMTP_*` en `.env` | Opcional; recuperar contraseña. |
 | Redis | `REDIS_URL` | Opcional; hoy no es obligatorio. |
@@ -87,62 +98,125 @@ En `apps/api` hay un archivo por ambiente (no se versionan):
 Plantillas: `.env.local.example` y `.env.supabase.example`.  
 `APP_ENV` elige el archivo (`local` por defecto).
 
+En **Render** no hace falta `APP_ENV` ni archivos `.env*`: las variables se cargan en el panel (o Blueprint) y `process.env` ya las trae. `dotenv` no pisa valores que ya existen.
+
 ## Variables de entorno (producción)
 
-### Web (Vercel)
+### Web (Vercel) · Environment Variables
 
-```env
-API_URL=https://TU-API.onrender.com
-```
+| Variable | Valor |
+|----------|--------|
+| `API_URL` | `https://TU-API.onrender.com` (URL pública del Web Service en Render) |
 
 (`rewrites` de Next usan esto en **build/runtime del servidor**.)
 
-### API (Render)
+### API (Render) · Environment Variables
 
-```env
-NODE_ENV=production
-PORT=10000
-DATABASE_URL=postgresql://...  # Connection string de Supabase (modo Session o URI)
-JWT_SECRET=generá_un_secreto_largo_y_único
-WEB_ORIGIN=https://tu-app.vercel.app
-# Fotos (obligatorio en Render — sin esto se pierden al reiniciar)
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-# SMTP (Brevo / Resend)
-SMTP_HOST=...
-SMTP_PORT=587
-SMTP_USER=...
-SMTP_PASS=...
-MAIL_FROM="Tu Comercio Local <noreply@tudominio.com>"
-```
+En el servicio `tu-comercio-local-api` → **Environment** (o al completar el Blueprint).  
+Podés copiar los valores desde `apps/api/.env.supabase` (ese archivo **no** se sube al repo).
 
-En Supabase: Project Settings → Database → URI. Si usás pooler, preferí el modo compatible con Prisma (a menudo *Session* / puerto 5432).
+#### Obligatorias (arranque + fotos)
+
+| Variable | Qué poner |
+|----------|-----------|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | URI de Postgres de Supabase (Session / pooler). Misma idea que en `.env.supabase`. Project Settings → Database → URI |
+| `JWT_SECRET` | Secreto largo y único (o **Generate** en Render) |
+| `WEB_ORIGIN` | URL de la web. Hasta Vercel: `http://localhost:3001`. Después: `https://tu-app.vercel.app` |
+| `SUPABASE_URL` | `https://TU_PROJECT_REF.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → `service_role` (**secret**; no uses la clave `anon`) |
+
+Sin `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` las fotos se pierden en cada reinicio de Render (disco efímero).
+
+#### Opcionales (después)
+
+| Variable | Cuándo |
+|----------|--------|
+| `SMTP_HOST` | Recuperar contraseña (Brevo / Resend) |
+| `SMTP_PORT` | Suele ser `587` |
+| `SMTP_USER` / `SMTP_PASS` | Credenciales SMTP |
+| `MAIL_FROM` | Ej. `Tu Comercio Local <noreply@tudominio.com>` |
+| `GOOGLE_CLIENT_ID` | Login con Google |
+
+#### No hace falta cargar
+
+| Variable | Motivo |
+|----------|--------|
+| `PORT` | Lo asigna Render solo; el API lee `process.env.PORT` |
+| `APP_ENV` | En Render no se usan `.env.local` / `.env.supabase` |
+| `REDIS_URL` | Opcional y no requerido en este MVP |
+
+Si usás pooler de Supabase, preferí el modo compatible con Prisma (a menudo *Session* / puerto `5432`).
 
 ## Pasos de despliegue (orden sugerido)
 
-### 1. Base en Supabase
+### 1. Base en Supabase — hecho
 
-1. Crear proyecto en Supabase (región cercana, p. ej. South America si está).
-2. Aplicar migraciones de `apps/api/prisma/marketplace-db/supabase/migrations/`  
-   - Con **Supabase CLI** (`supabase db push` / link al proyecto), **o**  
-   - Ejecutar los `.sql` en orden en el SQL Editor (solo si sabés lo que hacés).
-3. Verificar roles / `auth` como en el README de `marketplace-db`.
-4. En local (o CI): apuntar `DATABASE_URL` al proyecto, `npm run db:pull` y `npm run db:generate` si hace falta regenerar el cliente.
-5. Crear superadmin: registrar un usuario por la web (cuando exista) y `npm run db:superadmin -- correo@...` contra esa DB (script desde una máquina con la URL de prod, con cuidado).
-6. (Opcional demo) `npm run db:demo` **solo** si querés datos de prueba en prod (mejor no en un entorno “público serio”).
+1. Proyecto creado; migraciones de `apps/api/prisma/marketplace-db/supabase/migrations/` aplicadas.
+2. Bucket `productos` (Storage) disponible.
+3. Tenés a mano: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 
-### 2. API en Render
+Opcional en máquina local (QA contra la misma DB):
 
-1. New → Web Service → conectar el repo GitHub/GitLab.
-2. Root / build sugerido (ajustar monorepo):
-   - **Build:** `npm install && npm run contratos && npm run build -w api && npm run db:generate -w api`
-   - **Start:** `npm run start -w api`  
-   (Si Render no resuelve workspaces bien, documentar `cd apps/api` + install local, o un `render.yaml`.)
-3. Cargar las env de arriba.
-4. Health: `GET https://TU-API.onrender.com/api/...` (el endpoint de salud que ya exponga `pkg_sistema`).
-5. Plan Free: aceptar spin-down.
+- `apps/api/.env.supabase` + `npm run dev:supabase -w api`
+- Registrar usuario → `npm run db:superadmin:supabase -- correo@...`
+- (Demo) `npm run db:demo:supabase` solo si querés datos de prueba en ese proyecto
 
-### 3. Web en Vercel
+### 2. API en Render — en curso
+
+Hay dos formas equivalentes. Preferí **Blueprint** (`render.yaml` en la raíz del repo).
+
+#### 2.A · Blueprint (recomendado)
+
+1. Subí a GitHub los cambios que incluyen `render.yaml` (y este doc).
+2. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → conectar `bfabra/marketplace-local` (o tu fork).
+3. Render lee `render.yaml` y crea el servicio `tu-comercio-local-api` (plan Free, región `oregon`).
+4. Completá las env marcadas como *sync: false* (secretos):
+
+   | Variable | De dónde |
+   |----------|----------|
+   | `DATABASE_URL` | Supabase → Project Settings → Database → URI (Session/pooler) |
+   | `WEB_ORIGIN` | URL de Vercel cuando exista; mientras tanto `http://localhost:3001` solo para smoke del health (login real conviene esperar Vercel) |
+   | `SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → `service_role` (**secret**) |
+   | SMTP_* / `GOOGLE_CLIENT_ID` | Opcional; podés dejarlas vacías al inicio |
+
+   `JWT_SECRET` lo puede generar Render (`generateValue`).
+
+5. Deploy. Esperá el build (instala workspaces → `prisma generate` → `tsc`).
+6. Health: `GET https://<servicio>.onrender.com/api/health`  
+   Respuesta esperada: `{ "ok": true, "db": "conectada", ... }`.  
+   La 1.ª vez puede tardar ~1 min (cold start Free).
+
+#### 2.B · Web Service manual (sin Blueprint)
+
+1. **New** → **Web Service** → mismo repo.
+2. Ajustes:
+
+   | Campo | Valor |
+   |-------|--------|
+   | Runtime | Node |
+   | Plan | Free |
+   | Root Directory | *(vacío = raíz del monorepo)* |
+   | Build Command | `NPM_CONFIG_PRODUCTION=false npm install && npm run build -w api` |
+   | Start Command | `npm run start -w api` |
+   | Health Check Path | `/api/health` |
+
+   El `prebuild` del API ya corre `contratos` + `db:generate` **antes** de `tsc`.
+
+3. Mismas env que en 2.A.
+4. Deploy + health como arriba.
+
+#### Notas técnicas Render
+
+- **`NPM_CONFIG_PRODUCTION=false`**: hace falta para instalar `typescript` / `prisma` (devDependencies) durante el build aunque `NODE_ENV=production`.
+- **Orden del build**: primero `prisma generate`, después `tsc`. Si generás después (o no generás), falla con `Property 'sql' does not exist on type 'typeof Prisma'` (TS2339).
+- **`trust proxy`**: en producción el API confía 1 hop (proxy de Render) para rate-limit e IPs (`apps/api/src/app.ts`).
+- **Cookies `Secure`**: con `NODE_ENV=production` la cookie de sesión solo viaja por HTTPS. El smoke de login conviene hacerlo con la web en **Vercel**, no mezclando `localhost` HTTP → API Render.
+- **Cold start Free**: tras ~15 min sin tráfico el servicio se duerme; la 1.ª request despierta (30–60 s). Opcional: cron externo gratis pegándole a `/api/health` cada 10 min.
+- **No** versionar `.env` / `.env.supabase` (ya están en `.gitignore`).
+
+### 3. Web en Vercel (siguiente, cuando el API responda health)
 
 1. Importar el mismo monorepo.
 2. Root Directory: `apps/web` **o** build desde raíz con:
@@ -151,7 +225,8 @@ En Supabase: Project Settings → Database → URI. Si usás pooler, preferí el
    - Output: Next por defecto.
 3. Env: `API_URL=https://TU-API.onrender.com`
 4. Dominio: `*.vercel.app` al principio.
-5. Probar login, panel vendedor, un pedido de ejemplo.
+5. Actualizar en Render `WEB_ORIGIN=https://tu-app.vercel.app` y redeploy (o Clear build cache / Manual Deploy).
+6. Probar login, panel vendedor, un pedido de ejemplo; subir una foto y confirmar URL `*.supabase.co`.
 
 ### 4. Correo y OAuth (opcional)
 
@@ -172,9 +247,10 @@ Checklist mínimo para que el free tier no te rompa la demo:
 | Prioridad | Tarea | Por qué |
 |-----------|--------|---------|
 | Alta | ~~Subidas a Supabase Storage~~ **Hecho** (`images.ts` + env) | Configurar `SUPABASE_*` en Render |
-| Alta | `render.yaml` o scripts de build claros del monorepo | Evitar fallos de deploy |
+| Alta | ~~`render.yaml` + build monorepo~~ **Hecho** (raíz del repo) | Evitar fallos de deploy |
+| Alta | ~~`trust proxy` en prod~~ **Hecho** | Rate-limit detrás de Render |
 | Media | Healthcheck + “wake” (cron externo gratis pegándole al API cada 10 min) | Mitigar cold start |
-| Media | Confirmar cookies/`WEB_ORIGIN` en prod | Login y sesión |
+| Media | Confirmar cookies/`WEB_ORIGIN` en prod (tras Vercel) | Login y sesión |
 | Baja | Quitar o proteger datos demo en prod | Seguridad / imagen |
 | Baja | Redis real solo si medís necesidad | Hoy es opcional |
 
@@ -193,11 +269,12 @@ Checklist mínimo para que el free tier no te rompa la demo:
 - No poner secretos en el repo (`.env` solo en Vercel/Render/Supabase).
 - No usar `db:demo` como si fuera producción real con clientes.
 - No esperar rendimiento de app grande: es un MVP en freemium.
+- No probar login “serio” con web en `http://localhost` contra API Render (`Secure` cookies).
 
 ## Criterio de “ya está en producción”
 
-- [ ] Migraciones aplicadas en Supabase
-- [ ] API responde en HTTPS (Render)
+- [x] Migraciones aplicadas en Supabase
+- [ ] API responde en HTTPS (Render) → `GET /api/health`
 - [ ] Web en Vercel abre el marketplace
 - [ ] Registro / login / sesión OK
 - [ ] Al menos una tienda y un producto visibles
@@ -206,4 +283,4 @@ Checklist mínimo para que el free tier no te rompa la demo:
 
 ---
 
-**Resumen:** lo más alineado con este repo es **Supabase (DB + Storage) + Vercel (web) + Render (API) + Brevo/Resend (mail)**. Empezá por Supabase, después API, después web.
+**Resumen:** **Supabase (DB + Storage) + Vercel (web) + Render (API) + Brevo/Resend (mail)**. Orden: Supabase → **Render (ahora)** → Vercel → smoke QA.
