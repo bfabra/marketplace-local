@@ -15,10 +15,16 @@ const apiRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
  * En Render/Vercel las vars vienen de process.env; dotenv no las pisa.
  * Cadenas vacías del panel se tratan como “no definidas” (si no, rompe .default()).
  */
+const perfilExplicit = Boolean(process.env.APP_ENV?.trim());
 const perfil = (process.env.APP_ENV || 'local').trim().toLowerCase();
-const cargado = dotenv.config({ path: path.join(apiRoot, `.env.${perfil}`) });
+// Con APP_ENV=local|supabase el archivo de perfil debe ganar sobre `.env` (Prisma lo
+// carga al crear el client). Sin APP_ENV (Render/Vercel) no pisamos el panel.
+const cargado = dotenv.config({
+  path: path.join(apiRoot, `.env.${perfil}`),
+  override: perfilExplicit,
+});
 if (cargado.error) {
-  dotenv.config({ path: path.join(apiRoot, '.env') });
+  dotenv.config({ path: path.join(apiRoot, '.env'), override: false });
 }
 
 /** Render a veces crea la key con valor ""; Zod no aplica .default() en ese caso. */

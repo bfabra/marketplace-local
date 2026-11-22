@@ -108,7 +108,7 @@ En el proyecto de Vercel → **Settings → Environment Variables** (Production 
 
 | Variable | Obligatoria | Qué poner |
 |----------|-------------|-----------|
-| `API_URL` | **Sí** | URL pública del API en Render, **sin** barra final. Ej. `https://tu-comercio-local-api.onrender.com` |
+| `API_URL` | **Sí** | URL pública del API en Render, **sin** barra final y **sin** `/api`. Ej. `https://tu-comercio-local-api.onrender.com` (si termina en `/` o `/api`, el login da 404 `//api/...`) |
 
 - La web **no** lleva `DATABASE_URL` ni claves de Supabase: solo habla con el API.
 - `API_URL` se usa en `apps/web/next.config.mjs` (`rewrites` `/api/*` → API). Tiene que existir en **Build** y **Runtime** (en Vercel marcá ambos / Production).
@@ -229,9 +229,14 @@ Hay dos formas equivalentes. Preferí **Blueprint** (`render.yaml` en la raíz d
   2. Falta `?sslmode=require` al final de la URI (Supabase suele pedirlo).
   3. Migraciones **no aplicadas** en ese proyecto → en SQL Editor: `select pkg_sistema.estado();` (si falla “function does not exist”, aplicá las migraciones de `apps/api/prisma/marketplace-db/supabase/migrations/`).
   4. Pooler: preferí **Session** modo / puerto `5432` (como en `.env.supabase.example`), no Transaction `6543` si Prisma se queja.
+- **`POST /auth/register` → “Algún dato no cumple las reglas…”** en Supabase cloud: falta la migración `20261001005100_registro_auth_users_supabase.sql` (el insert a `auth.users` debe traer `instance_id`, `aud`, `role`, etc.). Ejecutala en **SQL Editor** (o `supabase db push`) y reintentá el registro / `db:demo:supabase`.
 - **`trust proxy`**: en producción el API confía 1 hop (proxy de Render) para rate-limit e IPs (`apps/api/src/app.ts`).
 - **Cookies `Secure`**: con `NODE_ENV=production` la cookie de sesión solo viaja por HTTPS. El smoke de login conviene hacerlo con la web en **Vercel**, no mezclando `localhost` HTTP → API Render.
-- **Cold start Free**: tras ~15 min sin tráfico el servicio se duerme; la 1.ª request despierta (30–60 s). Opcional: cron externo gratis pegándole a `/api/health` cada 10 min.
+- **Cold start Free**: tras ~15 min sin tráfico el servicio se duerme; la 1.ª request despierta (30–60 s). La web ya pega a `/api/health` al cargar (y el login avisa si tarda). Para evitarlo del todo, mantené el API despierto con un monitor gratis:
+  1. [UptimeRobot](https://uptimerobot.com/) → Add New Monitor → HTTP(s).
+  2. URL: `https://marketplace-local-gvwv.onrender.com/api/health` (o la tuya).
+  3. Intervalo: **5 minutes** (plan Free).
+  4. Guardá. Render Free se duerme a los ~15 min idle; con ping cada 5 min no debería dormir.
 - **No** versionar `.env` / `.env.supabase` (ya están en `.gitignore`).
 
 ### 3. Web en Vercel — hecho
@@ -307,7 +312,7 @@ Checklist mínimo para que el free tier no te rompa la demo:
 | Alta | ~~Subidas a Supabase Storage~~ **Hecho** (`images.ts` + env) | Configurar `SUPABASE_*` en Render |
 | Alta | ~~`render.yaml` + build monorepo~~ **Hecho** (raíz del repo) | Evitar fallos de deploy |
 | Alta | ~~`trust proxy` en prod~~ **Hecho** | Rate-limit detrás de Render |
-| Media | Healthcheck + “wake” (cron externo gratis pegándole al API cada 10 min) | Mitigar cold start |
+| Media | ~~Wake en la web~~ + UptimeRobot cada 5 min a `/api/health` | Mitigar cold start Render Free |
 | Alta | ~~`apps/web/vercel.json` (install/build monorepo)~~ **Hecho** | Workspaces en Vercel |
 | Media | Confirmar cookies/`WEB_ORIGIN` en prod (tras Vercel) | Login y sesión |
 | Baja | Quitar o proteger datos demo en prod | Seguridad / imagen |
@@ -383,10 +388,15 @@ select count(*) from public.tiendas;
 
 ```powershell
 $env:DEMO_API_URL = "https://TU-API.onrender.com/api"
+# Si un intento anterior quedó a medias (login 401):
+npm run db:demo:limpiar:supabase -w api
 npm run db:demo:supabase -w api
 ```
 
-El script registra las cuentas demo, crea tiendas/productos y sube fotos **contra Render** (quedan en Supabase DB + Storage). Tarda unos minutos; la 1.ª request puede ir lenta (cold start).
+El script registra las cuentas demo, crea tiendas/productos y sube fotos **contra Render** (quedan en Supabase DB + Storage). Tarda unos minutos; la 1.ª request puede ir lenta (cold start).  
+El vínculo Mercado Pago de prueba se omite en producción (`NODE_ENV=production`); no es un error.
+
+**Importante:** `apps/api/.env.supabase` → `DATABASE_URL` tiene que ser **la misma** que en Render. Si no, `db:demo:limpiar:supabase` borra 0 filas y el register via API responde 409 (cuentas en la DB de Render, script mirando otra). El script ahora lo detecta y avisa.
 
 4. Después, tu superadmin personal (no uses solo demo si querés tu correo):
 

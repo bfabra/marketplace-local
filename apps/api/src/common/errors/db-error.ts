@@ -68,7 +68,12 @@ export const traducirErrorDb = (err: unknown): AppError | null => {
     case '23514':
     case '23502':
     case '22P02':
-      return new AppError('Algún dato no cumple las reglas de la plataforma', 400);
+      return new AppError(
+        pg.message?.trim()
+          ? `Algún dato no cumple las reglas de la plataforma (${pg.message.trim().slice(0, 180)})`
+          : 'Algún dato no cumple las reglas de la plataforma',
+        400
+      );
     default:
       return null;
   }

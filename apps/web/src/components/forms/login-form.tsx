@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Usuario } from '@/lib/api-client';
@@ -11,6 +11,7 @@ import { useOpciones } from '@/hooks/use-opciones';
 import { safeNext } from '@/lib/redirect';
 import { destinoAlIngresar } from '@/lib/equipo';
 import { plural } from '@/lib/visual';
+import { wakeApi } from '@/lib/wake-api';
 import { Icon } from '@/components/ui/icon';
 import { BRAND_NAME, LogoMark } from '@/components/layout/logo';
 import { useFormErrors } from './use-form-errors';
@@ -29,7 +30,22 @@ export function LoginForm() {
   const next = safeNext(nextParam);
   const errors = useFormErrors();
   const [sending, setSending] = useState(false);
+  const [lento, setLento] = useState(false);
   const [listo, setListo] = useState(false);
+
+  // Render Free se duerme ~15 min: al abrir login ya pedimos /health para despertarlo.
+  useEffect(() => {
+    wakeApi();
+  }, []);
+
+  useEffect(() => {
+    if (!sending) {
+      setLento(false);
+      return;
+    }
+    const t = window.setTimeout(() => setLento(true), 3000);
+    return () => window.clearTimeout(t);
+  }, [sending]);
 
   function ingresar(user: Usuario) {
     setListo(true);
@@ -97,6 +113,11 @@ export function LoginForm() {
             </AvisoDisenio>
           )}
           {errors.message && <AvisoDisenio titulo="No pudimos iniciar sesión">{errors.message}</AvisoDisenio>}
+          {lento && !errors.message && !listo && (
+            <AvisoDisenio tipo="success" titulo="Despertando el servidor">
+              El API en Render Free puede tardar 30–60 s la primera vez. En unos segundos debería entrar.
+            </AvisoDisenio>
+          )}
           <div className="form-heading">
             <span>HOLA</span>
             <h2>Bienvenido</h2>

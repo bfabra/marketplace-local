@@ -11,10 +11,19 @@ import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { prisma } from '../config/db.js';
 import { UPLOADS_DIR } from '../common/utils/images.js';
+import { hashPassword } from '../common/utils/bcrypt.js';
 
 const API = process.env.DEMO_API_URL ?? `http://localhost:${process.env.PORT ?? 3000}/api`;
-const PATRON_EMAIL = 'demo\\_%@prueba.com';
+/** Cuentas demo: demo_*@prueba.com (regex; el LIKE con \_ parametrizado no matcheaba). */
+const PATRON_EMAIL = '^demo_.*@prueba\\.com$';
 const CLAVE = 'Demo1234';
+/** Misma versión que auth.service (términos al registrar). */
+const TERMINOS_VERSION = '2026-10-11';
+/**
+ * En Render el /auth/register tiene techo (20/hora). El seed crea las cuentas
+ * en la DB (igual que pkg_auth.registrar_cliente) y toma la sesión con login.
+ */
+const altaCuentaEnDb = /onrender\.com/i.test(API) || process.env.DEMO_ALTA_DB === '1';
 
 // Corta el script con un mensaje. No usa process.exit: en Windows, cerrar el proceso
 // a la fuerza con conexiones de fetch abiertas lo hace fallar.
@@ -121,8 +130,95 @@ async function req<T = any>(
   return { data, cookie: (res.headers.get('set-cookie') ?? '').split(';')[0] };
 }
 
-const cuenta = async (email: string, nombre: string, apellido: string) =>
-  (await req('/auth/register', { body: { email, password: CLAVE, nombre, apellido } })).cookie;
+/** Localidad para el domicilio obligatorio del registro (Capital). */
+let localidadDemoId: string | undefined;
+/** Arranca lejos de DNIs viejos de corridas a medias (el probe no debe chocar con 30000001). */
+let dniDemo = 40_000_000 + (Date.now() % 9_000_000);
+
+async function localidadParaRegistro() {
+  if (localidadDemoId) return localidadDemoId;
+  const { data: localidades } = await req<{ id: string; nombre: string }[]>('/locations/localidades');
+  const capital = localidades.find((l) => l.nombre === 'Capital') ?? localidades[0];
+  if (!capital) throw new Error('No hay localidades en la base (¿migraciones/seed aplicados?)');
+  localidadDemoId = capital.id;
+  return capital.id;
+}
+
+/** Alta directa en DB (evita el rate limit de /auth/register en Render). */
+const registrarEnDb = async (email: string, nombre: string, apellido: string) => {
+  const localidad_id = await localidadParaRegistro();
+  const hash = await hashPassword(CLAVE);
+  for (let intento = 0; intento < 20; intento++) {
+    const dni = String(dniDemo++);
+    const datos = {
+      email,
+      nombre,
+      apellido,
+      dni,
+      domicilio: { calle: 'Calle Demo', numero: '100', localidad_id },
+      terminos: TERMINOS_VERSION,
+    };
+    try {
+      await prisma.$queryRaw`
+        select pkg_auth.registrar_cliente(${JSON.stringify(datos)}::jsonb, ${hash}) as r`;
+      return;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/DNI/i.test(msg) || /23505/.test(msg)) continue;
+      throw e;
+    }
+  }
+  throw new Error(`No quedó un DNI libre para registrar ${email}`);
+};
+
+const cuenta = async (email: string, nombre: string, apellido: string) => {
+  if (altaCuentaEnDb) {
+    await registrarEnDb(email, nombre, apellido);
+    return (await req('/auth/login', { body: { email, password: CLAVE } })).cookie;
+  }
+  const localidad_id = await localidadParaRegistro();
+  for (let intento = 0; intento < 20; intento++) {
+    const dni = String(dniDemo++);
+    try {
+      return (
+        await req('/auth/register', {
+          body: {
+            email,
+            password: CLAVE,
+            nombre,
+            apellido,
+            dni,
+            domicilio: { calle: 'Calle Demo', numero: '100', localidad_id },
+            aceptaTerminos: true,
+          },
+        })
+      ).cookie;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // DNI ocupado → probar el siguiente; email u otro 409 se propaga.
+      if (msg.includes('409') && /DNI/i.test(msg)) continue;
+      // Techo de Render: seguir por DB.
+      if (msg.includes('429')) {
+        await registrarEnDb(email, nombre, apellido);
+        return (await req('/auth/login', { body: { email, password: CLAVE } })).cookie;
+      }
+      throw e;
+    }
+  }
+  throw new Error(`No quedó un DNI libre para registrar ${email}`);
+};
+
+/** Alta o login si la cuenta demo ya existía de una corrida a medias. */
+const cuentaOLogin = async (email: string, nombre: string, apellido: string) => {
+  try {
+    return await cuenta(email, nombre, apellido);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Solo email duplicado implica “ya estaba”: un 409 de DNI ya lo reintenta `cuenta`.
+    if (!msg.includes('409') || /DNI/i.test(msg)) throw e;
+    return (await req('/auth/login', { body: { email, password: CLAVE } })).cookie;
+  }
+};
 
 /** CUIT válido (dígito verificador de AFIP) a partir de 10 dígitos que se ajustan hasta que cierre. */
 function cuit(base: string) {
@@ -413,13 +509,56 @@ const EQUIPO = [
   { email: 'demo_finanzas@prueba.com', apellido: 'Finanzas', rol: 'finanzas' },
 ];
 
+/**
+ * Comprueba que DATABASE_URL (.env.supabase) sea la misma base que atiende DEMO_API_URL.
+ * Si no, limpiar/roles van a otra DB y el register via API choca con 409.
+ */
+async function exigirMismaBaseQueElApi() {
+  const probe = `demo_probe_${Date.now()}@prueba.com`;
+  const dbHost = (() => {
+    try {
+      return new URL(process.env.DATABASE_URL ?? '').hostname || '(sin host)';
+    } catch {
+      return '(DATABASE_URL inválida)';
+    }
+  })();
+  // Alta en DATABASE_URL + login contra el API (no gasta el cupo de /register).
+  try {
+    await registrarEnDb(probe, 'Probe', 'Demo');
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    salir(`No pude crear la cuenta sonda en DATABASE_URL (${dbHost}): ${msg}`);
+  }
+  try {
+    await req('/auth/login', { body: { email: probe, password: CLAVE } });
+  } catch (e) {
+    await prisma.$executeRaw`delete from auth.users where email = ${probe}`;
+    const msg = e instanceof Error ? e.message : String(e);
+    salir(
+      `Tu apps/api/.env.supabase (DATABASE_URL → ${dbHost}) NO es la misma base que ${API}.\n` +
+        `El login de la sonda falló: ${msg}\n` +
+        `Copiá en .env.supabase la misma DATABASE_URL que tiene el servicio en Render.`
+    );
+  }
+  await prisma.$executeRaw`delete from auth.users where email = ${probe}`;
+  console.log(`✓ Misma base que el API (${dbHost})`);
+}
+
 /** Cuentas del equipo de la plataforma. Devuelve las que creó. */
 async function equipoPlataforma() {
   const nuevas: string[] = [];
   for (const e of EQUIPO) {
     const ya = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from auth.users where email = ${e.email}`;
     if (Number(ya[0].n) === 0) {
-      await cuenta(e.email, 'Demo', e.apellido);
+      await cuentaOLogin(e.email, 'Demo', e.apellido);
+      // Si venía de un 409 en otra corrida, puede que ya existiera en el API:
+      const ahora = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from auth.users where email = ${e.email}`;
+      if (Number(ahora[0].n) === 0) {
+        salir(
+          `La cuenta ${e.email} existe en el API pero no en DATABASE_URL local.\n` +
+            `Alineá apps/api/.env.supabase con la DATABASE_URL de Render.`
+        );
+      }
       nuevas.push(e.email);
     }
     await prisma.$executeRaw`insert into public.roles_plataforma (usuario_id, rol)
@@ -430,7 +569,12 @@ async function equipoPlataforma() {
 }
 
 async function crear() {
-  const existentes = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from auth.users where email like ${PATRON_EMAIL}`;
+  if (/onrender\.com/i.test(API) || process.env.APP_ENV === 'supabase') {
+    console.log(`API: ${API}`);
+    await exigirMismaBaseQueElApi();
+  }
+
+  const existentes = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from auth.users where email ~ ${PATRON_EMAIL}`;
   const yaCargados = Number(existentes[0].n) > 0;
   // Se reconocen por el nombre en el listado público: así se suman las que se agregaron al script
   // y se completan las que quedaron a medias (sin portada o sin todos sus productos).
@@ -478,7 +622,7 @@ async function crear() {
   const { cookie: moderacion } = await req('/auth/login', {
     body: { email: 'demo_moderacion@prueba.com', password: CLAVE },
   });
-  if (!yaCargados) await cuenta('demo_comprador@prueba.com', 'Lucía', 'Compradora');
+  if (!yaCargados) await cuentaOLogin('demo_comprador@prueba.com', 'Lucía', 'Compradora');
 
   // Las tiendas nuevas mandan sus primeros productos a revisión. Moderación aprueba casi todos y
   // deja el último de las dos primeras tiendas esperando, para que la cola tenga algo que mostrar.
@@ -499,21 +643,41 @@ async function crear() {
       });
       yaTiene = listado.productos.map((p) => p.nombre);
     } else {
-      duenio = await cuenta(email, t.nombre.split(' ')[0], 'Demo');
-      const { data: tienda } = await req('/stores', {
-        cookie: duenio,
-        body: {
-          nombre: t.nombre,
-          descripcion: t.descripcion,
-          cuit: cuit(t.cuit),
-          telefono: t.telefono,
-          localidad_id: localidadId(t.localidad),
-          direccion: t.direccion,
-          ...rubroDe(t),
-        },
-      });
-      tiendaId = tienda.id ?? tienda.tienda?.id;
-      await req(`/stores/${tiendaId}/mercadopago/prueba`, { cookie: duenio, method: 'POST' });
+      duenio = await cuentaOLogin(email, t.nombre.split(' ')[0], 'Demo');
+      type TiendaSesion = { id: string; nombre: string; estado: string };
+      const { data: yo } = await req<{ tiendas?: TiendaSesion[] }>('/auth/me', { cookie: duenio });
+      const yaMia = yo.tiendas?.find((x) => x.nombre === t.nombre);
+      if (yaMia) {
+        tiendaId = yaMia.id;
+      } else {
+        const { data: tienda } = await req('/stores', {
+          cookie: duenio,
+          body: {
+            nombre: t.nombre,
+            descripcion: t.descripcion,
+            cuit: cuit(t.cuit),
+            telefono: t.telefono,
+            localidad_id: localidadId(t.localidad),
+            direccion: t.direccion,
+            ...rubroDe(t),
+          },
+        });
+        tiendaId = tienda.id ?? tienda.tienda?.id;
+      }
+      // En producción el API no expone /mercadopago/prueba; el seed lo simula en la DB
+      // (misma idea que los roles de plataforma) para poder activar la tienda.
+      try {
+        await req(`/stores/${tiendaId}/mercadopago/prueba`, { cookie: duenio, method: 'POST' });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes('404')) throw e;
+        await prisma.$executeRaw`
+          select pkg_tiendas.vincular_mp_prueba(
+            (select id from auth.users where email = ${email}),
+            ${tiendaId}::uuid
+          )`;
+        console.log(`  · Mercado Pago de prueba vía DB (${t.nombre})`);
+      }
       await req(`/admin/stores/${tiendaId}/estado`, { cookie: moderacion, method: 'PATCH', body: { estado: 'activa' } });
     }
     if (t.portada && !activa?.portada) {
@@ -580,16 +744,18 @@ async function crear() {
 
 async function limpiar() {
   const tiendas = await prisma.$queryRaw<{ id: string }[]>`
-    select t.id from public.tiendas t join auth.users u on u.id = t.propietario_id where u.email like ${PATRON_EMAIL}`;
+    select t.id from public.tiendas t
+      join auth.users u on u.id = t.propietario_id
+     where u.email ~ ${PATRON_EMAIL}`;
   const ids = tiendas.map((t) => t.id);
 
   // Pedidos hechos por las cuentas demo o a sus comercios (el resto de las tablas del pedido cae en cascada).
   const pedidos = await prisma.$executeRaw`
     delete from public.pedidos p
-     where p.comprador_id in (select id from auth.users where email like ${PATRON_EMAIL})
+     where p.comprador_id in (select id from auth.users where email ~ ${PATRON_EMAIL})
         or exists (select 1 from public.pedidos_tienda pt where pt.pedido_id = p.id and pt.tienda_id = any(${ids}::uuid[]))`;
   await prisma.$executeRaw`delete from public.tiendas where id = any(${ids}::uuid[])`;
-  const cuentas = await prisma.$executeRaw`delete from auth.users where email like ${PATRON_EMAIL}`;
+  const cuentas = await prisma.$executeRaw`delete from auth.users where email ~ ${PATRON_EMAIL}`;
   for (const id of ids) await rm(path.join(UPLOADS_DIR, 'tiendas', id), { recursive: true, force: true });
 
   console.log(`Limpieza: ${ids.length} comercios, ${pedidos} pedidos y ${cuentas} cuentas de demostración borrados.`);

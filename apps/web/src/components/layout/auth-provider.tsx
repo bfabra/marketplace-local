@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api, type AuthResponse, type Usuario } from '@/lib/api-client';
 import { AuthContext, type RegisterData } from '@/hooks/use-auth';
+import { wakeApi } from '@/lib/wake-api';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Usuario | null>(null);
@@ -18,6 +19,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Anticipa el cold start de Render Free antes de /auth/me o el login.
+    wakeApi();
     refresh().finally(() => setLoading(false));
   }, [refresh]);
 

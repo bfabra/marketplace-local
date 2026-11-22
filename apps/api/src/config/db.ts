@@ -1,4 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
+// Carga .env.{APP_ENV} antes de leer DATABASE_URL (Prisma solo mira process.env / `.env`).
+import './env.js';
 
 declare global {
   var prisma: PrismaClient | undefined;
