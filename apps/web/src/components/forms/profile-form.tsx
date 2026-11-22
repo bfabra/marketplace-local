@@ -44,15 +44,28 @@ export function ProfileForm({ user }: { user: Usuario }) {
   const [saved, setSaved] = useState(false);
   const [localidades, setLocalidades] = useState<Localidad[]>([]);
   const [direccion, setDireccion] = useState<Direccion | null>(null);
+  const [domListo, setDomListo] = useState(false);
   const telIni = parseTel(user.telefono);
   const [prefijo, setPrefijo] = useState(telIni.prefijo.startsWith('+54') ? '+54' : telIni.prefijo || '+54');
   const [tipoTel, setTipoTel] = useState('WhatsApp');
+  const [localidadId, setLocalidadId] = useState('');
 
   useEffect(() => {
-    api<Localidad[]>('/locations/localidades').then(setLocalidades).catch(() => {});
-    api<Direccion[]>('/addresses')
-      .then((lista) => setDireccion(lista.find((d) => d.es_principal) ?? lista[0] ?? null))
-      .catch(() => setDireccion(null));
+    let vivo = true;
+    Promise.all([
+      api<Localidad[]>('/locations/localidades').catch(() => [] as Localidad[]),
+      api<Direccion[]>('/addresses').catch(() => [] as Direccion[]),
+    ]).then(([locs, lista]) => {
+      if (!vivo) return;
+      setLocalidades(locs);
+      const principal = lista.find((d) => d.es_principal) ?? lista[0] ?? null;
+      setDireccion(principal);
+      setLocalidadId(principal?.localidad?.id ?? '');
+      setDomListo(true);
+    });
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -81,7 +94,7 @@ export function ProfileForm({ user }: { user: Usuario }) {
         calle: texto('calle'),
         numero: texto('numero'),
         piso_depto: texto('piso_depto') || null,
-        localidad_id: texto('localidad_id'),
+        localidad_id: localidadId || texto('localidad_id'),
         referencias: [texto('barrio') && `Barrio: ${texto('barrio')}`, texto('referencias')].filter(Boolean).join(' · ') || null,
         alias: texto('barrio') || direccion?.alias || 'Casa',
         es_principal: true,
@@ -91,7 +104,9 @@ export function ProfileForm({ user }: { user: Usuario }) {
         const lista = direccion
           ? await api<Direccion[]>(`/addresses/${direccion.id}`, { method: 'PUT', body: domicilio })
           : await api<Direccion[]>('/addresses', { method: 'POST', body: domicilio });
-        setDireccion(lista.find((d) => d.es_principal) ?? lista[0] ?? null);
+        const actual = lista.find((d) => d.es_principal) ?? lista[0] ?? null;
+        setDireccion(actual);
+        setLocalidadId(actual?.localidad?.id ?? '');
       }
 
       setSaved(true);
@@ -200,65 +215,70 @@ export function ProfileForm({ user }: { user: Usuario }) {
 
       <div className="cuenta-domicilio">
         <h3>Domicilio de entrega para el repartidor / cadete</h3>
-        <div className="cuenta-perfil-grid">
-          <Field
-            label="Calle / avenida"
-            name="calle"
-            defaultValue={direccion?.calle ?? ''}
-            placeholder="Ej: Av. Libertador Gral. San Martín"
-            disabled={bloqueado}
-            readOnly={bloqueado}
-            error={errors.fields.calle}
-          />
-          <Field
-            label="Altura / número"
-            name="numero"
-            defaultValue={direccion?.numero ?? ''}
-            placeholder="Ej: 1200 Oeste"
-            disabled={bloqueado}
-            readOnly={bloqueado}
-            error={errors.fields.numero}
-          />
-          <Field
-            label="Barrio / villa / loteo"
-            name="barrio"
-            defaultValue={barrio}
-            placeholder="Ej: B° Copacabana"
-            disabled={bloqueado}
-            readOnly={bloqueado}
-          />
-          <Field
-            label="Casa / manzana / depto (opcional)"
-            name="piso_depto"
-            defaultValue={direccion?.piso_depto ?? ''}
-            placeholder="Ej: Casa 3, Manzana B"
-            disabled={bloqueado}
-            readOnly={bloqueado}
-            error={errors.fields.piso_depto}
-          />
-          <div className="cuenta-perfil-full">
-            <SelectField
-              label="Departamento (San Juan)"
-              name="localidad_id"
-              defaultValue={direccion?.localidad.id ?? ''}
-              placeholder={opcionesLoc.length ? 'Seleccioná el departamento' : 'Cargando…'}
-              options={opcionesLoc}
-              disabled={bloqueado}
-              error={errors.fields.localidad_id}
-            />
-          </div>
-          <div className="cuenta-perfil-full">
+        {!domListo ? (
+          <p className="muted">Cargando domicilio…</p>
+        ) : (
+          <div key={direccion?.id ?? 'sin-domicilio'} className="cuenta-perfil-grid">
             <Field
-              label="Referencias adicionales para el cadete"
-              name="referencias"
-              defaultValue={refsLimpias}
-              placeholder="Ej: Portón negro, timbre rojo"
+              label="Calle / avenida"
+              name="calle"
+              defaultValue={direccion?.calle ?? ''}
+              placeholder="Ej: Av. Libertador Gral. San Martín"
               disabled={bloqueado}
               readOnly={bloqueado}
-              error={errors.fields.referencias}
+              error={errors.fields.calle}
             />
+            <Field
+              label="Altura / número"
+              name="numero"
+              defaultValue={direccion?.numero ?? ''}
+              placeholder="Ej: 1200 Oeste"
+              disabled={bloqueado}
+              readOnly={bloqueado}
+              error={errors.fields.numero}
+            />
+            <Field
+              label="Barrio / villa / loteo"
+              name="barrio"
+              defaultValue={barrio}
+              placeholder="Ej: B° Copacabana"
+              disabled={bloqueado}
+              readOnly={bloqueado}
+            />
+            <Field
+              label="Casa / manzana / depto (opcional)"
+              name="piso_depto"
+              defaultValue={direccion?.piso_depto ?? ''}
+              placeholder="Ej: Casa 3, Manzana B"
+              disabled={bloqueado}
+              readOnly={bloqueado}
+              error={errors.fields.piso_depto}
+            />
+            <div className="cuenta-perfil-full">
+              <SelectField
+                label="Departamento (San Juan)"
+                name="localidad_id"
+                value={localidadId}
+                onChange={(e) => setLocalidadId(e.target.value)}
+                placeholder={opcionesLoc.length ? 'Seleccioná el departamento' : 'Cargando…'}
+                options={opcionesLoc}
+                disabled={bloqueado}
+                error={errors.fields.localidad_id}
+              />
+            </div>
+            <div className="cuenta-perfil-full">
+              <Field
+                label="Referencias adicionales para el cadete"
+                name="referencias"
+                defaultValue={refsLimpias}
+                placeholder="Ej: Portón negro, timbre rojo"
+                disabled={bloqueado}
+                readOnly={bloqueado}
+                error={errors.fields.referencias}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="cuenta-perfil-acciones">
@@ -269,6 +289,7 @@ export function ProfileForm({ user }: { user: Usuario }) {
               className="mp-btn-secundario"
               onClick={() => {
                 setEditando(false);
+                setLocalidadId(direccion?.localidad?.id ?? '');
                 errors.clear();
                 setSaved(false);
               }}

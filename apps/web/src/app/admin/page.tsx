@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ApiError, api, type TableroAdmin } from '@/lib/api-client';
+import { ApiError, api, type PaginaTiendasAdmin, type TableroAdmin, type TiendaAdmin } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { formatPrice } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import { PageSkeleton } from '@/components/ui/skeleton';
 import { EncabezadoAdmin } from '@/components/admin/encabezado';
 
 const numero = (n: number) => n.toLocaleString('es-AR');
+const nro = (v: unknown) => Number(v ?? 0);
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
 interface Pendiente {
@@ -24,59 +25,59 @@ interface Pendiente {
 function pendientes(t: TableroAdmin): Pendiente[] {
   const lista: (Pendiente | false)[] = [
     !!t.tiendas && {
-      cantidad: t.tiendas.pendiente,
+      cantidad: nro(t.tiendas.pendiente),
       texto: 'tiendas esperan aprobación',
       singular: 'tienda espera aprobación',
       icon: 'store',
       href: '/admin/tiendas?estado=pendiente',
     },
     !!t.productos && {
-      cantidad: t.productos.enRevision,
+      cantidad: nro(t.productos.enRevision),
       texto: 'productos esperan revisión',
       singular: 'producto espera revisión',
       icon: 'package',
       href: '/admin/productos?vista=revision',
     },
     t.denunciasAbiertas !== undefined && {
-      cantidad: t.denunciasAbiertas,
+      cantidad: nro(t.denunciasAbiertas),
       texto: 'denuncias abiertas',
       singular: 'denuncia abierta',
       icon: 'alert',
     },
     t.reclamosAbiertos !== undefined && {
-      cantidad: t.reclamosAbiertos,
+      cantidad: nro(t.reclamosAbiertos),
       texto: 'reclamos sin resolver',
       singular: 'reclamo sin resolver',
       icon: 'info',
     },
     t.solicitudesPendientes !== undefined && {
-      cantidad: t.solicitudesPendientes,
+      cantidad: nro(t.solicitudesPendientes),
       texto: 'solicitudes de consumidores (arrepentimiento o baja)',
       singular: 'solicitud de un consumidor (arrepentimiento o baja)',
       icon: 'receipt',
     },
     t.reembolsosPendientes !== undefined && {
-      cantidad: t.reembolsosPendientes,
+      cantidad: nro(t.reembolsosPendientes),
       texto: 'reembolsos pendientes',
       singular: 'reembolso pendiente',
       icon: 'card',
       href: '/admin/pedidos?vista=reembolsos',
     },
     !!t.suscripciones && {
-      cantidad: t.suscripciones.en_gracia,
+      cantidad: nro(t.suscripciones.en_gracia),
       texto: 'suscripciones en período de gracia',
       singular: 'suscripción en período de gracia',
       icon: 'clock',
       href: '/admin/suscripciones?vista=en_gracia',
     },
     !!t.suscripciones && {
-      cantidad: t.suscripciones.porVencer,
+      cantidad: nro(t.suscripciones.porVencer),
       texto: 'suscripciones vencen en los próximos 7 días',
       singular: 'suscripción vence en los próximos 7 días',
       icon: 'sparkles',
       href: '/admin/suscripciones?vista=por_vencer',
     },
-    !!t.envios && { cantidad: t.envios.fallido, texto: 'envíos fallidos', singular: 'envío fallido', icon: 'truck' },
+    !!t.envios && { cantidad: nro(t.envios.fallido), texto: 'envíos fallidos', singular: 'envío fallido', icon: 'truck' },
   ];
   return lista.filter((p): p is Pendiente => !!p && p.cantidad > 0);
 }
@@ -111,14 +112,21 @@ function Bloque({ titulo, icon, children }: { titulo: string; icon: IconName; ch
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [tablero, setTablero] = useState<TableroAdmin | null>(null);
+  const [tiendasPendientes, setTiendasPendientes] = useState<TiendaAdmin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
   const cargar = useCallback(() => {
     setCargando(true);
     setError(null);
-    api<TableroAdmin>('/admin/tablero')
-      .then(setTablero)
+    Promise.all([
+      api<TableroAdmin>('/admin/tablero'),
+      api<PaginaTiendasAdmin>('/admin/stores?estado=pendiente&pagina=1').catch(() => null),
+    ])
+      .then(([t, pagina]) => {
+        setTablero(t);
+        setTiendasPendientes(pagina?.items ?? []);
+      })
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Error inesperado'))
       .finally(() => setCargando(false));
   }, []);
@@ -179,15 +187,36 @@ export default function AdminDashboardPage() {
             })}
           </ul>
         )}
+        {tiendasPendientes.length > 0 && (
+          <div className="admin-alta-tiendas">
+            <h3>Altas de comercio por revisar</h3>
+            <ul>
+              {tiendasPendientes.map((tienda) => (
+                <li key={tienda.id}>
+                  <Link href={`/admin/tiendas/${tienda.id}`}>
+                    <strong>{tienda.nombre}</strong>
+                    <span>
+                      {tienda.duenio.email ?? 'Sin correo'}
+                      {tienda.mercadoPagoVinculada ? '' : ' · falta Mercado Pago'}
+                    </span>
+                  </Link>
+                  <Link href={`/admin/tiendas/${tienda.id}`} className="btn btn-secondary">
+                    Revisar
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <div className="admin-bloques">
         {t.tiendas && (
           <Bloque titulo="Tiendas" icon="store">
-            <Cifra valor={numero(t.tiendas.activa)} label="activas" href="/admin/tiendas?estado=activa" />
-            <Cifra valor={numero(t.tiendas.pendiente)} label="pendientes" href="/admin/tiendas?estado=pendiente" />
-            <Cifra valor={numero(t.tiendas.suspendida)} label="suspendidas" href="/admin/tiendas?estado=suspendida" />
-            <Cifra valor={numero(t.tiendas.vencida)} label="vencidas" href="/admin/tiendas?estado=vencida" />
+            <Cifra valor={numero(nro(t.tiendas.activa))} label="activas" href="/admin/tiendas?estado=activa" />
+            <Cifra valor={numero(nro(t.tiendas.pendiente))} label="pendientes" href="/admin/tiendas?estado=pendiente" />
+            <Cifra valor={numero(nro(t.tiendas.suspendida))} label="suspendidas" href="/admin/tiendas?estado=suspendida" />
+            <Cifra valor={numero(nro(t.tiendas.vencida))} label="vencidas" href="/admin/tiendas?estado=vencida" />
           </Bloque>
         )}
         {t.productos && (
