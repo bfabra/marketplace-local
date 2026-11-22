@@ -2,23 +2,38 @@
    COMPRALOCAL — PERFIL DE TIENDA  (#store con Chat Interno)
    ============================================================ */
 (function () {
-  const { esc, norm, initials } = window.Utils;
-  const { products } = window.Data;
+  const { esc, norm, money, initials } = window.Utils;
 
   const P = { tab: 'products', query: '', category: 'Todos' };
 
   // Estado temporal de los chats por tienda
   window.Store.state.chats = window.Store.state.chats || {};
 
+  function getAllProducts() {
+    return window.Data?.products || [];
+  }
+
   function storeProducts(store) {
-    return products.filter((p) => p.storeId === store.id || store.id !== 'la-boutique');
+    const allProducts = getAllProducts();
+    return allProducts.filter((p) => p.storeId === store.id);
   }
 
   function catalog(store) {
     const list = storeProducts(store).filter((p) =>
       (P.category === 'Todos' || p.category === P.category) && norm(p.name).includes(norm(P.query)));
+    
     return list.length
-      ? `<div class="product-grid">${list.map((p) => Cards.product(p)).join('')}</div>`
+      ? `<div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+          ${list.map((p) => `
+            <div class="product-card" data-action="open-product" data-id="${esc(p.id)}" style="cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #f1f5f9;">
+                <img src="${esc(p.image)}" alt="${esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              <strong style="font-size: 14px; color: var(--text);">${esc(p.name)}</strong>
+              <span style="font-size: 16px; font-weight: 800; color: var(--primary);">${money(p.price)}</span>
+            </div>
+          `).join('')}
+        </div>`
       : Cards.empty('Sin productos coincidentes', 'Probá otra búsqueda o elegí una categoría diferente.', 'profile-clear');
   }
 
@@ -34,8 +49,8 @@
         <div><span>SOBRE NOSOTROS</span><h2>Una tienda con identidad local</h2>
           <p>${esc(store.description)} Seleccionamos cada propuesta con atención y creemos en una forma más cercana de comprar.</p></div>
         <div><span>INFORMACIÓN</span>
-          <p>${Icon('location', 16)} Av. Libertador San Martín 1240 (O)</p>
-          <p>${Icon('phone', 16)} Contacto disponible en la tienda</p></div>
+          <p>${Icon('location', 16)} ${esc(store.address || 'Av. Libertador San Martín 1240 (O)')}, ${esc(store.department || store.location || '')}</p>
+          <p>${Icon('phone', 16)} ${store.phones && store.phones[0] ? store.phones[0].number : 'Contacto disponible en la tienda'}</p></div>
       </section>`;
     }
     if (P.tab === 'contact') {
@@ -45,7 +60,7 @@
           ${Icon('location', 24)}
           <div>
             <strong style="display: block; font-size: 15px; color: var(--text);">Visitanos</strong>
-            <span style="font-size: 13px; color: var(--muted);">Av. Libertador San Martín 1240 (O), ${esc(store.location)}</span>
+            <span style="font-size: 13px; color: var(--muted);">${esc(store.address || 'Av. Libertador')}, ${esc(store.department || store.location || '')}</span>
           </div>
         </div>
         <button type="button" data-action="open-store-chat" data-store-id="${store.id}" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: flex; align-items: center; gap: 16px; cursor: pointer; text-align: left; width: 100%; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
@@ -59,7 +74,7 @@
     }
     return `
       <section class="catalog-section">
-        <div class="market-section-heading"><div><span>CATÁLOGO DE DEMOSTRACIÓN</span><h2>Productos de ${esc(store.name)}</h2></div></div>
+        <div class="market-section-heading"><div><span>CATÁLOGO DE PRODUCTOS</span><h2>Productos de ${esc(store.name)}</h2></div></div>
         <div class="catalog-tools">
           <label class="market-filter-search">${Icon('search', 17)}<input id="profile-query" data-input="profile-query" value="${esc(P.query)}" placeholder="Buscar dentro de esta tienda" aria-label="Buscar dentro de esta tienda" /></label>
           <div id="profile-chips">${chips(store)}</div>
@@ -72,20 +87,32 @@
     const following = !!window.Store.state.following[store.id];
     const tabs = [['products', 'Productos'], ['info', 'Información'], ['contact', 'Contacto']];
     return `
-      <section class="profile-cover"><img src="${esc(store.image)}" alt="Portada de ${esc(store.name)}" /></section>
+      <section class="profile-cover"><img src="${esc(store.image || store.logo)}" alt="Portada de ${esc(store.name)}" /></section>
       <div class="market-container store-profile">
         <section class="store-profile-header">
           <div class="profile-mark" aria-hidden="true">${esc(initials(store.name))}</div>
-          <div class="profile-title"><span>${esc(store.category)}</span><h1>${esc(store.name)}</h1>
-            <p>${Icon('location', 14)} ${esc(store.location)} · A ${esc(store.distance)}</p></div>
-          <button type="button" class="follow-button" data-action="toggle-follow" aria-pressed="${following}">${Icon('heart', 16)} <span id="follow-label">${following ? 'Siguiendo' : 'Seguir tienda'}</span></button>
+          <div class="profile-title">
+            <span>${esc(store.rubro || store.category)}</span>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <h1 style="margin: 0;">${esc(store.name)}</h1>
+              ${window.Reputation ? window.Reputation.renderBadge(store, { size: 'md' }) : ''}
+            </div>
+            <p>${Icon('location', 14)} ${esc(store.address ? store.address + ', ' : '')}${esc(store.department || store.location || '')}</p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" data-action="open-store-rating-modal" data-id="${store.id}" style="height: 38px; padding: 0 14px; font-size: 13px; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer;">
+              <span style="color: #f59e0b;">★</span> Valorar atención
+            </button>
+            <button type="button" class="follow-button" data-action="toggle-follow" aria-pressed="${following}">${Icon('heart', 16)} <span id="follow-label">${following ? 'Siguiendo' : 'Seguir tienda'}</span></button>
+          </div>
         </section>
         <nav class="profile-tabs" aria-label="Secciones de la tienda">
           ${tabs.map(([id, label]) => `<button type="button" class="${P.tab === id ? 'active' : ''}" data-action="profile-tab" data-tab="${id}">${label}</button>`).join('')}
         </nav>
         <div id="profile-body">${tabBody(store)}</div>
       </div>
-      <div id="store-chat-modal-root"></div>`;
+      <div id="store-chat-modal-root"></div>
+      <div id="store-rating-modal-root"></div>`;
   }
 
   function renderChatModal(store) {
@@ -174,6 +201,29 @@
     el.setAttribute('aria-pressed', on);
     const labelEl = document.getElementById('follow-label');
     if (labelEl) labelEl.textContent = on ? 'Siguiendo' : 'Seguir tienda';
+  };
+
+  // Acciones de valoración de tienda
+  Actions['open-store-rating-modal'] = () => {
+    const store = window.Store.store();
+    const root = document.getElementById('store-rating-modal-root');
+    if (root && window.Reputation) {
+      root.innerHTML = `
+        <div class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: grid; place-items: center; z-index: 1000; padding: 16px; animation: fadeIn 0.2s ease;" onclick="if(event.target === this) { const r = document.getElementById('store-rating-modal-root'); if(r) r.innerHTML = ''; }">
+          ${window.Reputation.renderStoreRatingModal(store)}
+        </div>
+      `;
+      // Listener para botón de cerrar
+      const closeBtn = root.querySelector('[data-action="close-modal"]');
+      if (closeBtn) {
+        closeBtn.onclick = () => { root.innerHTML = ''; };
+      }
+    }
+  };
+
+  Actions['close-store-rating-modal'] = () => {
+    const root = document.getElementById('store-rating-modal-root');
+    if (root) root.innerHTML = '';
   };
 
   // Acciones del chat interno

@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+/** Nombre comercial corto (copy de producto, eyebrows). Maqueta: CompraLocal. */
+export const PRODUCT_NAME = 'CompraLocal';
+/** Nombre completo / legal (logo, títulos de documento). */
 export const BRAND_NAME = 'Tu Comercio Local';
 
 // Archivos oficiales del diseñador: se usan tal cual, sin redibujar ni recolorear.

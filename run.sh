@@ -32,7 +32,15 @@ command -v npm  >/dev/null || error "No encuentro npm."
 
 # --- Configuración -----------------------------------------------------------
 
-[[ -f "$API/.env" ]] || error "Falta apps/api/.env. Copiá apps/api/.env.example a apps/api/.env y completá DATABASE_URL y JWT_SECRET."
+# Perfil local: apps/api/.env.local (APP_ENV=local). .env solo es compatibilidad.
+if [[ ! -f "$API/.env.local" && ! -f "$API/.env" ]]; then
+  if [[ -f "$API/.env.local.example" ]]; then
+    cp "$API/.env.local.example" "$API/.env.local"
+    aviso "Creé apps/api/.env.local a partir de .env.local.example. Completá DATABASE_URL y JWT_SECRET."
+  else
+    error "Falta apps/api/.env.local. Copiá apps/api/.env.local.example y completá DATABASE_URL y JWT_SECRET."
+  fi
+fi
 
 if [[ ! -f "$WEB/.env.local" && ! -f "$WEB/.env" ]]; then
   cp "$WEB/.env.example" "$WEB/.env.local"
@@ -53,15 +61,31 @@ fi
 
 # --- Puertos -----------------------------------------------------------------
 
+# Bind a 0.0.0.0: en Windows el check a :: a veces da “libre” con el puerto ocupado en IPv4.
 puerto_ocupado() {
-  node -e "require('net').createServer().once('error',()=>process.exit(0)).once('listening',function(){this.close();process.exit(1)}).listen($1)"
+  node -e "require('net').createServer().once('error',()=>process.exit(0)).once('listening',function(){this.close();process.exit(1)}).listen($1,'0.0.0.0')"
 }
 
+liberar_puerto() {
+  local puerto="$1"
+  if command -v powershell.exe >/dev/null 2>&1; then
+    powershell.exe -NoProfile -Command \
+      "Get-NetTCPConnection -LocalPort $puerto -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }" \
+      >/dev/null 2>&1 || true
+  fi
+}
+
+if [[ "${LIBERAR_PUERTOS:-}" == "1" ]]; then
+  [[ "$MODO" != "web" ]] && liberar_puerto 3000
+  [[ "$MODO" != "api" ]] && liberar_puerto 3001
+  sleep 1
+fi
+
 if [[ "$MODO" != "web" ]] && puerto_ocupado 3000; then
-  error "El puerto 3000 ya está en uso. ¿La API ya está corriendo en otra terminal?"
+  error "Puerto 3000 ocupado. Cerrá la otra terminal o: LIBERAR_PUERTOS=1 ./run.sh"
 fi
 if [[ "$MODO" != "api" ]] && puerto_ocupado 3001; then
-  error "El puerto 3001 ya está en uso. ¿La web ya está corriendo en otra terminal?"
+  error "Puerto 3001 ocupado (Next a veces queda colgado). Probá: LIBERAR_PUERTOS=1 ./run.sh"
 fi
 
 # --- Compilación -------------------------------------------------------------

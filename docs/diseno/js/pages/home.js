@@ -3,14 +3,19 @@
    ============================================================ */
 (function () {
   const { esc, money } = window.Utils;
-  const { categories, stores, products, photos } = window.Data;
+  const { categories, photos } = window.Data;
 
   Pages.marketplace = {
     layout: 'market',
-    title: 'CompraLocal — Marketplace de Comercios Locales · San Juan',
+    title: 'Tu Comercio Local',
 
     render() {
-      const q = window.Store.state.query;
+      const q = window.Store.state.query || '';
+
+      // OBTENCIÓN DINÁMICA DE TIENDAS Y PRODUCTOS (Uniendo Sistema + Panel Comerciante)
+      const merchantStores = window.Store.state.merchantStores || [];
+      const allStores = [...merchantStores, ...(window.Data.stores || [])];
+      const allProducts = window.Data?.products || [];
 
       // 1. RUBROS / CATEGORÍAS (7 principales + tarjeta 'Más categorías')
       const top7Categories = categories.slice(0, 7);
@@ -31,8 +36,8 @@
           <span>Ver todos (${categories.length})</span>
         </button>`;
 
-      // 2. TIENDAS DESTACADAS (Carrusel) - Se elimina el data-action del wrapper para evitar conflictos con el botón de favorito
-      const featuredStores = stores.slice(0, 10);
+      // 2. TIENDAS DESTACADAS (Carrusel)
+      const featuredStores = allStores.slice(0, 10);
       const storesCardsHtml = featuredStores.map((s) => `
         <div class="store-card-wrapper" style="min-width: calc(33.333% - 8px); flex: 0 0 auto;">
           ${Cards.store(s)}
@@ -42,9 +47,8 @@
       // 3. TIENDAS SEPARADAS POR RUBRO
       const topRubros = categories.slice(0, 5);
       const storesByRubroHtml = topRubros.map(cat => {
-        const rubroStores = stores
-          .filter(s => s.category && s.category.toLowerCase().includes(cat.name.toLowerCase().substring(0, 5)))
-          .reverse()
+        const rubroStores = allStores
+          .filter(s => (s.rubro && s.rubro.toLowerCase().includes(cat.name.toLowerCase().substring(0, 5))) || (s.category && s.category.toLowerCase().includes(cat.name.toLowerCase().substring(0, 5))))
           .slice(0, 8);
 
         if (rubroStores.length === 0) return '';
@@ -62,42 +66,53 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;">
               ${rubroCards}
             </div>
-            <div style="text-align: center; margin-top: 20px;">
-              <button data-action="open-category" data-name="${esc(cat.name)}" style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 24px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'; this.style.color='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text)'">
-                Ver más tiendas de ${esc(cat.name)} &rsaquo;
-              </button>
-            </div>
           </section>
         `;
       }).join('');
 
-      // 4. OFERTAS IMPERDIBLES
-      const offerProducts = products.slice(0, 8);
-      const offersHtml = offerProducts.map(p => {
-        return `<div style="min-width: 240px; flex: 0 0 auto; display: flex; flex-direction: column; position: relative;">${Cards.product(p)}</div>`;
-      }).join('');
+      // 4. OFERTAS IMPERDIBLES (Con data-id y data-action correctos)
+      const offerProducts = allProducts.slice(0, 8);
+      const offersHtml = offerProducts.length > 0 ? offerProducts.map(p => {
+        return `
+          <div class="product-card" data-action="open-product" data-id="${esc(p.id)}" style="min-width: 240px; flex: 0 0 auto; display: flex; flex-direction: column; position: relative; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; gap: 8px;">
+            <div style="width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #f1f5f9;">
+              <img src="${esc(p.image)}" alt="${esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+            <strong style="font-size: 14px; color: var(--text);">${esc(p.name)}</strong>
+            <span style="font-size: 16px; font-weight: 800; color: var(--primary);">${money(p.price)}</span>
+          </div>`;
+      }).join('') : '<p style="color: #64748b; padding: 20px;">No hay ofertas disponibles en este momento.</p>';
 
-      // 6. PRODUCTOS DIFERENCIADOS POR CATEGORÍA
-      const popularCategoriesWithProducts = ['Indumentaria y moda', 'Hogar y decoración', 'Salud y cuidado personal'];
-      const productsByCategoryHtml = popularCategoriesWithProducts.map((catName) => {
-        const catProducts = products.filter(p => {
-          if (catName === 'Indumentaria y moda') return p.category === 'Indumentaria' || p.category === 'Calzado' || p.category === 'Accesorios';
-          if (catName === 'Hogar y decoración') return p.category === 'Decoración';
-          if (catName === 'Salud y cuidado personal') return p.category === 'Belleza';
-          return false;
-        }).slice(0, 8);
+      // 7. PRODUCTOS SEPARADOS POR CATEGORÍA (Fila de 4 productos con los últimos cargados)
+      const categoriesWithProducts = categories.filter(cat => {
+        return allProducts.some(p => p.category && p.category.toLowerCase() === cat.name.toLowerCase());
+      });
+
+      const productsByCategoryHtml = categoriesWithProducts.map(cat => {
+        const catProducts = allProducts
+          .filter(p => p.category && p.category.toLowerCase() === cat.name.toLowerCase())
+          .reverse()
+          .slice(0, 4);
 
         if (catProducts.length === 0) return '';
 
-        const cardsHtml = catProducts.map(p => Cards.product(p)).join('');
+        const cardsHtml = catProducts.map(p => `
+          <div class="product-card" data-action="open-product" data-id="${esc(p.id)}" style="cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #f1f5f9;">
+              <img src="${esc(p.image)}" alt="${esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+            <strong style="font-size: 14px; color: var(--text);">${esc(p.name)}</strong>
+            <span style="font-size: 16px; font-weight: 800; color: var(--primary);">${money(p.price)}</span>
+          </div>
+        `).join('');
 
         return `
           <section class="market-section" style="margin-top: 36px;">
             <div class="market-section-heading">
-              <div><span>DESTACADOS EN SECTOR</span><h2>${esc(catName)}</h2></div>
-              <button data-action="open-category" data-name="${esc(catName)}">Ver más ${window.Icon('arrow', 15)}</button>
+              <div><span>NUEVOS EN SECTOR</span><h2>${esc(cat.name)}</h2></div>
+              <button data-action="open-category" data-name="${esc(cat.name)}">Ver más ${window.Icon('arrow', 15)}</button>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
               ${cardsHtml}
             </div>
           </section>
@@ -148,11 +163,21 @@
         .auto-scroll-track::-webkit-scrollbar {
           display: none;
         }
+        @media (max-width: 900px) {
+          .market-container [style*="grid-template-columns: repeat(4, 1fr)"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .market-container [style*="grid-template-columns: repeat(4, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
       </style>
 
       <!-- HERO PRINCIPAL -->
-<!-- HERO PRINCIPAL -->
-      <section class="market-hero" style="background-image:url('${photos.storefront}'); background-position: center 60%; background-size: cover;">        <div class="market-hero-overlay"></div>
+      <section class="market-hero" style="background-image:url('${photos.storefront}'); background-position: center 60%; background-size: cover;">
+        <div class="market-hero-overlay"></div>
         <div class="market-hero-content">
           <span>TODO CERCA TUYO · ENVÍO ÚNICO $2.999</span>
           <h1>Descubrí los comercios<br />de tu zona en San Juan</h1>
@@ -201,7 +226,7 @@
             <div><span>EXPLORÁ POR RUBRO</span><h2>Encontrá lo que necesitás</h2></div>
             <button data-go="categories">Ver más ${window.Icon('arrow', 15)}</button>
           </div>
-          <div class="home-category-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; padding-top: 8px; overflow: visible;">
+          <div class="home-category-grid" style="padding-top: 8px;">
             ${categoriesHtml}
             ${moreCategoryHtml}
           </div>
@@ -253,7 +278,7 @@
         <!-- 6. NUEVOS COMERCIOS -->
         <section class="market-section new-stores-section">
           <div class="market-section-heading"><div><span>RECIÉN LLEGADOS</span><h2>Nuevos comercios</h2></div></div>
-          <div class="new-store-grid">${stores.filter((s) => s.isNew).map((s) => Cards.store(s, { compact: true })).join('')}</div>
+          <div class="new-store-grid">${allStores.filter((s) => s.isNew).map((s) => Cards.store(s, { compact: true })).join('')}</div>
         </section>
 
         <!-- 7. PRODUCTOS DIFERENCIADOS POR CATEGORÍA -->

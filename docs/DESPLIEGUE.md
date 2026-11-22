@@ -230,6 +230,7 @@ Hay dos formas equivalentes. Preferí **Blueprint** (`render.yaml` en la raíz d
   3. Migraciones **no aplicadas** en ese proyecto → en SQL Editor: `select pkg_sistema.estado();` (si falla “function does not exist”, aplicá las migraciones de `apps/api/prisma/marketplace-db/supabase/migrations/`).
   4. Pooler: preferí **Session** modo / puerto `5432` (como en `.env.supabase.example`), no Transaction `6543` si Prisma se queja.
 - **`POST /auth/register` → “Algún dato no cumple las reglas…”** en Supabase cloud: falta la migración `20261001005100_registro_auth_users_supabase.sql` (el insert a `auth.users` debe traer `instance_id`, `aud`, `role`, etc.). Ejecutala en **SQL Editor** (o `supabase db push`) y reintentá el registro / `db:demo:supabase`.
+- **Registro con referencias / barrio:** aplicá también `20261001005200_registro_domicilio_referencias.sql` (actualiza `pkg_auth.registrar_cliente` para persistir `direcciones.referencias`).
 - **`trust proxy`**: en producción el API confía 1 hop (proxy de Render) para rate-limit e IPs (`apps/api/src/app.ts`).
 - **Cookies `Secure`**: con `NODE_ENV=production` la cookie de sesión solo viaja por HTTPS. El smoke de login conviene hacerlo con la web en **Vercel**, no mezclando `localhost` HTTP → API Render.
 - **Cold start Free**: tras ~15 min sin tráfico el servicio se duerme; la 1.ª request despierta (30–60 s). La web ya pega a `/api/health` al cargar (y el login avisa si tarda). Para evitarlo del todo, mantené el API despierto con un monitor gratis:

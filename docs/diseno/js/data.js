@@ -215,24 +215,57 @@
 
   const localities = ['Capital', 'Rivadavia', 'Rawson', 'Santa Lucía', 'Pocito', 'Chimbas', 'Albardón', 'Caucete'];
 
+  // ÚNICAMENTE LAS DOS TIENDAS DEL USUARIO COMERCIANTE DE PRUEBA
   const stores = [
-    { id: 'la-boutique', name: 'La Boutique', category: 'Indumentaria y moda', location: 'Capital, San Juan', description: 'Prendas atemporales, accesorios y asesoramiento cercano para encontrar tu estilo.', image: photos.boutique },
-    { id: 'tecnistore', name: 'TecniStore', category: 'Electrónica y tecnología', location: 'Capital, San Juan', description: 'Tecnología, accesorios y soluciones simples con atención personalizada.', image: photos.tech },
-    { id: 'sabor-casero', name: 'Sabor Casero', category: 'Alimentos y bebidas', location: 'Rivadavia, San Juan', description: 'Cocina artesanal elaborada cada día con ingredientes de productores locales.', image: photos.cafe },
-    { id: 'casa-deco', name: 'Casa & Deco', category: 'Hogar y decoración', location: 'Santa Lucía, San Juan', description: 'Objetos cálidos para transformar cada rincón de tu casa.', image: photos.home, isNew: true },
-    { id: 'esencia', name: 'Esencia Natural', category: 'Salud y cuidado personal', location: 'Capital, San Juan', description: 'Cosmética consciente y productos de cuidado personal seleccionados.', image: photos.flower, isNew: true },
-    { id: 'punto-firme', name: 'Punto Firme', category: 'Ferretería, construcción y herramientas', location: 'Rawson, San Juan', description: 'Herramientas, materiales y asesoramiento para concretar tus proyectos.', image: photos.street, isNew: true },
-    { id: 'club-norte', name: 'Club Norte', category: 'Deportes y recreación', location: 'Chimbas, San Juan', description: 'Equipamiento y prendas para moverte todos los días.', image: photos.storefront },
-    { id: 'mesa-local', name: 'Mesa Local', category: 'Alimentos y bebidas', location: 'Pocito, San Juan', description: 'Productos regionales y experiencias gastronómicas de cercanía.', image: photos.restaurant },
+    {
+      id: 'store-1',
+      name: 'Ferretería y Construcción San Juan',
+      rubro: 'Ferretería, construcción y herramientas',
+      subrubro: 'Herramientas eléctricas',
+      category: 'Ferretería, construcción y herramientas',
+      location: 'Capital, San Juan',
+      address: 'Av. Rioja 450 Sur',
+      department: 'Capital',
+      locality: 'San Juan',
+      cuit: '20-32114455-8',
+      description: 'Todo para la construcción, refacción y herramientas profesionales en San Juan.',
+      phones: [{ country: 'Argentina (+54)', type: 'WhatsApp', number: '2644123456' }],
+      image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=200&auto=format&fit=crop&q=60',
+      isNew: false
+    },
+    {
+      id: 'store-2',
+      name: 'Mueblería y Diseño Cuyo',
+      rubro: 'Hogar y decoración',
+      subrubro: 'Muebles',
+      category: 'Hogar y decoración',
+      location: 'Santa Lucía, San Juan',
+      address: 'Calle Mitre 890 Este',
+      department: 'Santa Lucía',
+      locality: 'Santa Lucía',
+      cuit: '20-32114455-8',
+      description: 'Fabricación y venta de muebles de diseño para el hogar y oficina.',
+      phones: [{ country: 'Argentina (+54)', type: 'WhatsApp', number: '2644789123' }],
+      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop&q=60',
+      isNew: true
+    }
   ];
 
+  // PRODUCTOS EXCLUSIVOS DE LAS DOS TIENDAS DEL COMERCIANTE
   const products = [
-    { id: 'remera-basica', name: 'Remera básica oversize', category: 'Indumentaria', price: 24900, image: productPhotos[0], storeId: 'la-boutique' },
-    { id: 'zapatillas-urbanas', name: 'Zapatillas urbanas', category: 'Calzado', price: 59900, image: productPhotos[1], storeId: 'la-boutique' },
-    { id: 'bolso-camel', name: 'Bolso camel', category: 'Accesorios', price: 32700, image: productPhotos[2], storeId: 'la-boutique' },
-    { id: 'maceta-minimal', name: 'Maceta minimal', category: 'Decoración', price: 18900, image: productPhotos[3], storeId: 'casa-deco' },
-    { id: 'set-cuidado', name: 'Set de cuidado diario', category: 'Belleza', price: 21500, image: productPhotos[4], storeId: 'esencia' },
-    { id: 'campera-liviana', name: 'Campera liviana', category: 'Indumentaria', price: 68400, image: productPhotos[5], storeId: 'la-boutique' },
+    // Tienda 1: Ferretería y Construcción San Juan (store-1)
+    { id: 'p1', storeId: 'store-1', name: 'Taladro Percutor Profesional 650W', price: 45000, brand: 'Bosch', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas eléctricas', stock: 12, sku: 'TAL-001', condition: 'Nuevo', description: 'Taladro percutor de alta potencia con velocidad variable.', image: productPhotos[0] },
+    { id: 'p2', storeId: 'store-1', name: 'Amoladora Angular 4 1/2"', price: 38900, brand: 'Makita', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas eléctricas', stock: 8, sku: 'AMO-002', condition: 'Nuevo', description: 'Amoladora compacta de excelente rendimiento.', image: productPhotos[1] },
+    { id: 'p3', storeId: 'store-1', name: 'Juego de Llaves Combinadas x 12', price: 22500, brand: 'Crossmaster', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas manuales', stock: 15, sku: 'LCA-003', condition: 'Nuevo', description: 'Llaves de acero cromo vanadio en soporte organizador.', image: productPhotos[2] },
+    { id: 'p4', storeId: 'store-1', name: 'Pintura Látex Interior Blanca 20L', price: 54000, brand: 'Sherwin', category: 'Ferretería, construcción y herramientas', subcategory: 'Pinturas', stock: 10, sku: 'PIN-004', condition: 'Nuevo', description: 'Pintura lavable de alto poder cubritivo.', image: productPhotos[3] },
+    { id: 'p5', storeId: 'store-1', name: 'Juego de Destornilladores Aislados x 6', price: 14200, brand: 'Bahco', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas manuales', stock: 20, sku: 'DES-005', condition: 'Nuevo', description: 'Destornilladores certificados para electricistas.', image: productPhotos[4] },
+
+    // Tienda 2: Mueblería y Diseño Cuyo (store-2)
+    { id: 'p6', storeId: 'store-2', name: 'Mesa de Comedor Estilo Industrial 1.60m', price: 125000, brand: 'CuyoDeco', category: 'Hogar y decoración', subcategory: 'Muebles', stock: 5, sku: 'MES-101', condition: 'Nuevo', description: 'Tapa de madera maciza paraíso y estructura de hierro.', image: productPhotos[5] },
+    { id: 'p7', storeId: 'store-2', name: 'Silla Eames Ergonómica Tapizada', price: 29900, brand: 'DesignStudio', category: 'Hogar y decoración', subcategory: 'Muebles', stock: 18, sku: 'SIL-102', condition: 'Nuevo', description: 'Silla moderna ideal para comedor o escritorio.', image: productPhotos[0] },
+    { id: 'p8', storeId: 'store-2', name: 'Sillón 3 Cuerpos Chenille Gris', price: 185000, brand: 'ComfortHome', category: 'Hogar y decoración', subcategory: 'Living', stock: 3, sku: 'SIL-103', condition: 'Nuevo', description: 'Sillón esquinero tapizado en tela chenille anti-manchas.', image: productPhotos[1] },
+    { id: 'p9', storeId: 'store-2', name: 'Rack de TV Minimalista Melamina', price: 68000, brand: 'MueblesSanJuan', category: 'Hogar y decoración', subcategory: 'Muebles', stock: 7, sku: 'RAC-104', condition: 'Nuevo', description: 'Mueble para TV con espacio de almacenamiento y pasacables.', image: productPhotos[2] },
+    { id: 'p10', storeId: 'store-2', name: 'Respaldo de Cama Sommier 2 Plazas', price: 45000, brand: 'CuyoDeco', category: 'Hogar y decoración', subcategory: 'Dormitorio', stock: 6, sku: 'RES-105', condition: 'Nuevo', description: 'Respaldo flotante con detalles en madera natural.', image: productPhotos[3] }
   ];
 
   window.Data = { photos, categories, stores, products, localities, sanJuanLocations };

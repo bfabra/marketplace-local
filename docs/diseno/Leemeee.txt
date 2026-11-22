@@ -1,6 +1,0 @@
-Navegación desde las pantallas del comprador esta realizado por el momento.
-
-Ordenar:
-Desde la creación de la cuenta cliente, ver si desde la misma pantalla en donde se confirma la cuenta agregar botón para crear cuenta de Comercio o una vez registrado desde el panel de la cuenta cliente volverse comerciante. 
-
-Algo más me falta anotar pero no me acuerdo.

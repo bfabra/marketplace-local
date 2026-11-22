@@ -25,6 +25,9 @@
           <div class="market-store-copy">
             <small>${esc(store.category)}</small>
             <h3>${esc(store.name)}</h3>
+            <div style="margin: 3px 0 6px 0;">
+              ${window.Reputation ? window.Reputation.renderBadge(store, { size: 'sm' }) : ''}
+            </div>
             <p>${window.Icon('location', 13)} ${esc(store.location)}</p>
             <button data-action="open-store" data-id="${store.id}">Ver tienda ${window.Icon('arrow', 14)}</button>
           </div>

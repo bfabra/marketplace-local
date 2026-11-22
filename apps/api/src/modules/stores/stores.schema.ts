@@ -35,7 +35,7 @@ const datosTienda = z.object({
         tipo: z.enum(['whatsapp', 'celular', 'fijo'], { errorMap: () => ({ message: 'Elegí el tipo de teléfono' }) }),
       })
     )
-    .max(5, 'Podés cargar hasta 5 teléfonos')
+    .max(3, 'Podés cargar hasta 3 teléfonos')
     .transform((lista) => lista.filter((t) => t.numero !== ''))
     .optional(),
   ubicacion: z
@@ -50,7 +50,7 @@ const datosTienda = z.object({
     .transform((v) => v || null)
     .nullable()
     .optional(),
-  localidad_id: z.string().uuid('Elegí una localidad'),
+  localidad_id: z.string().uuid('Elegí el departamento'),
   direccion: z
     .string()
     .trim()

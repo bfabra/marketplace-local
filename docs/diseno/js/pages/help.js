@@ -8,7 +8,7 @@
 
   window.Pages['help'] = {
     layout: 'market',
-    title: 'Centro de Ayuda — CompraLocal San Juan',
+    title: 'Centro de Ayuda — Tu Comercio Local',
 
     render() {
       const s = window.Store.state;

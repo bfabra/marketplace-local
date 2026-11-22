@@ -21,6 +21,7 @@ import { BRAND_NAME } from '@/components/layout/logo';
 import { useFormErrors } from '@/components/forms/use-form-errors';
 import { AvisoDisenio, CampoDisenio, SelectorDisenio } from '@/components/forms/campo-disenio';
 import { TelefonosTienda } from '@/components/forms/telefonos-tienda';
+import { TerritorioTienda } from '@/components/forms/territorio-tienda';
 import { MapaTienda, UbicacionTienda } from '@/components/forms/ubicacion-tienda';
 
 type Paso = 'datos' | 'revisar' | 'listo';
@@ -60,7 +61,7 @@ function validar(b: Borrador) {
   if (b.nombre.trim().length < 3) errores.nombre = 'El nombre debe tener al menos 3 caracteres';
   if (b.cuit.replace(/\D/g, '').length !== 11) errores.cuit = 'El CUIT son 11 números, por ejemplo 20-12345678-6';
   if (!b.rubro_id) errores.rubro_id = 'Elegí el rubro principal de tu negocio';
-  if (!b.localidad_id) errores.localidad_id = 'Elegí una localidad';
+  if (!b.localidad_id) errores.localidad_id = 'Elegí el departamento';
   if (b.direccion.trim().length < 5) errores.direccion = 'Ingresá la dirección del local';
   return { ...errores, ...validarTelefonos(b.telefonos) };
 }
@@ -490,26 +491,21 @@ export default function NewStorePage() {
             onImportar={importar}
             onQuitarUbicacion={() => setB((actual) => ({ ...actual, ubicacion: null }))}
           >
-            <div className="split-fields">
-              <SelectorDisenio
-                label="Localidad"
-                name="localidad_id"
-                value={b.localidad_id}
-                onChange={(v) => poner('localidad_id', v)}
-                placeholder={localidades.length ? 'Seleccioná la localidad' : 'Cargando…'}
-                opciones={localidades.map((l) => ({ value: l.id, label: `${l.nombre} (${l.provincia})` }))}
-                error={f.localidad_id}
-              />
-              <CampoDisenio
-                label="Dirección del local"
-                icono="pin"
-                placeholder="Ej. Av. San Martín 1240"
-                value={b.direccion}
-                onChange={(e) => poner('direccion', e.target.value)}
-                maxLength={200}
-                error={f.direccion}
-              />
-            </div>
+            <TerritorioTienda
+              localidades={localidades}
+              localidadId={b.localidad_id}
+              onChange={(v) => poner('localidad_id', v)}
+              error={f.localidad_id}
+            />
+            <CampoDisenio
+              label="Calle y altura"
+              icono="pin"
+              placeholder="Ej. Av. San Martín 1240"
+              value={b.direccion}
+              onChange={(e) => poner('direccion', e.target.value)}
+              maxLength={200}
+              error={f.direccion}
+            />
           </UbicacionTienda>
         </div>
         <div className="upload-side">

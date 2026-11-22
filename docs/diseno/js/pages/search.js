@@ -2,15 +2,33 @@
    COMPRALOCAL — RESULTADOS  (#search)
    ============================================================ */
 (function () {
-  const { esc, norm } = window.Utils;
+  const { esc, norm, money } = window.Utils;
   const { stores, products } = window.Data;
 
   const S = { type: 'all' };
 
+  function getAllProducts() {
+    const staticProducts = window.Data?.products || [];
+    const merchantProducts = window.Store?.state?.merchantProducts || [];
+    const map = new Map();
+    [...merchantProducts, ...staticProducts].forEach(p => map.set(p.id, p));
+    return Array.from(map.values());
+  }
+
+  function getAllStores() {
+    const merchantStores = window.Store?.state?.merchantStores || [];
+    const staticStores = window.Data?.stores || [];
+    const map = new Map();
+    [...merchantStores, ...staticStores].forEach(s => map.set(s.id, s));
+    return Array.from(map.values());
+  }
+
   function matches(query) {
+    const allStores = getAllStores();
+    const allProducts = getAllProducts();
     return {
-      stores: stores.filter((s) => norm(s.name + s.category + s.description).includes(norm(query))),
-      products: products.filter((p) => norm(p.name + p.category).includes(norm(query))),
+      stores: allStores.filter((s) => norm(s.name + (s.category || '') + (s.description || '')).includes(norm(query))),
+      products: allProducts.filter((p) => norm(p.name + (p.category || '')).includes(norm(query))),
     };
   }
 
@@ -26,13 +44,24 @@
     }
     const showStores = (S.type === 'all' || S.type === 'stores') && m.stores.length;
     const showProducts = (S.type === 'all' || S.type === 'products') && m.products.length;
+    
     return `
       ${showStores ? `<section class="search-result-section">
         <div class="market-section-heading"><div><span>PRIMERO, LOS COMERCIOS</span><h2>Tiendas encontradas</h2></div></div>
         <div class="stores-page-grid">${m.stores.map((s) => Cards.store(s)).join('')}</div></section>` : ''}
       ${showProducts ? `<section class="search-result-section">
         <div class="market-section-heading"><div><span>PRODUCTOS RELACIONADOS</span><h2>Productos encontrados</h2></div></div>
-        <div class="product-grid">${m.products.map((p) => Cards.product(p)).join('')}</div></section>` : ''}`;
+        <div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+          ${m.products.map((p) => `
+            <div class="product-card" data-action="open-product" data-id="${esc(p.id)}" style="cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="width: 100%; height: 160px; border-radius: 8px; overflow: hidden; background: #f1f5f9;">
+                <img src="${esc(p.image)}" alt="${esc(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              <strong style="font-size: 14px; color: var(--text);">${esc(p.name)}</strong>
+              <span style="font-size: 16px; font-weight: 800; color: var(--primary);">${money(p.price)}</span>
+            </div>
+          `).join('')}
+        </div></section>` : ''}`;
   }
 
   function heading(query) {

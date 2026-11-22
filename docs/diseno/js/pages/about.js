@@ -8,7 +8,7 @@
 
   window.Pages['about'] = {
     layout: 'market',
-    title: 'Acerca de CompraLocal — San Juan',
+    title: 'Acerca de Tu Comercio Local — San Juan',
 
     render() {
       return `

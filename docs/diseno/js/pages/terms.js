@@ -8,7 +8,7 @@
 
   window.Pages['terms'] = {
     layout: 'market',
-    title: 'Términos y Condiciones — CompraLocal San Juan',
+    title: 'Términos y Condiciones — Tu Comercio Local',
 
     render() {
       return `

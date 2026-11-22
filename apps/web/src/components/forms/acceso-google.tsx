@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Usuario } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { useOpciones } from '@/hooks/use-opciones';
+import { Icon } from '@/components/ui/icon';
 
 interface GoogleId {
   initialize(opciones: { client_id: string; callback: (r: { credential: string }) => void; context?: string }): void;
@@ -36,8 +37,8 @@ function cargarGoogle() {
 }
 
 /**
- * "Continuar con Google" con el botón oficial (Google Identity Services). No se
- * muestra si la plataforma no tiene configurado el ingreso con Google.
+ * Botón “Continuar con Google” con el look de la maqueta (#login).
+ * El botón oficial de GIS queda transparente encima para recibir el clic.
  */
 export function AccesoGoogle({
   separador,
@@ -64,7 +65,8 @@ export function AccesoGoogle({
     cargarGoogle().then(
       () => {
         const google = window.google?.accounts.id;
-        if (!vivo || !google || !contenedor.current) return;
+        const caja = contenedor.current;
+        if (!vivo || !google || !caja) return;
         google.initialize({
           client_id: clientId,
           context: registro ? 'signup' : 'signin',
@@ -74,7 +76,7 @@ export function AccesoGoogle({
               (error) => avisos.current.onError(error)
             ),
         });
-        google.renderButton(contenedor.current, {
+        google.renderButton(caja, {
           type: 'standard',
           theme: 'outline',
           size: 'large',
@@ -82,7 +84,7 @@ export function AccesoGoogle({
           text: registro ? 'signup_with' : 'continue_with',
           logo_alignment: 'center',
           locale: 'es-419',
-          width: Math.min(400, contenedor.current.offsetWidth || 400),
+          width: Math.max(240, Math.floor(caja.offsetWidth || 400)),
         });
       },
       () => vivo && setSinConexion(true)
@@ -104,7 +106,13 @@ export function AccesoGoogle({
           No pudimos cargar el ingreso con Google. Revisá tu conexión y recargá la página.
         </p>
       ) : (
-        <div ref={contenedor} className="acceso-google-boton" />
+        <div className="acceso-google-wrap">
+          <span className="ds-btn social" aria-hidden="true">
+            <Icon name="google" size={19} />
+            Continuar con Google
+          </span>
+          <div ref={contenedor} className="acceso-google-gis" title="Continuar con Google" />
+        </div>
       )}
       <p className="acceso-google-nota">
         Si es tu primera vez, al continuar con Google aceptás los{' '}

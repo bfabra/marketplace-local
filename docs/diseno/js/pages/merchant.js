@@ -149,15 +149,34 @@
     logo: ''
   };
 
+  let productPhotosList = [];
+
+  const checkAndExpirePlan = () => {
+    const s = window.Store.state;
+    if (s.merchantPlan && s.merchantPlan !== 'free' && s.merchantPlanExpiresAt) {
+      const now = new Date().getTime();
+      if (now > s.merchantPlanExpiresAt) {
+        s.merchantPlan = 'free';
+        s.merchantPlanExpiresAt = null;
+        if (s.merchantStores && s.merchantStores.length > 1) {
+          s.merchantStores = [s.merchantStores[0]];
+          s.activeStoreId = s.merchantStores[0].id;
+        }
+        showToast('Tu plan pago ha expirado (31 días). Se ha aplicado el Plan Gratuito y conservado 1 tienda.', 'warning');
+      }
+    }
+  };
+
   const getMerchantProfile = () => {
     const s = window.Store.state;
+    checkAndExpirePlan();
     if (!s.merchantProfile) {
       s.merchantProfile = {
-        firstName: s.user?.firstName || 'Lucas Nahuel',
-        lastName: s.user?.lastName || 'Sánchez',
-        cuit: '20-38492819-4',
-        personalAddress: 'Calle Las Heras 340 Sur, San Juan',
-        personalPhone: '+54 9 264 4512345'
+        firstName: 'Carlos',
+        lastName: 'Mendoza',
+        cuit: '20-32114455-8',
+        personalAddress: 'Av. Libertador 2100 Oeste, San Juan',
+        personalPhone: '+54 9 264 5891234'
       };
     }
     if (!s.user) s.user = {};
@@ -169,23 +188,42 @@
 
   const getMerchantStores = () => {
     const s = window.Store.state;
+    if (!s.merchantPlan) {
+      s.merchantPlan = 'standard';
+      s.merchantPlanExpiresAt = new Date().getTime() + (31 * 24 * 60 * 60 * 1000);
+    }
+
     if (!s.merchantStores || s.merchantStores.length === 0) {
-      const mainName = s.user?.storeName || s.merchantData?.storeName || 'TecnoLocal San Juan (Casa Central)';
       s.merchantStores = [
         {
           id: 'store-1',
-          name: mainName,
-          rubro: s.merchantData?.rubro || 'Tecnología y electrónica',
-          subrubro: 'Smartphones y Gadgets',
-          description: s.merchantData?.description || 'Venta de productos y atención directa en San Juan.',
-          address: s.merchantData?.address || 'Av. Ignacio de la Roza 450 Oeste',
-          department: s.merchantData?.department || 'Capital',
-          locality: s.merchantData?.locality || 'Capital',
-          cuit: '20-38492819-4',
-          registrationYear: 2025,
-          phones: [{ country: 'Argentina (+54)', type: 'WhatsApp', number: '2644981234' }],
-          socials: { instagram: '@tecnolocal_sj', facebook: 'tecnolocal.sj', web: 'www.tecnolocalsj.com' },
-          logo: s.merchantData?.logo || 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=200&auto=format&fit=crop&q=60'
+          name: 'Ferretería y Construcción San Juan',
+          rubro: 'Ferretería, construcción y herramientas',
+          subrubro: 'Herramientas eléctricas',
+          description: 'Todo para la construcción, refacción y herramientas profesionales en San Juan.',
+          address: 'Av. Rioja 450 Sur',
+          department: 'Capital',
+          locality: 'San Juan',
+          cuit: '20-32114455-8',
+          registrationYear: 2026,
+          phones: [{ country: 'Argentina (+54)', type: 'WhatsApp', number: '2644123456' }],
+          socials: { instagram: '@ferreteriasj', facebook: 'ferreteria.sanjuan', web: 'www.ferreteriasanjuan.com' },
+          logo: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=200&auto=format&fit=crop&q=60'
+        },
+        {
+          id: 'store-2',
+          name: 'Mueblería y Diseño Cuyo',
+          rubro: 'Hogar y decoración',
+          subrubro: 'Muebles',
+          description: 'Fabricación y venta de muebles de diseño para el hogar y oficina.',
+          address: 'Calle Mitre 890 Este',
+          department: 'Santa Lucía',
+          locality: 'Santa Lucía',
+          cuit: '20-32114455-8',
+          registrationYear: 2026,
+          phones: [{ country: 'Argentina (+54)', type: 'WhatsApp', number: '2644789123' }],
+          socials: { instagram: '@muebleriacuyo', facebook: 'muebleria.cuyo', web: 'www.muebleriacuyo.com' },
+          logo: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop&q=60'
         }
       ];
       s.activeStoreId = 'store-1';
@@ -199,6 +237,25 @@
     return stores.find(st => st.id === activeId) || stores[0];
   };
 
+  const ensureDefaultProducts = () => {
+    window.Data = window.Data || {};
+    if (!window.Data.products || window.Data.products.length === 0) {
+      window.Data.products = [
+        { id: 'p1', storeId: 'store-1', name: 'Taladro Percutor Profesional 650W', price: 45000, brand: 'Bosch', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas eléctricas', stock: 12, sku: 'TAL-001', condition: 'Nuevo', description: 'Taladro percutor de alta potencia con velocidad variable.', photos: ['https://images.unsplash.com/photo-1504148455328-c376907d081c?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p2', storeId: 'store-1', name: 'Amoladora Angular 4 1/2"', price: 38900, brand: 'Makita', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas eléctricas', stock: 8, sku: 'AMO-002', condition: 'Nuevo', description: 'Amoladora compacta de excelente rendimiento.', photos: ['https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p3', storeId: 'store-1', name: 'Juego de Llaves Combinadas x 12', price: 22500, brand: 'Crossmaster', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas manuales', stock: 15, sku: 'LCA-003', condition: 'Nuevo', description: 'Llaves de acero cromo vanadio en soporte organizador.', photos: ['https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p4', storeId: 'store-1', name: 'Pintura Látex Interior Blanca 20L', price: 54000, brand: 'Sherwin', category: 'Ferretería, construcción y herramientas', subcategory: 'Pinturas', stock: 10, sku: 'PIN-004', condition: 'Nuevo', description: 'Pintura lavable de alto poder cubritivo.', photos: ['https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p5', storeId: 'store-1', name: 'Juego de Destornilladores Aislados x 6', price: 14200, brand: 'Bahco', category: 'Ferretería, construcción y herramientas', subcategory: 'Herramientas manuales', stock: 20, sku: 'DES-005', condition: 'Nuevo', description: 'Destornilladores certificados para electricistas.', photos: ['https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=200&auto=format&fit=crop&q=60'] },
+
+        { id: 'p6', storeId: 'store-2', name: 'Mesa de Comedor Estilo Industrial 1.60m', price: 125000, brand: 'CuyoDeco', category: 'Hogar y decoración', subcategory: 'Muebles', stock: 5, sku: 'MES-101', condition: 'Nuevo', description: 'Tapa de madera maciza paraíso y estructura de hierro.', photos: ['https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p7', storeId: 'store-2', name: 'Silla Eames Ergonómica Tapizada', price: 29900, brand: 'DesignStudio', category: 'Hogar y decoración', subcategory: 'Muebles', stock: 18, sku: 'SIL-102', condition: 'Nuevo', description: 'Silla moderna ideal para comedor o escritorio.', photos: ['https://images.unsplash.com/photo-1580481077494-e3299ac25e94?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p8', storeId: 'store-2', name: 'Sillón 3 Cuerpos Chenille Gris', price: 185000, brand: 'ComfortHome', category: 'Hogar y decoración', subcategory: 'Living', stock: 3, sku: 'SIL-103', condition: 'Nuevo', description: 'Sillón esquinero tapizado en tela chenille anti-manchas.', photos: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p9', storeId: 'store-2', name: 'Rack de TV Minimalista Melamina', price: 68000, brand: 'MueblesSanJuan', category: 'Hogar y decoración', subcategory: 'Muebles', stock: 7, sku: 'RAC-104', condition: 'Nuevo', description: 'Mueble para TV con espacio de almacenamiento y pasacables.', photos: ['https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=200&auto=format&fit=crop&q=60'] },
+        { id: 'p10', storeId: 'store-2', name: 'Respaldo de Cama Sommier 2 Plazas', price: 45000, brand: 'CuyoDeco', category: 'Hogar y decoración', subcategory: 'Dormitorio', stock: 6, sku: 'RES-105', condition: 'Nuevo', description: 'Respaldo flotante con detalles en madera natural.', photos: ['https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=200&auto=format&fit=crop&q=60'] }
+      ];
+    }
+  };
+
   const getMerchantOrders = (storeId) => {
     const s = window.Store.state;
     if (!s.merchantOrdersMap) s.merchantOrdersMap = {};
@@ -208,14 +265,14 @@
           id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
           date: '20/10/2026',
           time: '10:45 hs',
-          customerName: 'Mariana Gómez',
+          customerName: storeId === 'store-1' ? 'Mariana Gómez' : 'Esteban Carrizo',
           customerPhone: '+54 9 264 5123984',
           paymentMethod: 'Mercado Pago / Transferencia',
           deliveryType: 'Envío a domicilio',
           address: 'Calle Mendoza 1420 Sur, San Juan',
           status: 'Por preparar',
-          total: 45900,
-          items: [{ name: 'Producto Destacado Sucursal', qty: 1, price: 45900 }]
+          total: storeId === 'store-1' ? 45900 : 125000,
+          items: [{ name: storeId === 'store-1' ? 'Taladro Percutor Profesional 650W' : 'Mesa de Comedor Estilo Industrial', qty: 1, price: storeId === 'store-1' ? 45900 : 125000 }]
         }
       ];
     }
@@ -231,11 +288,11 @@
           id: `VENTA-${Math.floor(4000 + Math.random() * 900)}`,
           date: '20/10/2026',
           time: '15:20 hs',
-          customerName: 'Esteban Carrizo',
+          customerName: storeId === 'store-1' ? 'Lucas Ruarte' : 'Valeria Benegas',
           paymentMethod: 'Efectivo en local',
           deliveryType: 'Retiro en sucursal',
-          total: 89000,
-          items: [{ name: 'Artículo de Venta Local', qty: 1, price: 89000 }]
+          total: storeId === 'store-1' ? 38900 : 29900,
+          items: [{ name: storeId === 'store-1' ? 'Amoladora Angular 4 1/2"' : 'Silla Eames Ergonómica', qty: 1, price: storeId === 'store-1' ? 38900 : 29900 }]
         }
       ];
     }
@@ -247,7 +304,7 @@
     if (!s.storeEmployeesMap) s.storeEmployeesMap = {};
     if (!s.storeEmployeesMap[storeId]) {
       s.storeEmployeesMap[storeId] = [
-        { email: 'empleado1@comercio.com', roles: ['Atención al cliente', 'Pedidos'], status: 'Activo' }
+        { email: storeId === 'store-1' ? 'ferretero@comercio.com' : 'muebleria@comercio.com', name: 'Colaborador Principal', roles: ['Atención', 'Pedidos'], status: 'Activo' }
       ];
     }
     return s.storeEmployeesMap[storeId];
@@ -258,6 +315,7 @@
     title: 'Perfil Comerciante — CompraLocal San Juan',
 
     render() {
+      ensureDefaultProducts();
       const s = window.Store.state;
       const activeTab = s.merchantTab || 'profile';
       const merchantProfile = getMerchantProfile();
@@ -291,6 +349,9 @@
                   <div style="color: rgba(255,255,255,0.85); font-size: 13px; margin-top: 6px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                     <span>${esc(activeStore.rubro)} ${activeStore.subrubro ? '· ' + esc(activeStore.subrubro) : ''}</span>
                     <span>${esc(activeStore.address)}, ${esc(activeStore.department)}</span>
+                    <div style="margin-top: 4px;">
+                      ${window.Reputation ? window.Reputation.renderBadge(activeStore, { size: 'sm' }) : ''}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -312,6 +373,9 @@
               <nav style="display: flex; flex-direction: column; gap: 6px;">
                 <button type="button" data-action="set-merchant-tab" data-tab="profile" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; ${activeTab === 'profile' ? 'background: #09305f; color: #fff;' : 'background: #fff; color: #0f172a;'}">
                   <span>Perfil Comerciante</span>
+                </button>
+                <button type="button" data-action="set-merchant-tab" data-tab="subscription" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; ${activeTab === 'subscription' ? 'background: #09305f; color: #fff;' : 'background: #fff; color: #0f172a;'}">
+                  <span>Suscripción y Planes</span>
                 </button>
                 <button type="button" data-action="set-merchant-tab" data-tab="orders" style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 16px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: all 0.2s; ${activeTab === 'orders' ? 'background: #09305f; color: #fff;' : 'background: #fff; color: #0f172a;'}">
                   <div style="display: flex; align-items: center; gap: 12px;">
@@ -339,6 +403,7 @@
 
             <main id="merchant-main-content">
               ${activeTab === 'profile' ? this.renderProfileTab(stores, activeStore) : ''}
+              ${activeTab === 'subscription' ? this.renderSubscriptionTab(stores) : ''}
               ${activeTab === 'orders' ? this.renderOrdersTab(activeStore) : ''}
               ${activeTab === 'sales' ? this.renderSalesTab(activeStore) : ''}
               ${activeTab === 'products' ? this.renderProductsTab(stores, activeStore) : ''}
@@ -350,19 +415,32 @@
           </div>
         </div>
 
-        <!-- MODAL: FORMULARIO NUEVO PRODUCTO / SERVICIO + CARGA MASIVA EXCEL -->
+        <!-- MODAL DE PAGO / PRORRATEO (MERCADO PAGO O TRANSFERENCIA BANCARIA) -->
+        <div id="checkout-payment-modal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999999; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box;">
+          <div style="background: #fff; border-radius: 16px; width: 100%; max-width: 480px; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); overflow: hidden; margin: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;">
+              <h3 id="checkout-modal-title" style="font-size: 17px; font-weight: 800; color: #09305f; margin: 0;">Contratación de Plan (31 días)</h3>
+              <button type="button" onclick="window.Actions['close-checkout-modal']()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+            </div>
+            <div style="padding: 24px; display: flex; flex-direction: column; gap: 18px;" id="checkout-modal-body">
+              <!-- Dinámico -->
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: FORMULARIO NUEVO / EDITAR PRODUCTO O SERVICIO + CARGA MASIVA EXCEL -->
         <div id="add-product-modal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999999; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box;">
           <div style="background: #fff; border-radius: 16px; width: 100%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); overflow: hidden; margin: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;">
               <div>
-                <h3 style="font-size: 17px; font-weight: 800; color: #09305f; margin: 0;">Publicar Producto o Carga Masiva</h3>
+                <h3 id="product-modal-main-title" style="font-size: 17px; font-weight: 800; color: #09305f; margin: 0;">Publicar Producto o Carga Masiva</h3>
                 <span style="font-size: 11px; color: #64748b;">Sucursal: <strong>${esc(activeStore.name)}</strong></span>
               </div>
               <button type="button" onclick="window.Actions['close-add-product-modal']()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
             </div>
 
             <div style="padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px;">
-              <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div id="bulk-upload-section-box" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                   <div>
                     <h4 style="font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 2px 0;">Carga Masiva Automática (Excel / CSV)</h4>
@@ -375,17 +453,19 @@
                 </div>
               </div>
 
-              <div style="display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 12px; font-weight: 700;">
+              <div id="bulk-separator-box" style="display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 12px; font-weight: 700;">
                 <hr style="flex: 1; border: none; border-top: 1px solid #cbd5e1;" />
-                <span>O CARGAR PRODUCTO INDIVIDUAL</span>
+                <span>O CARGAR / EDITAR PRODUCTO INDIVIDUAL</span>
                 <hr style="flex: 1; border: none; border-top: 1px solid #cbd5e1;" />
               </div>
 
               <form id="create-product-form" onsubmit="event.preventDefault(); window.Forms['create-product'](this);" style="display: flex; flex-direction: column; gap: 20px;" novalidate>
+                <input type="hidden" id="edit-product-id" name="editProductId" value="" />
+                
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
                   <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                     Nombre del Producto / Pack / Servicio *
-                    <input type="text" name="productName" required placeholder="Ej. Zapatillas Urbanas Pro" style="height: 40px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 13px;" />
+                    <input type="text" id="input-product-name" name="productName" required placeholder="Ej. Zapatillas Urbanas Pro" style="height: 40px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 13px;" />
                   </label>
                   <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                     Precio ($ARS) *
@@ -399,15 +479,15 @@
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
                   <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                     SKU / Código
-                    <input type="text" name="productSku" placeholder="Ej. ZAP-001" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 12px;" />
+                    <input type="text" id="input-product-sku" name="productSku" placeholder="Ej. ZAP-001" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 12px;" />
                   </label>
                   <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                     Marca *
-                    <input type="text" name="productBrand" required placeholder="Ej. Nike / Local" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 12px;" />
+                    <input type="text" id="input-product-brand" name="productBrand" required placeholder="Ej. Nike / Local" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 12px;" />
                   </label>
                   <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                     Estado *
-                    <select name="productCondition" required style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 8px; font-size: 12px; background: #fff; cursor: pointer;">
+                    <select id="input-product-condition" name="productCondition" required style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 8px; font-size: 12px; background: #fff; cursor: pointer;">
                       <option value="Nuevo">Nuevo</option>
                       <option value="Usado">Usado</option>
                       <option value="Reacondicionado">Reacondicionado</option>
@@ -415,7 +495,7 @@
                   </label>
                   <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                     Stock *
-                    <input type="number" name="productStock" required min="0" value="10" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 12px;" />
+                    <input type="number" id="input-product-stock" name="productStock" required min="0" value="10" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 10px; font-size: 12px;" />
                   </label>
                 </div>
 
@@ -442,7 +522,7 @@
 
                 <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 6px;">
                   Descripción Detallada
-                  <textarea name="productDescription" rows="3" placeholder="Detalles, materiales, tamaños, condiciones..." style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px 12px; font-size: 13px; background: #fff; resize: vertical;"></textarea>
+                  <textarea id="input-product-desc" name="productDescription" rows="3" placeholder="Detalles, materiales, tamaños, condiciones..." style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px 12px; font-size: 13px; background: #fff; resize: vertical;"></textarea>
                 </label>
 
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
@@ -466,7 +546,7 @@
 
             <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;">
               <button type="button" onclick="window.Actions['close-add-product-modal']()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; color: #475569;">Cancelar</button>
-              <button type="button" onclick="document.getElementById('create-product-form').requestSubmit ? document.getElementById('create-product-form').requestSubmit() : document.getElementById('create-product-form').dispatchEvent(new Event('submit', {cancelable: true}));" style="background: var(--primary, #fd6910); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">Publicar Producto / Servicio</button>
+              <button type="button" id="product-submit-btn-label" onclick="document.getElementById('create-product-form').requestSubmit ? document.getElementById('create-product-form').requestSubmit() : document.getElementById('create-product-form').dispatchEvent(new Event('submit', {cancelable: true}));" style="background: var(--primary, #fd6910); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">Publicar Producto / Servicio</button>
             </div>
           </div>
         </div>
@@ -527,7 +607,7 @@
                 </div>
                 <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 4px;">
                   Número de CUIT / CUIL *
-                  <input type="text" id="edit-merchant-cuit" name="cuit" required placeholder="Ej. 20-38492819-4" maxlength="13" oninput="window.Actions['format-cuit-input'](this)" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 13px;" />
+                  <input type="text" id="edit-merchant-cuit" name="cuit" required placeholder="Ej. 20-32114455-8" maxlength="13" oninput="window.Actions['format-cuit-input'](this)" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 13px;" />
                 </label>
                 <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 4px;">
                   Dirección Personal *
@@ -535,7 +615,7 @@
                 </label>
                 <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 4px;">
                   Teléfono Personal *
-                  <input type="tel" id="edit-merchant-phone" name="personalPhone" required placeholder="Ej. +54 9 264 4512345" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 13px;" />
+                  <input type="tel" id="edit-merchant-phone" name="personalPhone" required placeholder="Ej. +54 9 264 5891234" style="height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 13px;" />
                 </label>
               </form>
             </div>
@@ -563,11 +643,11 @@
           </div>
         </div>
 
-        <!-- POP-UP PERSONALIZADO DE ÉXITO (TOAST FLOTANTE) -->
+        <!-- POP-UP PERSONALIZADO DE ÉXITO O ADVERTENCIA (TOAST FLOTANTE) -->
         <div id="merchant-toast-popup" style="display: none; position: fixed; bottom: 30px; right: 30px; background: #0f172a; color: #fff; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 99999999; align-items: center; gap: 12px; border-left: 4px solid #22c55e;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
           <div>
-            <strong style="font-size: 13px; display: block; color: #fff;">¡Actualización exitosa!</strong>
+            <strong style="font-size: 13px; display: block; color: #fff;" id="merchant-toast-title">¡Actualización exitosa!</strong>
             <span style="font-size: 12px; color: #94a3b8;" id="merchant-toast-msg">Los datos han sido guardados correctamente.</span>
           </div>
         </div>
@@ -661,6 +741,129 @@
       `;
     },
 
+    renderSubscriptionTab(stores) {
+      const currentPlanKey = window.Store.state.merchantPlan || 'standard';
+      const plans = {
+        free: { id: 'free', name: 'Plan Gratuito', price: 0, maxStores: 1, maxProducts: 3 },
+        standard: { id: 'standard', name: 'Plan Estándar', price: 10000, maxStores: Infinity, maxProducts: 100 },
+        pro: { id: 'pro', name: 'Plan Pro Ilimitado', price: 20000, maxStores: Infinity, maxProducts: Infinity }
+      };
+      const activePlan = plans[currentPlanKey] || plans.standard;
+
+      const currentStoresCount = stores.length;
+      const allProducts = window.Data?.products || [];
+      const merchantStoreIds = stores.map(st => st.id);
+      const currentProductsCount = allProducts.filter(p => merchantStoreIds.includes(p.storeId)).length;
+
+      let expiresLabel = 'Sin vencimiento (Plan Permanente)';
+      if (currentPlanKey !== 'free' && window.Store.state.merchantPlanExpiresAt) {
+        const daysLeft = Math.ceil((window.Store.state.merchantPlanExpiresAt - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        expiresLabel = `Vence en ${daysLeft > 0 ? daysLeft : 0} días (Duración: 31 días)`;
+      }
+
+      return `
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div style="background: var(--surface, #fff); border: 1px solid var(--border, #cbd5e1); border-radius: 16px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <span style="font-size: 11px; font-weight: 800; color: var(--primary, #fd6910); text-transform: uppercase; letter-spacing: 0.5px;">Estado de tu Cuenta</span>
+                <h2 style="font-size: 20px; font-weight: 800; color: var(--text, #0f172a); margin: 4px 0 0 0;">Plan Actual: ${esc(activePlan.name)}</h2>
+                <span style="font-size: 12px; color: #64748b; display: block; margin-top: 4px;">${expiresLabel}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                ${currentPlanKey === 'standard' ? `
+                  <button type="button" onclick="window.Actions['open-prorate-checkout-modal']('pro', 20000, 'Plan Pro Ilimitado')" style="background: #166534; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                    🚀 Pasar a Plan Pro ($20.000)
+                  </button>
+                ` : ''}
+                <span style="background: #22c55e; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 8px;">Activo y al día</span>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+              <div>
+                <span style="font-size: 12px; font-weight: 700; color: #64748b; display: block; margin-bottom: 6px;">Tiendas Registradas</span>
+                <div style="font-size: 18px; font-weight: 800; color: #09305f;">
+                  ${currentStoresCount} <span style="font-size: 13px; font-weight: 600; color: #64748b;">/ ${activePlan.maxStores === Infinity ? 'Ilimitadas' : activePlan.maxStores}</span>
+                </div>
+              </div>
+              <div>
+                <span style="font-size: 12px; font-weight: 700; color: #64748b; display: block; margin-bottom: 6px;">Productos Publicados</span>
+                <div style="font-size: 18px; font-weight: 800; color: #09305f;">
+                  ${currentProductsCount} <span style="font-size: 13px; font-weight: 600; color: #64748b;">/ ${activePlan.maxProducts === Infinity ? 'Ilimitados' : activePlan.maxProducts}</span>
+                </div>
+              </div>
+            </div>
+
+            <h3 style="font-size: 16px; font-weight: 800; color: #09305f; margin: 0 0 16px 0;">Planes Disponibles en CompraLocal San Juan (Vigencia: 31 días)</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+              
+              <div style="border: 2px solid ${currentPlanKey === 'free' ? '#09305f' : '#e2e8f0'}; border-radius: 14px; padding: 20px; background: #fff; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+                <div>
+                  <h4 style="font-size: 16px; font-weight: 800; color: #09305f; margin: 0 0 6px 0;">Plan Gratuito</h4>
+                  <div style="font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 12px;">$0 <span style="font-size: 12px; font-weight: 600; color: #64748b;">/ permanente</span></div>
+                  <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                    <li>1 Tienda en San Juan</li>
+                    <li>Hasta 3 productos en total</li>
+                    <li>Soporte estándar</li>
+                  </ul>
+                </div>
+                <div>
+                  ${currentPlanKey === 'free' ? '<span style="display: block; text-align: center; background: #f1f5f9; color: #09305f; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 800;">Tu Plan Actual</span>' : '<button type="button" onclick="window.Actions[\'change-merchant-plan\'](\'free\')" style="width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; color: #09305f; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Cambiar a Gratuito</button>'}
+                </div>
+              </div>
+
+              <div style="border: 2px solid ${currentPlanKey === 'standard' ? '#09305f' : '#e2e8f0'}; border-radius: 14px; padding: 20px; background: #fff; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+                <div>
+                  <h4 style="font-size: 16px; font-weight: 800; color: #09305f; margin: 0 0 6px 0;">Plan Estándar</h4>
+                  <div style="font-size: 22px; font-weight: 800; color: #fd6910; margin-bottom: 12px;">$10.000 <span style="font-size: 12px; font-weight: 600; color: #64748b;">/ 31 días</span></div>
+                  <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                    <li>Tiendas ilimitadas</li>
+                    <li>Hasta 100 productos en total</li>
+                    <li>Prioridad en listados</li>
+                  </ul>
+                </div>
+                <div>
+                  ${currentPlanKey === 'standard' ? '<span style="display: block; text-align: center; background: #f1f5f9; color: #09305f; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 800;">Tu Plan Actual</span>' : '<button type="button" onclick="window.Actions[\'open-checkout-modal\'](\'standard\', 10000, \'Plan Estándar\')" style="width: 100%; background: #fd6910; color: #fff; border: none; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Contratar Estándar</button>'}
+                </div>
+              </div>
+
+              <div style="border: 2px solid ${currentPlanKey === 'pro' ? '#09305f' : '#e2e8f0'}; border-radius: 14px; padding: 20px; background: #fff; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+                <div>
+                  <h4 style="font-size: 16px; font-weight: 800; color: #09305f; margin: 0 0 6px 0;">Plan Pro Ilimitado</h4>
+                  <div style="font-size: 22px; font-weight: 800; color: #166534; margin-bottom: 12px;">$20.000 <span style="font-size: 12px; font-weight: 600; color: #64748b;">/ 31 días</span></div>
+                  <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                    <li>Tiendas ilimitadas</li>
+                    <li>Carga ilimitada de productos</li>
+                    <li>Atención y soporte prioritario</li>
+                  </ul>
+                </div>
+                <div>
+                  ${currentPlanKey === 'pro' ? '<span style="display: block; text-align: center; background: #f1f5f9; color: #09305f; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 800;">Tu Plan Actual</span>' : '<button type="button" onclick="window.Actions[\'open-prorate-checkout-modal\'](\'pro\', 20000, \'Plan Pro Ilimitado\')" style="width: 100%; background: #09305f; color: #fff; border: none; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Pasar a Plan Pro</button>'}
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Botón obligatorio de Cancelación de Suscripción / Cobro Automático -->
+            ${currentPlanKey !== 'free' ? `
+              <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <strong style="font-size: 13px; color: #0f172a; display: block;">Gestión de Renovación Automática</strong>
+                  <span style="font-size: 12px; color: #64748b;">Podés dar de baja el cobro automático de tu pasarela en cualquier momento.</span>
+                </div>
+                <button type="button" onclick="window.Actions['open-cancel-subscription-modal']()" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                  Cancelar Suscripción y Cobro Automático
+                </button>
+              </div>
+            ` : ''}
+
+          </div>
+        </div>
+      `;
+    },
+
     renderOrdersTab(activeStore) {
       const orders = getMerchantOrders(activeStore.id);
       const activeOrders = orders.filter(ord => ord.status !== 'Entregado');
@@ -740,7 +943,7 @@
 
     renderSalesTab(activeStore) {
       const salesHistory = getMerchantSalesHistory(activeStore.id);
-      const totalRevenueYear = salesHistory.reduce((acc, v) => acc + v.total, 0) + 450000;
+      const totalRevenueYear = salesHistory.reduce((acc, v) => acc + v.total, 0) + (activeStore.id === 'store-1' ? 450000 : 320000);
       
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
@@ -750,7 +953,7 @@
       }).length + 5;
 
       const followingState = window.Store?.state?.following || {};
-      const totalFollowers = Object.entries(followingState).filter(([storeId, isFollowed]) => isFollowed && storeId === activeStore.id).length || 3;
+      const totalFollowers = Object.entries(followingState).filter(([storeId, isFollowed]) => isFollowed && storeId === activeStore.id).length || (activeStore.id === 'store-1' ? 4 : 2);
       
       const favoriteProducts = window.Store?.state?.favoriteProducts || [];
       const savedProductsCount = favoriteProducts.length;
@@ -770,6 +973,13 @@
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px;">
               <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Operaciones (Mes Actual)</span>
               <strong style="font-size: 24px; font-weight: 800; color: #09305f;">${currentMonthOps} ventas</strong>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Prestigio de la Tienda</span>
+              <div style="margin-top: 2px;">
+                ${window.Reputation ? window.Reputation.renderBadge(activeStore, { size: 'md' }) : '<span style="font-weight: 700; color: #64748b;">Sin valoraciones aún</span>'}
+              </div>
+              <small style="font-size: 11px; color: #64748b; margin-top: auto;">Basado exclusivamente en compras verificadas</small>
             </div>
             <div onclick="window.Actions['open-followers-modal']('${activeStore.id}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;">
               <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b;">Seguidores de Tienda</span>
@@ -804,83 +1014,249 @@
     },
 
     renderProductsTab(stores, activeStore) {
+      ensureDefaultProducts();
       const allProducts = window.Data?.products || [];
       const storeProducts = allProducts.filter(p => p.storeId === activeStore.id);
 
-      const productsHtml = storeProducts.length > 0 ? storeProducts.map(prod => {
-        const fallbackImg = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&auto=format&fit=crop&q=60';
-        const prodImg = esc(prod.image || (prod.photos && prod.photos[0]) || fallbackImg);
-        return `
-          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <img src="${prodImg}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
-              <strong style="font-size: 13px; color: #0f172a; display: block;">${esc(prod.name)}</strong>
-              <span style="font-size: 11px; color: #64748b;">SKU: ${esc(prod.sku || 'N/D')}</span>
+      const s = window.Store.state;
+      const viewMode = s.merchantProductsViewMode || 'grid';
+      const searchQuery = (s.merchantProductsSearchQuery || '').toLowerCase();
+
+      const filteredProducts = storeProducts.filter(prod => {
+        const name = (prod.name || '').toLowerCase();
+        const sku = (prod.sku || '').toLowerCase();
+        const brand = (prod.brand || '').toLowerCase();
+        const cat = (prod.category || '').toLowerCase();
+        const subcat = (prod.subcategory || '').toLowerCase();
+        return name.includes(searchQuery) || sku.includes(searchQuery) || brand.includes(searchQuery) || cat.includes(searchQuery) || subcat.includes(searchQuery);
+      });
+
+      let productsContentHtml = '';
+
+      if (filteredProducts.length > 0) {
+        if (viewMode === 'grid') {
+          productsContentHtml = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px;">
+              ${filteredProducts.map(prod => {
+                const fallbackImg = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&auto=format&fit=crop&q=60';
+                const prodImg = esc(prod.image || (prod.photos && prod.photos[0]) || fallbackImg);
+                return `
+                  <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                      <img src="${prodImg}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
+                      <strong style="font-size: 13px; color: #0f172a; display: block; margin-bottom: 2px;">${esc(prod.name)}</strong>
+                      <span style="font-size: 11px; color: #64748b; display: block;">SKU: ${esc(prod.sku || 'N/D')}</span>
+                      <span style="font-size: 11px; color: #64748b; display: block;">Stock: <strong>${prod.stock ?? 10}</strong> un.</span>
+                    </div>
+                    <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 15px; font-weight: 800; color: var(--primary, #fd6910);">${money(prod.price)}</span>
+                        <span style="font-size: 10px; font-weight: 700; background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px;">${esc(prod.condition || 'Nuevo')}</span>
+                      </div>
+                      <div style="display: flex; gap: 6px;">
+                        <button type="button" onclick="window.Actions['open-edit-product-modal']('${prod.id}')" style="flex: 1; background: #f1f5f9; border: 1px solid #cbd5e1; color: #09305f; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Editar</button>
+                        <button type="button" onclick="window.Actions['delete-merchant-product']('${prod.id}')" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Eliminar</button>
+                      </div>
+                    </div>
+                  </div>`;
+              }).join('')}
             </div>
-            <div style="margin-top: 12px;">
-              <span style="font-size: 15px; font-weight: 800; color: var(--primary, #fd6910);">${money(prod.price)}</span>
+          `;
+        } else {
+          productsContentHtml = `
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+              ${filteredProducts.map(prod => {
+                const fallbackImg = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&auto=format&fit=crop&q=60';
+                const prodImg = esc(prod.image || (prod.photos && prod.photos[0]) || fallbackImg);
+                return `
+                  <div style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 16px; background: #f8fafc; gap: 16px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <img src="${prodImg}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1;" />
+                      <div>
+                        <strong style="font-size: 13px; color: #0f172a; display: block;">${esc(prod.name)}</strong>
+                        <span style="font-size: 11px; color: #64748b;">SKU: ${esc(prod.sku || 'N/D')} · Categoría: ${esc(prod.category || 'N/D')}</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                      <div style="text-align: right;">
+                        <span style="font-size: 11px; color: #64748b; display: block;">Stock: <strong>${prod.stock ?? 10}</strong></span>
+                        <strong style="font-size: 14px; font-weight: 800; color: var(--primary, #fd6910);">${money(prod.price)}</strong>
+                      </div>
+                      <span style="font-size: 11px; font-weight: 700; background: #e2e8f0; color: #334155; padding: 4px 8px; border-radius: 6px;">${esc(prod.condition || 'Nuevo')}</span>
+                      <div style="display: flex; gap: 6px;">
+                        <button type="button" onclick="window.Actions['open-edit-product-modal']('${prod.id}')" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #09305f; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Editar</button>
+                        <button type="button" onclick="window.Actions['delete-merchant-product']('${prod.id}')" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Eliminar</button>
+                      </div>
+                    </div>
+                  </div>`;
+              }).join('')}
             </div>
-          </div>`;
-      }).join('') : '<p style="grid-column: 1/-1; color:#64748b; text-align:center; padding: 20px;">Sin productos publicados todavía en esta sucursal.</p>';
+          `;
+        }
+      } else {
+        productsContentHtml = `<p style="grid-column: 1/-1; color:#64748b; text-align:center; padding: 30px;">No se encontraron productos con el filtro ingresado.</p>`;
+      }
 
       return `
         <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
             <div>
-              <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Catálogo de Productos — ${esc(activeStore.name)}</h2>
-              <p style="font-size: 13px; color: #64748b; margin: 0;">Publicá artículos exclusivos para esta sucursal.</p>
+              <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Mis Productos (${storeProducts.length}/100) — ${esc(activeStore.name)}</h2>
+              <p style="font-size: 13px; color: #64748b; margin: 0;">Gestioná, buscá y alterná la vista de tu inventario.</p>
             </div>
             <button type="button" onclick="window.Actions['open-add-product-modal']()" style="background: var(--primary, #fd6910); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
               + Publicar Producto / Carga Masiva
             </button>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px;">
-            ${productsHtml}
+
+          <!-- BARRA DE BÚSQUEDA Y SELECTOR DE VISTA -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; flex-wrap: wrap; margin-bottom: 16px;">
+            <div style="flex: 1; min-width: 240px; position: relative; display: flex; align-items: center;">
+              <span style="position: absolute; left: 12px; color: #64748b; display: flex; align-items: center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </span>
+              <input type="text" id="merchant-product-search-input" value="${esc(s.merchantProductsSearchQuery || '')}" placeholder="Buscá por nombre, ID / SKU o categoría..." oninput="window.Actions['filter-merchant-products'](this.value)" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px 0 36px; font-size: 13px; background: #fff; outline: none;" />
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12px; font-weight: 700; color: #334155;">Vista:</span>
+              <button type="button" onclick="window.Actions['set-products-view-mode']('grid')" style="background: ${viewMode === 'grid' ? '#09305f' : '#fff'}; color: ${viewMode === 'grid' ? '#fff' : '#09305f'}; border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                Grilla
+              </button>
+              <button type="button" onclick="window.Actions['set-products-view-mode']('list')" style="background: ${viewMode === 'list' ? '#09305f' : '#fff'}; color: ${viewMode === 'list' ? '#fff' : '#09305f'}; border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                Lista
+              </button>
+            </div>
           </div>
+
+          ${productsContentHtml}
         </div>`;
     },
 
     renderChatTab(activeStore) {
-      window.Store.state.chats = window.Store.state.chats || {};
-      const chatMessages = window.Store.state.chats[activeStore.id] || [
-        { sender: 'store', text: `¡Hola! Gracias por comunicarte con ${activeStore.name}. ¿En qué podemos ayudarte hoy?` }
-      ];
+      window.Store.state.chatsMap = window.Store.state.chatsMap || {};
+      if (!window.Store.state.chatsMap[activeStore.id]) {
+        window.Store.state.chatsMap[activeStore.id] = {
+          'chat-1': {
+            clientName: 'Mariana Gómez',
+            lastMsg: 'Hola, ¿tienen stock del taladro?',
+            time: '10:45 hs',
+            unread: 2,
+            messages: [
+              { sender: 'client', text: 'Hola, ¿tienen stock del taladro percutor?' },
+              { sender: 'store', text: `¡Hola Mariana! Sí, tenemos stock disponible en ${activeStore.name}.` }
+            ]
+          },
+          'chat-2': {
+            clientName: 'Esteban Carrizo',
+            lastMsg: '¿Hacen envíos a domicilio?',
+            time: 'Ayer',
+            unread: 0,
+            messages: [
+              { sender: 'client', text: 'Buenas tardes, ¿hacen envíos a domicilio en Capital?' },
+              { sender: 'store', text: '¡Hola Esteban! Sí, realizamos envíos a todo San Juan.' }
+            ]
+          },
+          'chat-3': {
+            clientName: 'Valeria Benegas',
+            lastMsg: 'Quisiera consultar por presupuestos...',
+            time: '20/10',
+            unread: 0,
+            messages: [
+              { sender: 'client', text: 'Hola, quisiera consultar por presupuestos para obras.' },
+              { sender: 'store', text: '¡Hola Valeria! Claro que sí, pasanos el detalle por aquí.' }
+            ]
+          }
+        };
+      }
+
+      const storeChatsObj = window.Store.state.chatsMap[activeStore.id];
+      const activeChatId = window.Store.state.activeChatId || Object.keys(storeChatsObj)[0];
+      const currentChat = storeChatsObj[activeChatId] || storeChatsObj[Object.keys(storeChatsObj)[0]];
+      
+      const isMobileChatOpen = window.Store.state.merchantMobileChatOpen || false;
 
       return `
-        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 16px; height: 520px;">
+        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 16px; min-height: 520px; box-sizing: border-box; width: 100%; max-width: 100%; overflow: hidden;">
           <div>
             <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Mensajes y Consultas de Clientes — ${esc(activeStore.name)}</h2>
             <p style="font-size: 13px; color: #64748b; margin: 0;">Respondé en tiempo real a las consultas enviadas por los usuarios desde su perfil de tienda.</p>
           </div>
 
-          <div style="display: flex; flex: 1; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #f8fafc;">
-            <div style="width: 260px; border-right: 1px solid #cbd5e1; background: #fff; display: flex; flex-direction: column;">
-              <div style="padding: 14px; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 800; color: #09305f; background: #f8fafc;">
-                CONVERSACIONES ACTIVAS (1)
+          <style>
+            @media (max-width: 768px) {
+              .merchant-chat-responsive-container {
+                flex-direction: column !important;
+                height: 480px !important;
+              }
+              .merchant-chat-conversations-list {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: ${isMobileChatOpen ? '0px !important' : '100% !important'};
+                display: ${isMobileChatOpen ? 'none !important' : 'flex !important'};
+                border-right: none !important;
+              }
+              .merchant-chat-active-pane {
+                display: ${isMobileChatOpen ? 'flex !important' : 'none !important'};
+                width: 100% !important;
+                height: 100% !important;
+              }
+            }
+          </style>
+
+          <div class="merchant-chat-responsive-container" style="display: flex; flex: 1; height: 460px; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #f8fafc; width: 100%; box-sizing: border-box;">
+            
+            <!-- Lista lateral de chats apilados -->
+            <div class="merchant-chat-conversations-list" style="width: 280px; min-width: 220px; border-right: 1px solid #cbd5e1; background: #fff; display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;">
+              <div style="padding: 14px; border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 800; color: #09305f; background: #f8fafc; position: sticky; top: 0; z-index: 2;">
+                CONVERSACIONES ACTIVAS (${Object.keys(storeChatsObj).length})
               </div>
-              <div style="padding: 12px; background: #e0f2fe; border-left: 4px solid #0284c7; cursor: pointer;">
-                <strong style="font-size: 13px; color: #0f172a; display: block;">Cliente General</strong>
-                <span style="font-size: 11px; color: #475569; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chat activo</span>
+              <div style="display: flex; flex-direction: column;">
+                ${Object.entries(storeChatsObj).map(([cId, chatData]) => {
+                  const isSelected = cId === activeChatId;
+                  return `
+                    <div onclick="window.Actions['select-merchant-chat']('${cId}')" style="padding: 12px 14px; border-bottom: 1px solid #f1f5f9; background: ${isSelected ? '#e0f2fe' : '#fff'}; border-left: 4px solid ${isSelected ? '#0284c7' : 'transparent'}; cursor: pointer; transition: background 0.15s;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                        <strong style="font-size: 13px; color: #0f172a;">${esc(chatData.clientName)}</strong>
+                        <span style="font-size: 10px; color: #64748b;">${esc(chatData.time)}</span>
+                      </div>
+                      <span style="font-size: 11px; color: #475569; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(chatData.lastMsg)}</span>
+                    </div>
+                  `;
+                }).join('')}
               </div>
             </div>
 
-            <div style="flex: 1; display: flex; flex-direction: column; background: #f8fafc;">
-              <div style="padding: 12px 16px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-size: 13px; font-weight: 800; color: #09305f;">Chat con Cliente</span>
+            <!-- Panel derecho / móvil del chat activo -->
+            <div class="merchant-chat-active-pane" style="flex: 1; min-width: 0; display: flex; flex-direction: column; background: #f8fafc; overflow: hidden;">
+              <div onclick="window.Actions['back-to-merchant-chats-list']()" style="padding: 12px 16px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="display: none; font-size: 12px; font-weight: 800; color: #0284c7;" class="mobile-back-indicator">← CONVERSACIONES ACTIVAS</span>
+                  <span style="font-size: 13px; font-weight: 800; color: #09305f;" class="desktop-title-indicator">Chat con: ${esc(currentChat.clientName)}</span>
+                </div>
                 <span style="font-size: 11px; color: #166534; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">En línea</span>
               </div>
 
-              <div id="merchant-chat-msgs-box" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
-                ${chatMessages.map(m => `
-                  <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; ${m.sender === 'store' ? 'background: #09305f; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px;' : 'background: #fff; color: #0f172a; border: 1px solid #cbd5e1; align-self: flex-start; border-bottom-left-radius: 2px;'}">
+              <style>
+                @media (max-width: 768px) {
+                  .mobile-back-indicator { display: inline-block !important; }
+                  .desktop-title-indicator { display: none !important; }
+                }
+              </style>
+
+              <div id="merchant-chat-msgs-box" style="flex: 1; padding: 16px; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 10px; word-break: break-word;">
+                ${currentChat.messages.map(m => `
+                  <div style="max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; word-break: break-word; ${m.sender === 'store' ? 'background: #09305f; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px;' : 'background: #fff; color: #0f172a; border: 1px solid #cbd5e1; align-self: flex-start; border-bottom-left-radius: 2px;'}">
                     ${esc(m.text)}
                   </div>
                 `).join('')}
               </div>
 
-              <form onsubmit="event.preventDefault(); window.Forms['merchant-send-chat'](this, '${activeStore.id}')" style="padding: 12px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px;">
-                <input type="text" name="message" placeholder="Escribí tu respuesta como comerciante..." autocomplete="off" style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;" />
-                <button type="submit" style="background: #09305f; color: #fff; border: none; padding: 0 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">Responder</button>
+              <form onsubmit="event.preventDefault(); window.Forms['merchant-send-chat'](this, '${activeStore.id}', '${activeChatId}')" style="padding: 12px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px;">
+                <input type="text" name="message" placeholder="Escribí tu respuesta como comerciante..." autocomplete="off" style="flex: 1; min-width: 0; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;" />
+                <button type="submit" style="background: #09305f; color: #fff; border: none; padding: 0 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0;">Responder</button>
               </form>
             </div>
           </div>
@@ -889,13 +1265,26 @@
 
     renderRolesTab(activeStore) {
       const employees = getStoreEmployees(activeStore.id);
+
+      // Función auxiliar para formatear de forma dinámica quién posee el rol
+      const getRoleAssigneeLabel = (roleNameVariants) => {
+        const assigned = employees.filter(emp => emp.roles && emp.roles.some(r => roleNameVariants.includes(r)));
+        if (assigned.length === 0) return 'Nadie lo tiene todavía';
+        return assigned.map(emp => `${esc(emp.name || emp.email.split('@')[0])} (${esc(emp.email)})`).join(', ');
+      };
+
+      const atencionLabel = getRoleAssigneeLabel(['Atención', 'Atención al cliente']);
+      const catalogoLabel = getRoleAssigneeLabel(['Catálogo']);
+      const pedidosLabel = getRoleAssigneeLabel(['Pedidos']);
+
       return `
-        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 20px;">
+        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 24px;">
           <div>
             <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Roles y Empleados — ${esc(activeStore.name)}</h2>
             <p style="font-size: 13px; color: #64748b; margin: 0;">Invitá colaboradores por correo y asigná múltiples roles de gestión.</p>
           </div>
 
+          <!-- Invitación y Equipo Autorizado -->
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px;">
             <h3 style="font-size: 14px; font-weight: 800; color: #09305f; margin: 0 0 12px 0;">Invitar Nuevo Colaborador</h3>
             <form onsubmit="event.preventDefault(); window.Forms['invite-employee'](this);" style="display: flex; flex-direction: column; gap: 12px;">
@@ -920,7 +1309,7 @@
           <div>
             <h3 style="font-size: 14px; font-weight: 800; color: #09305f; margin: 0 0 10px 0;">Equipo Autorizado</h3>
             <div style="display: flex; flex-direction: column; gap: 8px;">
-              ${employees.map((emp, idx) => `
+              ${employees.length > 0 ? employees.map((emp, idx) => `
                 <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; background: #fff;">
                   <div>
                     <strong style="font-size: 13px; color: #0f172a; display: block;">${esc(emp.email)}</strong>
@@ -928,9 +1317,62 @@
                   </div>
                   <button type="button" onclick="window.Actions['remove-employee'](${idx})" style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Revocar</button>
                 </div>
-              `).join('')}
+              `).join('') : '<p style="font-size: 13px; color: #64748b; text-align: center; padding: 16px;">Todavía no sumaste a nadie. Vos, como dueño, ya tenés todos los permisos.</p>'}
             </div>
           </div>
+
+          <!-- SECCIÓN: Roles disponibles (DINÁMICO) -->
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <h3 style="font-size: 15px; font-weight: 800; color: #09305f; margin: 0 0 4px 0;">Roles disponibles</h3>
+              <p style="font-size: 13px; color: #64748b; margin: 0;">Cada rol define qué puede hacer la persona. Los define CompraLocal; el equipo queda en tus manos.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+              
+              <!-- Rol 1: Atención -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                  <strong style="font-size: 14px; font-weight: 800; color: #0f172a; display: block;">Atención</strong>
+                  <span style="font-size: 11px; color: #64748b;">${atencionLabel}</span>
+                </div>
+                <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                  <li>Ver los pedidos de la tienda</li>
+                  <li>Ver y responder preguntas de clientes</li>
+                  <li>Ver todos los productos de la tienda, incluidos borradores</li>
+                </ul>
+              </div>
+
+              <!-- Rol 2: Catálogo -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                  <strong style="font-size: 14px; font-weight: 800; color: #0f172a; display: block;">Catálogo</strong>
+                  <span style="font-size: 11px; color: #64748b;">${catalogoLabel}</span>
+                </div>
+                <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                  <li>Crear, editar y borrar productos, variantes e imágenes</li>
+                  <li>Publicar y pausar productos</li>
+                  <li>Ver todos los productos de la tienda, incluidos borradores</li>
+                  <li>Modificar existencias</li>
+                </ul>
+              </div>
+
+              <!-- Rol 3: Pedidos -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                  <strong style="font-size: 14px; font-weight: 800; color: #0f172a; display: block;">Pedidos</strong>
+                  <span style="font-size: 11px; color: #64748b;">${pedidosLabel}</span>
+                </div>
+                <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+                  <li>Ver nombre y teléfono de quienes compraron</li>
+                  <li>Cambiar el estado de los pedidos (preparación, listo, cancelación)</li>
+                  <li>Ver los pedidos de la tienda</li>
+                </ul>
+              </div>
+
+            </div>
+          </div>
+
         </div>`;
     },
 
@@ -981,6 +1423,173 @@
     const storeId = typeof elOrVal === 'string' ? elOrVal : elOrVal.value;
     window.Store.set({ activeStoreId: storeId }, { silent: true });
     if (window.App && typeof window.App.render === 'function') window.App.render();
+  };
+
+  window.Actions['filter-merchant-products'] = (query) => {
+    window.Store.set({ merchantProductsSearchQuery: query }, { silent: true });
+    if (window.App && typeof window.App.render === 'function') window.App.render();
+  };
+
+  window.Actions['set-products-view-mode'] = (mode) => {
+    window.Store.set({ merchantProductsViewMode: mode }, { silent: true });
+    if (window.App && typeof window.App.render === 'function') window.App.render();
+  };
+
+  window.Actions['select-merchant-chat'] = (chatId) => {
+    window.Store.set({ activeChatId: chatId, merchantMobileChatOpen: true }, { silent: true });
+    if (window.App && typeof window.App.render === 'function') window.App.render();
+  };
+
+  window.Actions['back-to-merchant-chats-list'] = () => {
+    if (window.innerWidth <= 768) {
+      window.Store.set({ merchantMobileChatOpen: false }, { silent: true });
+      if (window.App && typeof window.App.render === 'function') window.App.render();
+    }
+  };
+
+  window.Actions['change-merchant-plan'] = (planKey) => {
+    window.Store.set({ merchantPlan: planKey, merchantPlanExpiresAt: null }, { silent: true });
+    if (planKey === 'free' && window.Store.state.merchantStores && window.Store.state.merchantStores.length > 1) {
+      window.Store.state.merchantStores = [window.Store.state.merchantStores[0]];
+      window.Store.state.activeStoreId = window.Store.state.merchantStores[0].id;
+    }
+    if (window.App && typeof window.App.render === 'function') {
+      window.App.render();
+    }
+    showToast(`Has cambiado de plan correctamente.`);
+  };
+
+  window.Actions['open-checkout-modal'] = (planKey, price, planName) => {
+    const modal = document.getElementById('checkout-payment-modal');
+    const body = document.getElementById('checkout-modal-body');
+    const title = document.getElementById('checkout-modal-title');
+    if (!modal || !body) return;
+
+    if (title) title.textContent = `Contratación de ${planName} ($${price.toLocaleString()} / 31 días)`;
+
+    body.innerHTML = `
+      <div style="font-size: 13px; color: #334155; line-height: 1.5;">
+        <strong style="color: #09305f; display: block; margin-bottom: 6px;">Seleccioná tu método de pago:</strong>
+        <p style="margin: 0 0 16px 0; color: #64748b;">Tu plan se activará automáticamente por el plazo de <strong>31 días corridos</strong>.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button type="button" onclick="window.Actions['pay-with-mercadopago']('${planKey}')" style="display: flex; align-items: center; justify-content: space-between; background: #009ee3; color: #fff; border: none; padding: 14px 18px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,158,227,0.2);">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+            Pagar con Mercado Pago (API Oficial)
+          </span>
+          <span>$${price.toLocaleString()}</span>
+        </button>
+
+        <button type="button" onclick="window.Actions['pay-with-bank-transfer']('${planKey}')" style="display: flex; align-items: center; justify-content: space-between; background: #09305f; color: #fff; border: none; padding: 14px 18px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Transferencia Bancaria / CBU
+          </span>
+          <span>$${price.toLocaleString()}</span>
+        </button>
+      </div>
+
+      <button type="button" onclick="window.Actions['close-checkout-modal']()" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; margin-top: 4px;">Cancelar</button>
+    `;
+
+    modal.style.display = 'flex';
+  };
+
+  window.Actions['open-prorate-checkout-modal'] = (planKey, price, planName) => {
+    const modal = document.getElementById('checkout-payment-modal');
+    const body = document.getElementById('checkout-modal-body');
+    const title = document.getElementById('checkout-modal-title');
+    if (!modal || !body) return;
+
+    if (title) title.textContent = `Mejora de Plan con Prorrateo (${planName})`;
+
+    let daysLeft = 15;
+    if (window.Store.state.merchantPlanExpiresAt) {
+      daysLeft = Math.ceil((window.Store.state.merchantPlanExpiresAt - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      if (daysLeft < 0) daysLeft = 0;
+    }
+    const prorateDiscount = Math.round((10000 / 31) * daysLeft);
+    const finalProratePrice = price - prorateDiscount > 0 ? price - prorateDiscount : 5000;
+
+    body.innerHTML = `
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+        <strong style="font-size: 13px; color: #166534;">Desglose de Prorrateo Automático:</strong>
+        <p style="font-size: 12px; color: #14532d; margin: 0; line-height: 1.4;">
+          Como te quedan <strong>${daysLeft} días</strong> de tu plan actual, hoy abonarás solo la diferencia proporcional descontando el saldo a favor.
+        </p>
+      </div>
+
+      <div style="font-size: 13px; color: #334155; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between;"><span>Precio Plan Pro:</span> <strong>$${price.toLocaleString()}</strong></div>
+        <div style="display: flex; justify-content: space-between; color: #166534;"><span>Saldo a favor (${daysLeft} días):</span> <strong>-$${prorateDiscount.toLocaleString()}</strong></div>
+        <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 4px 0;" />
+        <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #09305f;"><span>Total a abonar hoy:</span> <span style="color: #fd6910;">$${finalProratePrice.toLocaleString()}</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+        <button type="button" onclick="window.Actions['pay-with-mercadopago']('${planKey}')" style="background: #009ee3; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
+          Confirmar y Pagar Diferencia ($${finalProratePrice.toLocaleString()})
+        </button>
+        <button type="button" onclick="window.Actions['close-checkout-modal']()" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer;">Cancelar</button>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  };
+
+  window.Actions['open-cancel-subscription-modal'] = () => {
+    const modal = document.getElementById('checkout-payment-modal');
+    const body = document.getElementById('checkout-modal-body');
+    const title = document.getElementById('checkout-modal-title');
+    if (!modal || !body) return;
+
+    if (title) title.textContent = 'Cancelar Suscripción y Cobro Automático';
+
+    body.innerHTML = `
+      <div style="font-size: 13px; color: #334155; line-height: 1.5; display: flex; flex-direction: column; gap: 12px;">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px; color: #dc2626;">
+          <strong>Aviso importante:</strong> Al dar de baja la suscripción, se desactivarán los cobros automáticos recurrentes en tu tarjeta o pasarela. Tu plan actual se mantendrá activo hasta la fecha de su vencimiento.
+        </div>
+        <p style="margin: 0; color: #64748b;">¿Confirmás que querés dar de baja el cobro automático?</p>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="window.Actions['confirm-cancel-subscription']()" style="background: #dc2626; color: #fff; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; flex: 1;">Sí, Cancelar Cobro Automático</button>
+        <button type="button" onclick="window.Actions['close-checkout-modal']()" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; flex: 1;">Volver</button>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  };
+
+  window.Actions['confirm-cancel-subscription'] = () => {
+    window.Store.set({ merchantPlan: 'free', merchantPlanExpiresAt: null }, { silent: true });
+    window.Actions['close-checkout-modal']();
+    if (window.App && typeof window.App.render === 'function') window.App.render();
+    showToast('Suscripción y cobro automático cancelados con éxito. Se aplicó el Plan Gratuito.');
+  };
+
+  window.Actions['close-checkout-modal'] = () => {
+    const modal = document.getElementById('checkout-payment-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.Actions['pay-with-mercadopago'] = (planKey) => {
+    const expiresAt = new Date().getTime() + (31 * 24 * 60 * 60 * 1000);
+    window.Store.set({ merchantPlan: planKey, merchantPlanExpiresAt: expiresAt }, { silent: true });
+    window.Actions['close-checkout-modal']();
+    if (window.App && typeof window.App.render === 'function') window.App.render();
+    showToast('¡Pago aprobado mediante Mercado Pago! Suscripción activada por 31 días.');
+  };
+
+  window.Actions['pay-with-bank-transfer'] = (planKey) => {
+    const expiresAt = new Date().getTime() + (31 * 24 * 60 * 60 * 1000);
+    window.Store.set({ merchantPlan: planKey, merchantPlanExpiresAt: expiresAt }, { silent: true });
+    window.Actions['close-checkout-modal']();
+    if (window.App && typeof window.App.render === 'function') window.App.render();
+    showToast('¡Comprobante registrado! Se ha activado tu suscripción por 31 días.');
   };
 
   window.Actions['update-order-status'] = (orderId, newStatus) => {
@@ -1089,10 +1698,10 @@
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <p style="font-size: 13px; color: #64748b; margin-bottom: 8px;">Usuarios que siguen actualmente a esta tienda:</p>
           <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: #09305f; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 12px;">EL</div>
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #09305f; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 12px;">CM</div>
             <div>
-              <strong style="font-size: 13px; color: #0f172a; display: block;">Eleesdg (Usuario Actual)</strong>
-              <small style="font-size: 11px; color: #166534; font-weight: 700;">Siguiendo tienda</small>
+              <strong style="font-size: 13px; color: #0f172a; display: block;">Carlos Mendoza (Comerciante)</strong>
+              <small style="font-size: 11px; color: #166534; font-weight: 700;">Titular de la cuenta</small>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;">
@@ -1177,14 +1786,83 @@
     }
   }, 400);
 
-  /* --- MODAL DE PRODUCTOS Y CARGA DINÁMICA --- */
   window.Actions['open-add-product-modal'] = () => {
     const modal = document.getElementById('add-product-modal');
     if (modal) {
-      modal.style.display = 'flex';
+      document.getElementById('product-modal-main-title').textContent = 'Publicar Producto o Carga Masiva';
+      document.getElementById('product-submit-btn-label').textContent = 'Publicar Producto / Servicio';
+      document.getElementById('edit-product-id').value = '';
+      document.getElementById('bulk-upload-section-box').style.display = 'flex';
+      document.getElementById('bulk-separator-box').style.display = 'flex';
+      
+      const form = document.getElementById('create-product-form');
+      if (form) form.reset();
+      
+      productPhotosList = [];
       const container = document.getElementById('product-photos-container');
       if (container) container.innerHTML = '';
       window.Actions['update-photo-counter']();
+
+      modal.style.display = 'flex';
+    }
+  };
+
+  window.Actions['open-edit-product-modal'] = (productId) => {
+    const allProducts = window.Data?.products || [];
+    const prod = allProducts.find(p => p.id === productId);
+    if (!prod) return;
+
+    const modal = document.getElementById('add-product-modal');
+    if (modal) {
+      document.getElementById('product-modal-main-title').textContent = `Editar Producto: ${prod.name}`;
+      document.getElementById('product-submit-btn-label').textContent = 'Guardar Cambios';
+      document.getElementById('edit-product-id').value = prod.id;
+      
+      document.getElementById('bulk-upload-section-box').style.display = 'none';
+      document.getElementById('bulk-separator-box').style.display = 'none';
+
+      document.getElementById('input-product-name').value = prod.name || '';
+      
+      const priceInput = document.getElementById('product-price-input');
+      if (priceInput) {
+        let num = (prod.price || 0);
+        priceInput.value = num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      document.getElementById('input-product-sku').value = prod.sku === 'N/D' ? '' : (prod.sku || '');
+      document.getElementById('input-product-brand').value = prod.brand || '';
+      document.getElementById('input-product-condition').value = prod.condition || 'Nuevo';
+      document.getElementById('input-product-stock').value = prod.stock ?? 10;
+      document.getElementById('input-product-desc').value = prod.description || '';
+
+      const catSelect = document.getElementById('prod-category-select');
+      if (catSelect) {
+        catSelect.value = prod.category || '';
+        window.Actions['update-category-schema'](prod.category || '');
+      }
+
+      setTimeout(() => {
+        const subSelect = document.getElementById('prod-subcategory-select');
+        if (subSelect && prod.subcategory) {
+          subSelect.value = prod.subcategory;
+        }
+      }, 50);
+
+      productPhotosList = prod.photos && prod.photos.length > 0 ? [...prod.photos] : (prod.image ? [prod.image] : []);
+      renderProductPhotos();
+
+      modal.style.display = 'flex';
+    }
+  };
+
+  window.Actions['delete-merchant-product'] = (productId) => {
+    if (!confirm('¿Estás seguro de eliminar este producto de tu inventario?')) return;
+    if (!window.Data || !window.Data.products) return;
+    const idx = window.Data.products.findIndex(p => p.id === productId);
+    if (idx !== -1) {
+      window.Data.products.splice(idx, 1);
+      if (window.App && typeof window.App.render === 'function') window.App.render();
+      showToast('Producto eliminado exitosamente del inventario.');
     }
   };
 
@@ -1244,7 +1922,6 @@
     }
   };
 
-  let productPhotosList = [];
   window.Actions['update-photo-counter'] = () => {
     const counter = document.getElementById('photo-counter-label');
     if (counter) counter.textContent = `${productPhotosList.length} de 10 añadidas`;
@@ -1293,6 +1970,7 @@
   window.Forms['create-product'] = (form) => {
     const formData = new FormData(form);
     const activeStore = getActiveStore();
+    const editId = formData.get('editProductId');
 
     const name = formData.get('productName');
     const priceStr = formData.get('productPrice');
@@ -1302,7 +1980,7 @@
     const stock = formData.get('productStock');
 
     if (!name || !priceStr || !brand || !category || !subcategory) {
-      showToast('Por favor completa todos los campos obligatorios del producto.');
+      showToast('Por favor completa todos los campos obligatorios del producto.', 'warning');
       return;
     }
 
@@ -1311,51 +1989,62 @@
     if (!window.Data) window.Data = {};
     if (!window.Data.products) window.Data.products = [];
 
-    window.Data.products.push({
-      id: `prod-${Date.now()}`,
-      storeId: activeStore.id,
-      name: name.trim(),
-      price: price,
-      brand: brand.trim(),
-      category: category,
-      subcategory: subcategory,
-      stock: Number(stock) || 10,
-      sku: formData.get('productSku') || 'N/D',
-      condition: formData.get('productCondition'),
-      description: formData.get('productDescription') || '',
-      photos: [...productPhotosList]
-    });
+    if (editId && editId !== '') {
+      const prod = window.Data.products.find(p => p.id === editId);
+      if (prod) {
+        prod.name = name.trim();
+        prod.price = price;
+        prod.brand = brand.trim();
+        prod.category = category;
+        prod.subcategory = subcategory;
+        prod.stock = Number(stock) || 10;
+        prod.sku = formData.get('productSku') || 'N/D';
+        prod.condition = formData.get('productCondition');
+        prod.description = formData.get('productDescription') || '';
+        prod.photos = [...productPhotosList];
+        if (productPhotosList.length > 0) prod.image = productPhotosList[0];
+      }
+      showToast(`¡Producto actualizado exitosamente!`);
+    } else {
+      window.Data.products.push({
+        id: `prod-${Date.now()}`,
+        storeId: activeStore.id,
+        name: name.trim(),
+        price: price,
+        brand: brand.trim(),
+        category: category,
+        subcategory: subcategory,
+        stock: Number(stock) || 10,
+        sku: formData.get('productSku') || 'N/D',
+        condition: formData.get('productCondition'),
+        description: formData.get('productDescription') || '',
+        photos: [...productPhotosList],
+        image: productPhotosList[0] || ''
+      });
+      showToast(`¡Producto publicado exitosamente en ${activeStore.name}!`);
+    }
 
     productPhotosList = [];
     window.Actions['close-add-product-modal']();
     if (window.App && typeof window.App.render === 'function') window.App.render();
-    showToast(`¡Producto publicado exitosamente en ${activeStore.name}!`);
   };
 
-  /* --- ENVÍO DE MENSAJES DESDE EL PANEL DE COMERCIANTE (SIN RECARGAR PÁGINA) --- */
-  window.Forms['merchant-send-chat'] = (form, storeId) => {
+  window.Forms['merchant-send-chat'] = (form, storeId, chatId) => {
     const input = form.querySelector('input[name="message"]');
     const text = input ? input.value.trim() : '';
     if (!text) return;
 
-    window.Store.state.chats = window.Store.state.chats || {};
-    window.Store.state.chats[storeId] = window.Store.state.chats[storeId] || [];
-    window.Store.state.chats[storeId].push({ sender: 'store', text });
-    input.value = '';
-
-    // Actualización dinámica directa del DOM del chat sin refrescar ni mostrar pantallas de carga
-    const msgsBox = document.getElementById('merchant-chat-msgs-box');
-    if (msgsBox) {
-      msgsBox.innerHTML = window.Store.state.chats[storeId].map(m => `
-        <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; ${m.sender === 'store' ? 'background: #09305f; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px;' : 'background: #fff; color: #0f172a; border: 1px solid #cbd5e1; align-self: flex-start; border-bottom-left-radius: 2px;'}">
-          ${esc(m.text)}
-        </div>
-      `).join('');
-      msgsBox.scrollTop = msgsBox.scrollHeight;
+    window.Store.state.chatsMap = window.Store.state.chatsMap || {};
+    if (window.Store.state.chatsMap[storeId] && window.Store.state.chatsMap[storeId][chatId]) {
+      const chatObj = window.Store.state.chatsMap[storeId][chatId];
+      chatObj.messages.push({ sender: 'store', text });
+      chatObj.lastMsg = text;
+      chatObj.time = 'Recién';
     }
+    input.value = '';
+    if (window.App && typeof window.App.render === 'function') window.App.render();
   };
 
-  /* --- RENDERIZADO DEL MODAL DE TIENDA CON PERSISTENCIA DE DATOS EN EL DRAFT --- */
   function renderStoreModalBody() {
     const container = document.getElementById('store-modal-body-container');
     if (!container) return;
@@ -1380,7 +2069,7 @@
 
         <label style="display:flex; flex-direction:column; gap:6px;">
           <span style="font-size:13px; font-weight:700; color:#334155;">CUIT / CUIL *</span>
-          <input type="text" id="modal-store-cuit" value="${esc(storeModalDraft.cuit)}" placeholder="Ej. 20-38492819-4" maxlength="13" oninput="window.Actions['format-modal-cuit'](this)" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;" />
+          <input type="text" id="modal-store-cuit" value="${esc(storeModalDraft.cuit)}" placeholder="Ej. 20-32114455-8" maxlength="13" oninput="window.Actions['format-modal-cuit'](this)" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;" />
         </label>
 
         <div style="display:flex; flex-direction:column; gap:8px;">
@@ -1580,6 +2269,14 @@
   };
 
   window.Actions['open-add-store-modal'] = () => {
+    const stores = getMerchantStores();
+    const currentPlan = window.Store.state.merchantPlan || 'standard';
+
+    if (currentPlan === 'free' && stores.length >= 1) {
+      showToast('⚠️ Límite alcanzado: El Plan Gratuito solo permite 1 tienda. ¡Pasate a Estándar o Pro para registrar más!', 'warning');
+      return;
+    }
+
     const defaultRubro = Object.keys(storeCategories)[0];
     storeModalDraft = {
       id: '', name: '', cuit: getMerchantProfile().cuit || '',
@@ -1626,11 +2323,18 @@
     const addressEl = document.getElementById('modal-store-address');
 
     if (!nameEl || !nameEl.value.trim() || !cuitEl || !cuitEl.value.trim() || !rubroEl || !rubroEl.value || !addressEl || !addressEl.value.trim()) {
-      showToast('Por favor completa todos los campos obligatorios (*).');
+      showToast('Por favor completa todos los campos obligatorios (*).', 'warning');
       return;
     }
 
     const stores = getMerchantStores();
+    const currentPlan = window.Store.state.merchantPlan || 'standard';
+
+    if (currentPlan === 'free' && stores.length >= 1 && !storeModalDraft.id) {
+      showToast('⚠️ Límite alcanzado: No puedes registrar más de 1 tienda en el Plan Gratuito.', 'warning');
+      return;
+    }
+
     const defaultLogo = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&auto=format&fit=crop&q=60';
     const storeLogo = storeModalDraft.logo && storeModalDraft.logo.trim() !== '' ? storeModalDraft.logo : defaultLogo;
 
@@ -1681,13 +2385,16 @@
     const roles = Array.from(checkboxes).map(cb => cb.value);
 
     if (!email || roles.length === 0) {
-      showToast('Ingresa un correo válido y selecciona al menos un rol.');
+      showToast('Ingresa un correo válido y selecciona al menos un rol.', 'warning');
       return;
     }
 
     const activeStore = getActiveStore();
     const employees = getStoreEmployees(activeStore.id);
-    employees.push({ email, roles, status: 'Pendiente de aceptación' });
+    const namePart = email.split('@')[0];
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    
+    employees.push({ email, name: formattedName, roles, status: 'Pendiente de aceptación' });
     
     form.reset();
     if (window.App && typeof window.App.render === 'function') window.App.render();
@@ -1709,12 +2416,12 @@
     const code2fa = formData.get('twoFactorCode');
 
     if (!current || !newPass || !code2fa) {
-      showToast('Completa todos los campos y el código 2FA.');
+      showToast('Completa todos los campos y el código 2FA.', 'warning');
       return;
     }
 
     if (code2fa.length < 6) {
-      showToast('El código de doble autenticación (2FA) es inválido.');
+      showToast('El código de doble autenticación (2FA) es inválido.', 'warning');
       return;
     }
 
@@ -1722,14 +2429,32 @@
     showToast('¡Contraseña actualizada con éxito mediante doble autenticación!');
   };
 
-  function showToast(message) {
+  function showToast(message, type = 'success') {
     const toast = document.getElementById('merchant-toast-popup');
+    const titleEl = document.getElementById('merchant-toast-title');
     const msgEl = document.getElementById('merchant-toast-msg');
-    if (toast && msgEl) {
-      msgEl.textContent = message;
-      toast.style.display = 'flex';
-      setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    if (!toast || !msgEl || !titleEl) return;
+
+    msgEl.textContent = message;
+
+    if (type === 'warning') {
+      toast.style.borderLeft = '4px solid #f59e0b';
+      titleEl.textContent = 'Operación no exitosa';
+      titleEl.style.color = '#f59e0b';
+      toast.querySelector('svg').outerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      `;
+    } else {
+      toast.style.borderLeft = '4px solid #22c55e';
+      titleEl.textContent = '¡Actualización exitosa!';
+      titleEl.style.color = '#fff';
+      toast.querySelector('svg').outerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      `;
     }
+
+    toast.style.display = 'flex';
+    setTimeout(() => { toast.style.display = 'none'; }, 4500);
   }
 
   window.Actions['open-edit-merchant-profile-modal'] = () => {
@@ -1764,3 +2489,11 @@
   };
 
 })();
+
+/* ─── Scroll automático hacia arriba al cambiar de pestaña en el Panel Comerciante ─── */
+document.addEventListener('click', (e) => {
+  const merchantTabBtn = e.target.closest('aside button[data-action="set-merchant-tab"]');
+  if (merchantTabBtn) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});

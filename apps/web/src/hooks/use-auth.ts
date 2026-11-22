@@ -8,9 +8,15 @@ export interface RegisterData {
   password: string;
   nombre: string;
   apellido: string;
-  telefono?: string;
+  telefono: string;
   dni: string;
-  domicilio: { calle: string; numero: string; piso_depto?: string; localidad_id: string };
+  domicilio: {
+    calle: string;
+    numero: string;
+    piso_depto?: string;
+    referencias?: string;
+    localidad_id: string;
+  };
   aceptaTerminos: boolean;
 }
 

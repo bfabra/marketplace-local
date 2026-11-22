@@ -1,21 +1,40 @@
 import type { TelefonoTienda, TipoTelefono } from '@/lib/api-client';
 
-export const MAX_TELEFONOS = 5;
+/** Maqueta #merchant: hasta 3 teléfonos de contacto. */
+export const MAX_TELEFONOS = 3;
 
+/** Países LATAM (+ códigos habituales) — maqueta #signup. */
 export const PAISES = [
-  { codigo: '+54', etiqueta: 'AR (+54)' },
-  { codigo: '+55', etiqueta: 'BR (+55)' },
-  { codigo: '+56', etiqueta: 'CL (+56)' },
-  { codigo: '+598', etiqueta: 'UY (+598)' },
-  { codigo: '+595', etiqueta: 'PY (+595)' },
-  { codigo: '+591', etiqueta: 'BO (+591)' },
-  { codigo: '+51', etiqueta: 'PE (+51)' },
-  { codigo: '+57', etiqueta: 'CO (+57)' },
-  { codigo: '+58', etiqueta: 'VE (+58)' },
-  { codigo: '+52', etiqueta: 'MX (+52)' },
-  { codigo: '+1', etiqueta: 'US (+1)' },
-  { codigo: '+34', etiqueta: 'ES (+34)' },
+  { codigo: '+54', etiqueta: 'Argentina (+54)' },
+  { codigo: '+591', etiqueta: 'Bolivia (+591)' },
+  { codigo: '+55', etiqueta: 'Brasil (+55)' },
+  { codigo: '+56', etiqueta: 'Chile (+56)' },
+  { codigo: '+57', etiqueta: 'Colombia (+57)' },
+  { codigo: '+506', etiqueta: 'Costa Rica (+506)' },
+  { codigo: '+53', etiqueta: 'Cuba (+53)' },
+  { codigo: '+593', etiqueta: 'Ecuador (+593)' },
+  { codigo: '+503', etiqueta: 'El Salvador (+503)' },
+  { codigo: '+502', etiqueta: 'Guatemala (+502)' },
+  { codigo: '+504', etiqueta: 'Honduras (+504)' },
+  { codigo: '+52', etiqueta: 'México (+52)' },
+  { codigo: '+505', etiqueta: 'Nicaragua (+505)' },
+  { codigo: '+507', etiqueta: 'Panamá (+507)' },
+  { codigo: '+595', etiqueta: 'Paraguay (+595)' },
+  { codigo: '+51', etiqueta: 'Perú (+51)' },
+  { codigo: '+598', etiqueta: 'Uruguay (+598)' },
+  { codigo: '+58', etiqueta: 'Venezuela (+58)' },
+  { codigo: '+1', etiqueta: 'EE.UU. / Canadá (+1)' },
+  { codigo: '+34', etiqueta: 'España (+34)' },
 ];
+
+/** Arma el texto de perfil a partir de país / tipo / número (#signup). */
+export function armarTelefonoPerfil(pais: string, tipo: TipoTelefono, numero: string) {
+  const digitos = numero.replace(/\D/g, '');
+  if (!digitos) return undefined;
+  const local = digitos.replace(/^0/, '');
+  if (tipo === 'whatsapp' && pais === '+54') return `+54 9 ${local}`;
+  return `${pais} ${local}`;
+}
 
 export const TIPOS_TELEFONO: Record<TipoTelefono, string> = {
   whatsapp: 'WhatsApp',

@@ -1,44 +1,126 @@
-# Cambios de maqueta (nov 2026) · inventario vs app
+# Cambios de maqueta · inventario vs `apps/web`
 
-Comparación de `docs/diseno` (working tree) contra la app `apps/web` **antes del despliegue**.
+Última validación: **2026-11-22** (carpeta actualizada + chequeo de integridad).
 
-## Fuente de verdad de marca (no negociable)
+Comparación del working tree de `docs/diseno` contra **`apps/web`**.
 
-| Token | Valor vigente |
-|-------|----------------|
-| Tipografía | **Manrope** (`css/tokens.css`) |
-| Primario | **`#09305f`** |
+## Validación de la carpeta (esta pasada)
+
+| Chequeo | Resultado |
+|---------|-----------|
+| Tokens marca (`css/tokens.css`) | OK — Manrope, `#09305f`, `#fd6910` |
+| `index.html` carga `reviews.js` + páginas vigentes | OK |
+| Auth de referencia | OK — usar `js/pages/auth.js` (siguen en disco `login.js` / `register.js` = legacy) |
+| Panel comerciante | OK — `js/pages/merchant.js` monolítico |
+| **Rotura al actualizar** | La actualización **había borrado** `AGENTS.md`, `LEGACY.md`, `public/brand/logos/*` y `public/images/banner.jpg` → maqueta sin logos ni hero |
+| **Reparación** | Restaurados desde Git: `AGENTS.md`, `LEGACY.md`, logos y `banner.jpg` |
+| Opcional aún borrado | `Leemeee.txt`, `Mapa de Navegación.txt` (no bloquean la maqueta) |
+| `README.md` | Corregido: app = `apps/web` (antes decía `frontend/`) |
+
+**Importante:** al reemplazar `docs/diseno` desde un zip/export, **no pises** `public/brand/`, `public/images/`, `AGENTS.md` ni `LEGACY.md` (o volvé a copiarlos desde el repo).
+
+Diff aproximado de UX nueva: **~+2000 / −620** en JS/CSS + `reviews.js` / `serve.js`.
+
+---
+
+## Marca (no negociable)
+
+| Token | Valor |
+|-------|--------|
+| Tipografía | **Manrope** |
+| Primario / navy | **`#09305f`** |
 | Acento | **`#fd6910`** |
 
-> El `AGENTS.md` de la maqueta llegó con texto erróneo (verde `#1c4f4f` + Inter/Jakarta). Se **restauró** al HEAD alineado con `tokens.css` y el `AGENTS.md` de la raíz. **No** migrar la app a verde/Inter.
+Fuente: `css/tokens.css` + `AGENTS.md`.
 
-## Qué cambió en la maqueta
+---
 
-| Área | Cambio en maqueta | Estado en app | Acción pre-despliegue |
-|------|-------------------|---------------|------------------------|
-| Pie | Enlaces reales: Acerca (`#about`), Ayuda (`#help`), Contacto (modal), Términos (`#terms`), FAQ | Pie incompleto / mailto | **Alinear footer + páginas** |
-| Páginas nuevas | `about.js`, `help.js`, `terms.js` | `/terminos`, `/privacidad`, `/preguntas` (sin `/acerca` ni `/ayuda`) | **Agregar `/acerca` y `/ayuda`** |
-| Producto | Favorito junto al título; **Comprar ahora** navy + **Agregar** outline; relacionados por tienda/categoría | Modal con un CTA + favorito abajo | **Ajustar modal** |
-| Tarjetas | Heart overlay en producto/tienda; hover lift | Producto sin heart en `MarketProductCard` | **Heart en tarjeta** |
-| Tienda | Chat interno comprador↔comercio | No existe | **Diferir** (feature + API) |
-| Panel comerciante | Inbox de chat demo | No existe | **Diferir** |
-| Perfil | Localidades por departamento SJ | API ya trae localidades | OK / revisar UX luego |
-| Home | Ajustes menores Icon/`window.Icon`, ofertas | Home ya portada | Bajo impacto |
-| Banner | `public/images/banner.jpg` | Hero propio | Opcional luego |
-| Auth stubs | Siguen en disco; vigentes = `auth.js` | OK vía LEGACY | Sin cambio |
+## Inventario por área
 
-## Fuera de alcance ahora (post-despliegue)
+| # | Área (maqueta) | Qué cambió | Estado en `apps/web` | Acción |
+|---|----------------|------------|----------------------|--------|
+| 1 | **Reseñas** `js/components/reviews.js` **NUEVO** | Badge reputación tienda; opiniones en producto; modal valorar (UI off hasta pedidos) | `Rating` solo con datos; **sin** API de reseñas | **Diferir backend**. Portar **UI vacía** (“sin reseñas” / “Sin valoraciones”) si querés paridad |
+| 2 | **Merchant** `merchant.js` (~+870) | Tab suscripción; **inbox chat**; Reputation; stock; carga masiva más visible | Rutas vendor OK (`plan`, productos, lote, equipo…). **Sin** chat | **Alinear UX** plan/productos/carga masiva. **Diferir chat** |
+| 3 | **Checkout** `checkout.js` | Stepper 1→2→3; form SJ; MP multi-tienda | `/checkout` + `CheckoutSteps`; envío = **1 costo/dirección** | **Paridad visual**; no copiar tarifa × tienda demo |
+| 4 | **Producto** `product.js` | `Reviews` + badge en “Vendido por” | Modal con Comprar ahora + favorito | Portar sección reseñas vacía + badge |
+| 5 | **Tienda** `store.js` | Reputation; **chat** modal; valorar | Sin chat / valorar | Badge empty OK. **Diferir chat** |
+| 6 | **Home** `home.js` | Une data demo + panel; ofertas; grillas | Home con API | Solo CSS/layout; no inventar datos |
+| 7 | **Header** `header.js` | Menú comerciante/cuenta; badge carrito | Header + `UserMenu` | Micro-diff visual |
+| 8 | **Carrito / perfil / auth** | Qty, detalle compra, ojito password | Login OK | Ver `#signup` abajo |
+| 8b | **Signup** `#signup` (`auth.js`) | Tel país/tipo/nº; domicilio barrio + refs; dpto SJ; mapa pin demo | `/registro` alineado (mapa UX soft, coords no persisten) | Migración `052` refs en `registrar_cliente` |
+| 9 | **Search / cards / data** | Une merchant+static; badge en card | API real | Badge cuando haya dato |
+| 10 | **CSS** `layout` + `pages` | Responsive hero, grids, auth, product-detail | `marketplace.css` | Pasada mobile |
+| 11 | **Tooling** `serve.js` | Preview local | — | OK |
+| 12 | **Alta comercio** `onboarding.js` (#merchant) | Ver tabla debajo | `/vendor/nueva-tienda` | Alinear ubicación (dpto) |
 
-1. **Chat interno** tienda (modal + estado en merchant panel).
-2. **Tickets de reclamo** del Centro de Ayuda (necesitan backend).
-3. Copiar tarifas `$2.990` del `terms.js` demo → la app usa **un costo por dirección** (regla de negocio vigente).
-4. Rediseño completo del home con el banner nuevo.
+### Alta “Configurá tu tienda” — campos maqueta vs app
 
-## Checklist pre-despliegue (esta pasada)
+| Campo | Maqueta (`onboarding.js`) | App (`/vendor/nueva-tienda`) |
+|-------|---------------------------|------------------------------|
+| Nombre | ✔ obligatorio | ✔ |
+| CUIT | ✔ | ✔ |
+| Razón social | — | ✔ opcional (**extra en app**) |
+| Teléfonos (país/tipo/nº, máx. 3) | ✔ | ✔ (`TelefonosTienda`) |
+| Correo comercio | — | ✔ opcional (**extra en app**) |
+| Rubro / subrubro | ✔ / opcional | ✔ |
+| Especialidades | — | ✔ chips (**extra en app**) |
+| Descripción | ✔ (máx. 240) | ✔ (máx. 500) |
+| **Provincia** | ✔ select fijo SJ | Embebida en label de localidad |
+| **Departamento** | ✔ **obligatorio** | ✔ (`TerritorioTienda` → `localidad_id`) |
+| Localidad / villa | ✔ (demo en maqueta) | No hay villas en DB aún; la calle/mapa precisan la zona |
+| Calle y mapa | ✔ mapa demo + import Maps | ✔ + Google si hay API key |
+| Logo | ✔ | ✔ |
 
-- [x] Restaurar `docs/diseno/AGENTS.md` (marca correcta)
-- [x] Footer alineado a la maqueta
-- [x] Página `/acerca`
-- [x] Página `/ayuda` (atajos; sin tickets de API aún)
-- [x] Heart en `MarketProductCard`
-- [x] CTAs del modal de producto como en maqueta
+**Conclusión:** la maqueta pide **más pasos de territorio** (Provincia + Departamento + Localidad). La app pide **más datos comerciales** (razón social, email, especialidades) pero aplana el domicilio a una sola localidad. El modal rápido del panel (`ModalRegistrarTienda`) es aún más corto (sin razón social / email / especialidades / mapa).
+
+---
+
+## Prioridad
+
+### Portar ya (sin API nueva)
+
+1. UI vacía de reseñas en ficha/modal producto  
+2. Badge “Sin valoraciones” (card / ficha / vendido por)  
+3. Paridad panel: plan, listado productos, CTA carga masiva  
+4. Checkout stepper / copy MP (sin cambiar reglas de envío)  
+5. CSS mobile home + product-detail  
+6. ~~**Alta tienda:** Provincia + Departamento~~ **Hecho** (`TerritorioTienda`; en DB el dpto = `localidad_id`). Teléfonos máx. 3.
+7. ~~**Signup `#signup`:**~~ **Hecho** — teléfono estructurado, barrio/refs, departamento, mapa soft; API guarda `referencias`.
+
+### Diferir
+
+| Feature | Motivo |
+|---------|--------|
+| Chat tienda + inbox merchant | Sin backend |
+| Reseñas / valoraciones persistentes | Sin tablas/API (maqueta ya deja UI disabled) |
+| Tickets de ayuda | Sin backend |
+| `$2.990 × tienda` | Choca con **un costo por dirección** |
+
+### Ya OK / no portar
+
+Favoritos, Comprar ahora, `/acerca`, `/ayuda`, footer, ojito auth, Excel masivo, `/vendor/.../plan`, datos quemados de `data.js`.
+
+---
+
+## Checklist
+
+- [x] Restaurar logos + banner + `AGENTS.md` + `LEGACY.md`
+- [x] `README.md` apunta a `apps/web`
+- [ ] UI vacía reseñas en producto
+- [ ] Badge reputación (empty)
+- [x] Alta tienda: Provincia + Departamento (+ tel. máx. 3)
+- [x] Signup `#signup` → `/registro` (tel + domicilio + mapa soft)
+- [ ] Panel comerciante vs `#merchant-panel` (sin chat)
+- [ ] Checkout visual
+- [ ] CSS responsive
+- [ ] **No** chat / **no** reseñas API aún
+
+## Comandos
+
+```powershell
+git status --short docs/diseno
+git diff --stat HEAD -- docs/diseno
+cd docs/diseno; node serve.js
+```
+
+Rutas útiles: `#marketplace` · `#checkout` · `#merchant-panel` · `#store` · `#profile` · `#cart` · `#login` · `#signup`.

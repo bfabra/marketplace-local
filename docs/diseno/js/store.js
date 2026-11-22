@@ -256,3 +256,90 @@
     }
   };
 })();
+
+/* ============================================================
+     GESTIÓN DE PLANES, LÍMITES Y ENVÍOS AVANZADOS
+     ============================================================ */
+  window.Store.plans = {
+    free: {
+      id: 'free',
+      name: 'Plan Gratuito',
+      price: 0,
+      maxStores: 1,
+      maxProducts: 3
+    },
+    standard: {
+      id: 'standard',
+      name: 'Plan Estándar',
+      price: 10000,
+      maxStores: Infinity,
+      maxProducts: 100
+    },
+    pro: {
+      id: 'pro',
+      name: 'Plan Pro Ilimitado',
+      price: 20000,
+      maxStores: Infinity,
+      maxProducts: Infinity
+    }
+  };
+
+  // Estado del plan del comerciante actual
+  window.Store.state.merchantPlan = window.Store.state.merchantPlan || 'free';
+
+  // Validadores de límites
+  window.Store.canAddStore = function (currentStoresCount) {
+    const planKey = window.Store.state.merchantPlan || 'free';
+    const plan = window.Store.plans[planKey];
+    return currentStoresCount < plan.maxStores;
+  };
+
+  window.Store.canAddProduct = function (currentProductsCount) {
+    const planKey = window.Store.state.merchantPlan || 'free';
+    const plan = window.Store.plans[planKey];
+    return currentProductsCount < plan.maxProducts;
+  };
+
+  // Cálculo de envío avanzado respetando multi-tienda y atributos de peso/dimensiones
+  window.Store.calculateShippingCost = function (cartItemsByStore) {
+    let totalShipping = 0;
+    const storeBreakdown = [];
+
+    for (const [storeId, items] of Object.entries(cartItemsByStore)) {
+      let storeShipping = 0;
+      let standardCount = 0;
+
+      items.forEach(item => {
+        const prod = item.product || item;
+        const category = (prod.shippingCategory || 'chico').toLowerCase();
+        const qty = item.quantity || item.qty || 1;
+
+        if (category === 'mediano') {
+          storeShipping += 4990 * qty;
+        } else if (category === 'pesado') {
+          storeShipping += 7990 * qty;
+        } else if (category === 'grande' || category === 'voluminoso') {
+          storeShipping += 11990 * qty;
+        } else {
+          standardCount += qty;
+        }
+      });
+
+      if (standardCount > 0) {
+        let baseFee = 2990; // Tarifa base hasta 3 productos estándar
+        if (standardCount > 3) {
+          const extraItems = standardCount - 3;
+          baseFee += extraItems * 1500; // +$1.500 por cada adicional
+        }
+        storeShipping += baseFee;
+      }
+
+      storeBreakdown.push({ storeId, cost: storeShipping });
+      totalShipping += storeShipping; // Se suma lo de cada tienda de forma independiente
+    }
+
+    return {
+      totalShipping,
+      storeBreakdown
+    };
+  };

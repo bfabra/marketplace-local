@@ -66,6 +66,15 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [errorLogo, setErrorLogo] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
+  const [provinciaModal, setProvinciaModal] = useState('San Juan');
+
+  const provinciasModal = [...new Set(localidades.map((l) => l.provincia))].sort((a, b) =>
+    a.localeCompare(b, 'es')
+  );
+  const departamentosModal = localidades
+    .filter((l) => l.provincia === provinciaModal)
+    .slice()
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
   useEffect(() => {
     if (!abierto) return;
@@ -85,9 +94,16 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
     setLogo(null);
     setLogoUrl(null);
     setErrorLogo(null);
+    setProvinciaModal('San Juan');
     errors.clear();
     api<OpcionRubro[]>('/catalog/rubros').then(setRubros).catch(errors.set);
-    api<Localidad[]>('/locations/localidades').then(setLocalidades).catch(errors.set);
+    api<Localidad[]>('/locations/localidades')
+      .then((lista) => {
+        setLocalidades(lista);
+        const primera = [...new Set(lista.map((l) => l.provincia))].sort((a, b) => a.localeCompare(b, 'es'))[0];
+        if (primera) setProvinciaModal(primera);
+      })
+      .catch(errors.set);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto]);
 
@@ -394,13 +410,30 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
           <div className="mp-modal-grid-2">
             <label className="mp-modal-field">
               <span>Provincia *</span>
-              <input type="text" value="San Juan" disabled readOnly />
+              <select
+                value={provinciaModal}
+                onChange={(e) => {
+                  setProvinciaModal(e.target.value);
+                  if (b.localidad_id) {
+                    const ok = localidades.some((l) => l.id === b.localidad_id && l.provincia === e.target.value);
+                    if (!ok) poner('localidad_id', '');
+                  }
+                }}
+              >
+                {provinciasModal.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className={`mp-modal-field${f.localidad_id ? ' is-error' : ''}`}>
-              <span>Localidad / Villa / Zona *</span>
+              <span>Departamento *</span>
               <select value={b.localidad_id} onChange={(e) => poner('localidad_id', e.target.value)}>
-                <option value="">{localidades.length ? 'Seleccioná la localidad' : 'Cargando…'}</option>
-                {localidades.map((l) => (
+                <option value="">
+                  {departamentosModal.length ? 'Seleccioná departamento' : 'Cargando…'}
+                </option>
+                {departamentosModal.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.nombre}
                   </option>
@@ -411,7 +444,7 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
           </div>
 
           <label className={`mp-modal-field${f.direccion ? ' is-error' : ''}`}>
-            <span>Calle, Altura y Detalles *</span>
+            <span>Calle y altura *</span>
             <input
               type="text"
               value={b.direccion}

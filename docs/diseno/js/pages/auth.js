@@ -55,6 +55,8 @@
     render() {
       const s = window.Store.state;
       const ls = s.loginState;
+      const showPassword = s.showLoginPassword || false; // Estado para ver/ocultar contraseña
+
       return `
       <div class="auth-screen">
         <section class="auth-visual" style="background-image:url('${photos.storefront}')">
@@ -81,7 +83,23 @@
             <div class="form-heading"><span>HOLA</span><h2>Bienvenido</h2><p>Iniciá sesión para continuar.</p></div>
             <form data-form="login" novalidate>
               ${UI.field({ label: 'Correo electrónico', placeholder: 'nombre@correo.com', icon: 'mail', name: 'email', type: 'email', value: s.loginEmail || '', autocomplete: 'email', state: ls === 'focus' ? 'focus' : '' })}
-              ${UI.field({ label: 'Contraseña', placeholder: 'Ingresá tu contraseña', icon: 'lock', name: 'password', type: 'password', autocomplete: 'current-password', state: ls === 'error' ? 'error' : '', helper: ls === 'error' ? 'La contraseña o correo ingresada es incorrecta.' : '' })}
+              
+              <!-- CAMPO DE CONTRASEÑA CON BOTÓN DE OJITO FUNCIONAL -->
+              <div style="margin-bottom: 16px;">
+                <label class="form-label" style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px;">Contraseña</label>
+                <div style="position: relative; display: flex; align-items: center;">
+                  <span style="position: absolute; left: 12px; color: #64748b; display: flex; align-items: center;">${Icon('lock', 16)}</span>
+                  <input type="${showPassword ? 'text' : 'password'}" name="password" class="input" placeholder="Ingresá tu contraseña" autocomplete="current-password" required style="width:100%; padding:12px 40px 12px 38px; border:1px solid ${ls === 'error' ? '#dc2626' : '#cbd5e1'}; border-radius:8px; background:#fff; font-size: 14px; outline: none;" />
+                  <button type="button" data-action="toggle-login-password" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; color: #64748b; display: flex; align-items: center; padding: 4px;" title="${showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}">
+                    ${showPassword ? 
+                      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>` : 
+                      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`
+                    }
+                  </button>
+                </div>
+                ${ls === 'error' ? `<span style="font-size: 11px; color: #dc2626; margin-top: 4px; display: block;">La contraseña o correo ingresada es incorrecta.</span>` : ''}
+              </div>
+
               <div class="form-options">
                 <label class="checkbox"><input type="checkbox" /><span>${Icon('check', 12)}</span>Recordarme</label>
                 <button type="button" class="text-link" data-action="social-demo">¿Olvidaste tu contraseña?</button>
@@ -95,6 +113,12 @@
         </section>
       </div>`;
     },
+  };
+
+  // Acción para alternar la visibilidad de la contraseña en el login
+  Actions['toggle-login-password'] = () => {
+    const s = window.Store.state;
+    window.Store.set({ showLoginPassword: !s.showLoginPassword });
   };
 
   Forms.login = (form) => {
@@ -431,3 +455,17 @@
 
   Forms.signup = handleSignup;
 })();
+
+/* ─── Habilitar funcionalidad del botón del ojito para mostrar/ocultar contraseña ─── */
+document.addEventListener('click', (e) => {
+  const toggleBtn = e.target.closest('button[data-action="toggle-password"], .password-toggle-btn, svg, path');
+  const wrapper = e.target.closest('.field, .input-group, div') || toggleBtn?.parentElement;
+  
+  if (toggleBtn || e.target.matches('svg, path')) {
+    const passwordInput = wrapper ? wrapper.querySelector('input[type="password"], input[type="text"]') : document.querySelector('input[name="password"]');
+    if (passwordInput) {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+    }
+  }
+});

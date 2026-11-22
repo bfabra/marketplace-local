@@ -17,14 +17,21 @@ export const registerSchema = z.object({
     password: clave,
     nombre: z.string({ required_error: 'Ingresá tu nombre' }).trim().min(2, 'El nombre debe tener al menos 2 caracteres'),
     apellido: z.string({ required_error: 'Ingresá tu apellido' }).trim().min(2, 'El apellido debe tener al menos 2 caracteres'),
-    telefono: z.string().trim().max(30, 'Máximo 30 caracteres').optional(),
+    telefono: z
+      .string({ required_error: 'Ingresá tu teléfono' })
+      .trim()
+      .min(8, 'Ingresá un teléfono válido')
+      .max(30, 'Máximo 30 caracteres'),
     dni,
     domicilio: z.object(
       {
         calle: z.string().trim().min(2, 'Ingresá la calle').max(120, 'Máximo 120 caracteres'),
         numero: z.string().trim().min(1, 'Ingresá la altura').max(10, 'Máximo 10 caracteres'),
-        piso_depto: z.string().trim().max(30, 'Máximo 30 caracteres').optional(),
-        localidad_id: z.string({ required_error: 'Elegí una localidad' }).uuid('Elegí una localidad'),
+        piso_depto: z.string().trim().max(40, 'Máximo 40 caracteres').optional(),
+        referencias: z.string().trim().max(200, 'Máximo 200 caracteres').optional(),
+        localidad_id: z
+          .string({ required_error: 'Elegí el departamento' })
+          .uuid('Elegí el departamento'),
       },
       { required_error: 'Ingresá tu domicilio de entrega' }
     ),

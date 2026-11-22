@@ -6,21 +6,34 @@
 
   Pages.product = {
     layout: 'market',
-    title: 'Detalle de Producto — CompraLocal',
+    title: 'Detalle de Producto — Tu Comercio Local',
 
     render() {
-      const productId = window.Store?.state?.productId || 'remera-basica';
-      const product = window.Data?.products.find(p => p.id === productId) || window.Data?.products[0] || {
-        id: productId, name: 'Producto local', price: 15000, category: 'General', storeId: 'la-boutique', image: ''
+      // Obtenemos el ID del producto seleccionado del estado global
+      const productId = window.Store?.state?.productId;
+      
+      // UNIFICACIÓN DE LA BASE DE DATOS (Sistema + Productos creados por comerciantes)
+      const staticProducts = window.Data?.products || [];
+      const merchantProducts = window.Store?.state?.merchantProducts || [];
+      
+      const allMap = new Map();
+      [...merchantProducts, ...staticProducts].forEach(p => allMap.set(p.id, p));
+      const allProducts = Array.from(allMap.values());
+
+      // Buscamos el producto con el ID exacto recibido del clic
+      const product = allProducts.find(p => p.id === productId) || allProducts[0] || {
+        id: productId || 'p1', name: 'Producto local', price: 15000, category: 'General', storeId: 'store-1', image: ''
       };
       
-      const store_data = window.Data?.stores.find(s => s.id === product.storeId) || window.Data?.stores[0];
+      // Buscamos la tienda asociada al producto (unificando sistema y merchantStores)
+      const allStores = [...(window.Store?.state?.merchantStores || []), ...(window.Data?.stores || [])];
+      const store_data = allStores.find(s => s.id === product.storeId) || allStores[0];
       
       // Productos de la misma tienda (excluyendo el producto actual)
-      const storeProducts = window.Data?.products.filter(p => p.storeId === product.storeId && p.id !== product.id).slice(0, 4) || [];
+      const storeProducts = allProducts.filter(p => p.storeId === product.storeId && p.id !== product.id).slice(0, 4);
       
       // Productos de la misma categoría
-      const categoryProducts = window.Data?.products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4) || [];
+      const categoryProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
       const price = window.Utils.money(product.price);
       const originalPrice = product.priceOriginal ? window.Utils.money(product.priceOriginal) : null;
@@ -63,12 +76,12 @@
               <span style="color: var(--muted); font-weight: 600;" aria-current="page">${window.Utils.esc(product.name)}</span>
             </nav>
 
-            <!-- Product Grid Estilo MercadoLibre -->
-            <div class="product-detail-grid" style="display: grid; grid-template-columns: 1fr 380px; gap: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px;">
+            <!-- Product Grid Estilo MercadoLibre (Responsivo via CSS) -->
+            <div class="product-detail-grid">
               
               <!-- Galería e Información Izquierda -->
               <div>
-                <div style="width:100%; height: 400px; border-radius: 12px; overflow:hidden; background: #f8fafc; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                <div class="product-main-img-container">
                   <img src="${window.Utils.esc(product.image)}" alt="${window.Utils.esc(product.name)}" style="width: 100%; height: 100%; object-fit: contain;" />
                 </div>
 
@@ -77,7 +90,7 @@
                   <h3 style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 16px;">Características del producto</h3>
                   <ul style="padding-left: 20px; font-size: 14px; line-height: 1.8; color: #334155;">
                     <li>Cantidad: 1 unidad.</li>
-                    <li>Comercio certificado de ${store_data ? store_data.location : 'San Juan'}.</li>
+                    <li>Comercio certificado de ${store_data ? (store_data.department || store_data.location || 'San Juan') : 'San Juan'}.</li>
                     <li>Envío unificado a domicilio en toda la provincia por $2.999.</li>
                     <li>Garantía directa del vendedor.</li>
                     ${product.brand ? `<li>Marca: ${window.Utils.esc(product.brand)}</li>` : ''}
@@ -94,6 +107,9 @@
                     ${window.Utils.esc(product.description || 'Producto elaborado y comercializado por comercios locales de San Juan, verificados en la plataforma CompraLocal.')}
                   </p>
                 </div>
+
+                <!-- Opiniones y reseñas de compradores (Permanente) -->
+                ${window.Reviews ? window.Reviews.renderProductReviewsSection(product) : ''}
               </div>
 
               <!-- Panel Derecho (Compra / Vendedor) -->
@@ -131,24 +147,27 @@
 
                   <!-- Acciones de compra -->
                   <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <!-- Botón 1: Comprar ahora (Color azul, sin emojis) -->
+                    <!-- Botón 1: Comprar ahora -->
                     <button type="button" class="btn" style="width: 100%; height: 44px; font-weight: 800; cursor: pointer; background: #09305f; color: #fff; border: none; border-radius: 8px;" data-action="buy-now-redirect" data-id="${product.id}">
                       Comprar ahora
                     </button>
 
-                    <!-- Botón 2: Agregar al carrito (Mismo color del fondo / superficie) -->
+                    <!-- Botón 2: Agregar al carrito -->
                     <button type="button" class="btn" style="width: 100%; height: 44px; font-weight: 800; cursor: pointer; background: var(--surface, #fff); color: var(--text); border: 1px solid var(--border, #cbd5e1); border-radius: 8px;" data-action="add-to-cart" data-id="${product.id}">
                       Agregar al carrito
                     </button>
                   </div>
 
-                  <!-- Store card mini (Nombre de la tienda como enlace directo) -->
+                  <!-- Store card mini (Nombre de la tienda como enlace directo y Prestigio) -->
                   ${store_data ? `
                     <div style="border-top: 1px solid var(--border); padding-top: 16px;">
                       <span style="font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase;">Vendido por</span>
                       <div style="margin-top: 6px;">
                         <a data-action="open-store" data-id="${store_data.id}" style="font-weight: 800; font-size: 14px; color: var(--primary); text-decoration: none; cursor: pointer; display: block;">${window.Utils.esc(store_data.name)}</a>
-                        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">${window.Utils.esc(store_data.location)}</div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">${window.Utils.esc(store_data.department || store_data.location || 'San Juan')}</div>
+                        <div style="margin-top: 6px;">
+                          ${window.Reputation ? window.Reputation.renderBadge(store_data, { size: 'sm' }) : ''}
+                        </div>
                       </div>
                     </div>
                   ` : ''}
@@ -204,12 +223,41 @@
 
   window.Actions = window.Actions || {};
 
-  // Acción exclusiva para "Comprar ahora"
+  // Sobrescribir o registrar la acción open-product asegurando el scroll superior
+  window.Actions['open-product'] = (el) => {
+    const productId = el?.dataset?.id;
+    if (productId) {
+      window.Store.set({ productId });
+      window.location.hash = 'product';
+      window.scrollTo(0, 0);
+    }
+  };
+
+  // Escucha global de clics para cualquier elemento con data-action="open-product" por si el router principal lo intercepta antes
+  document.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-action="open-product"]');
+    if (card) {
+      const productId = card.dataset.id;
+      if (productId) {
+        window.Store.set({ productId });
+        window.location.hash = 'product';
+        window.scrollTo(0, 0);
+      }
+    }
+  }, true); // Usando captura (true) para asegurar que se ejecute y posicione arriba
+
   window.Actions['buy-now-redirect'] = (el) => {
     let p = null;
     const productId = el?.dataset?.id || window.Store?.state?.productId;
-    if (productId && window.Data && window.Data.products) {
-      p = window.Data.products.find(prod => prod.id === productId);
+    
+    const staticProducts = window.Data?.products || [];
+    const merchantProducts = window.Store?.state?.merchantProducts || [];
+    const allMap = new Map();
+    [...merchantProducts, ...staticProducts].forEach(prod => allMap.set(prod.id, prod));
+    const allProducts = Array.from(allMap.values());
+
+    if (productId) {
+      p = allProducts.find(prod => prod.id === productId);
     }
     if (!p && typeof window.Store?.product === 'function') {
       p = window.Store.product();
@@ -219,6 +267,7 @@
       window.CartManager.add(p, 1);
       window.Store.set({ cartOpen: false });
       window.location.hash = 'cart';
+      window.scrollTo(0, 0);
     }
   };
 })();

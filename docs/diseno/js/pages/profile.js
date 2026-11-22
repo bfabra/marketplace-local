@@ -65,7 +65,6 @@
       const isEditing = !!s.profileEditing; 
       const toastMessage = s.profileToast || null; 
       const activePurchaseId = s.activePurchaseId || null;
-      const expirationMonths = s.purchaseExpirationMonths || '12';
 
       const user = s.user || {
         firstName: 'Nombre',
@@ -272,7 +271,7 @@
 
             <main>
               ${activeTab === 'personal-data' ? this.renderPersonalData(user, firstName, lastName, isEditing) : ''}
-              ${activeTab === 'purchases' ? (activePurchaseId ? this.renderPurchaseDetail(purchases.find(p => p.id === activePurchaseId) || purchases[0]) : this.renderPurchasesList(purchases, expirationMonths)) : ''}
+              ${activeTab === 'purchases' ? (activePurchaseId ? this.renderPurchaseDetail(purchases.find(p => p.id === activePurchaseId) || purchases[0]) : this.renderPurchasesList(purchases)) : ''}
               ${activeTab === 'shipments' ? this.renderShipmentStatus(activeShipment) : ''}
               ${activeTab === 'fav-stores' ? this.renderFavoriteStores(favoriteStores) : ''}
               ${activeTab === 'fav-products' ? this.renderFavoriteProducts(favoriteProducts) : ''}
@@ -313,12 +312,10 @@
             <h2 style="font-size: 18px; font-weight: 800; color: var(--text, #0f172a); margin: 0;">
               Datos Personales y Domicilio de Envío
             </h2>
-            <span style="font-size: 12px; color: var(--muted, #64748b);">${isEditing ? 'Modo edición activo' : 'Modo lectura'}</span>
-          </div>
+            </div>
 
           <form onsubmit="event.preventDefault(); window.Actions['save-user-profile'](this);" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             
-            <!-- Datos Personales -->
             <div>
               <label style="display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:6px;">Nombre</label>
               <input type="text" id="profile-firstname" value="${esc(firstName)}" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}" required />
@@ -351,7 +348,6 @@
               <input type="tel" id="profile-phone-number" value="${esc(user.phoneNumber || '')}" placeholder="2645123456" ${disabledAttr} style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; ${bgStyle}" />
             </div>
 
-            <!-- SECCIÓN DOMICILIO DETALLADO PARA EL CADETE -->
             <div style="grid-column: 1 / -1; margin-top: 8px; padding-top: 14px; border-top: 1px dashed #e2e8f0;">
               <h3 style="font-size: 14px; font-weight: 800; color: var(--text, #0f172a); margin: 0 0 12px 0;">Domicilio de Entrega para el Repartidor / Cadete</h3>
             </div>
@@ -408,7 +404,7 @@
       `;
     },
 
-    renderPurchasesList(purchases, expirationMonths) {
+    renderPurchasesList(purchases) {
       const rows = purchases.map(p => `
         <div style="border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #fff; gap: 12px; flex-wrap: wrap;">
           <div>
@@ -424,22 +420,17 @@
 
       return `
         <div style="background: var(--surface, #fff); border: 1px solid var(--border, #cbd5e1); border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border, #e2e8f0); flex-wrap: wrap; gap: 12px;">
-            <div>
-              <h2 style="font-size: 18px; font-weight: 800; color: var(--text, #0f172a); margin: 0;">Mis Compras (Historial)</h2>
-              <p style="font-size: 12px; color: var(--muted, #64748b); margin: 2px 0 0 0;">Historial detallado de tickets y comprobantes en CompraLocal San Juan.</p>
-            </div>
-            
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <label for="purchase-expiration-select" style="font-size: 12px; font-weight: 700; color: #64748b;">Retención:</label>
-              <select id="purchase-expiration-select" data-action="change-expiration" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; background: #fff; font-weight: 600;">
-                <option value="3" ${expirationMonths === '3' ? 'selected' : ''}>3 meses</option>
-                <option value="6" ${expirationMonths === '6' ? 'selected' : ''}>6 meses</option>
-                <option value="12" ${expirationMonths === '12' ? 'selected' : ''}>1 año</option>
-                <option value="24" ${expirationMonths === '24' ? 'selected' : ''}>2 años</option>
-                <option value="unlimited" ${expirationMonths === 'unlimited' ? 'selected' : ''}>Sin expiración</option>
-              </select>
-            </div>
+          <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border, #e2e8f0);">
+            <h2 style="font-size: 18px; font-weight: 800; color: var(--text, #0f172a); margin: 0;">Mis Compras (Historial)</h2>
+            <p style="font-size: 12px; color: var(--muted, #64748b); margin: 4px 0 0 0;">Historial detallado de tickets y comprobantes en CompraLocal San Juan.</p>
+          </div>
+
+          <!-- Nota informativa fija sobre la retención de 6 meses -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1rem;">ℹ️</span>
+            <span style="font-size: 12px; color: #166534; font-weight: 600; line-height: 1.4;">
+              El historial muestra únicamente los últimos <strong>6 meses</strong> de todas las compras realizadas en la plataforma antes de su limpieza automática.
+            </span>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -509,6 +500,24 @@
             <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
               <div><strong>Método de pago:</strong> ${esc(purchase.paymentMethod)}</div>
               <div><strong>Dirección de entrega:</strong> ${esc(purchase.shippingAddress)}</div>
+            </div>
+
+            <!-- Módulo de Opiniones y Prestigio Post-Compra -->
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <strong style="font-size: 13px; color: var(--text);">¿Recibiste tu pedido? Compartí tu experiencia</strong>
+                  <span style="font-size: 11px; color: var(--muted); display: block;">Tus opiniones verificadas impulsan el prestigio de los comercios locales.</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" disabled style="background: #fff; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #64748b; cursor: not-allowed; display: inline-flex; align-items: center; gap: 4px;" title="Se habilitará con la conexión de pedidos en Supabase">
+                    ★ Opinar sobre el producto
+                  </button>
+                  <button type="button" disabled style="background: #fff; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #64748b; cursor: not-allowed; display: inline-flex; align-items: center; gap: 4px;" title="Se habilitará con la conexión de pedidos en Supabase">
+                    ★ Valorar atención del comercio
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -704,12 +713,6 @@
     if (window.App && typeof window.App.render === 'function') window.App.render();
   };
 
-  window.Actions['change-expiration'] = (el) => {
-    const val = el.value;
-    window.Store.set({ purchaseExpirationMonths: val, profileToast: `Tiempo de retención del historial actualizado a: ${el.options[el.selectedIndex].text}` });
-    if (window.App && typeof window.App.render === 'function') window.App.render();
-  };
-
   window.Actions['change-profile-department'] = (deptValue) => {
     const currentUser = window.Store.state.user || {};
     const localities = sanJuanDepartments[deptValue] || ['San Juan'];
@@ -732,7 +735,6 @@
     const phoneType = document.getElementById('profile-phone-type').value;
     const phoneNumber = document.getElementById('profile-phone-number').value.trim();
     
-    // Nuevos campos de domicilio detallado
     const street = document.getElementById('profile-street').value.trim();
     const number = document.getElementById('profile-number').value.trim();
     const neighborhood = document.getElementById('profile-neighborhood').value.trim();
@@ -772,3 +774,11 @@
     }
   };
 })();
+
+/* ─── Scroll automático hacia arriba al cambiar de pestaña en el Panel de Cliente ─── */
+document.addEventListener('click', (e) => {
+  const profileTabBtn = e.target.closest('aside button[data-action="set-profile-tab"], button[data-action="view-purchase-detail"], button[data-action="back-to-purchases-history"]');
+  if (profileTabBtn) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});

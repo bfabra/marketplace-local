@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { CuentaShell } from '@/components/layout/cuenta-shell';
 import { MarketStoreCard } from '@/components/catalog/market-store-card';
+import { PRODUCT_NAME } from '@/components/layout/logo';
 
 /**
  * Tiendas favoritas dentro de #profile (maqueta fav-stores).
@@ -37,7 +38,7 @@ export default function MisTiendasPage() {
     <CuentaShell
       user={user}
       titulo="Mis tiendas favoritas"
-      descripcion="Acceso rápido a tus comercios preferidos en CompraLocal."
+      descripcion={`Acceso rápido a tus comercios preferidos en ${PRODUCT_NAME}.`}
     >
       {error ? (
         <EmptyState icono="alert" titulo="No pudimos cargar tus tiendas">

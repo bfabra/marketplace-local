@@ -2,6 +2,15 @@
 
 Instrucciones permanentes para agentes y desarrolladores del monorepo.
 
+## Nombres de marca
+
+| Uso | Valor | Constante |
+|-----|--------|-----------|
+| Producto / copy corto | **CompraLocal** | `PRODUCT_NAME` |
+| Nombre completo / legal | **Tu Comercio Local** | `BRAND_NAME` |
+
+Fuente: `apps/web/src/components/layout/logo.tsx` · maqueta `docs/diseno/AGENTS.md` §1.
+
 ## Identidad visual (obligatoria)
 
 | Token | Valor |

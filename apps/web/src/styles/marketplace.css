@@ -6202,6 +6202,7 @@
 .upload-side > label:first-child {
   margin-bottom: 7px;
   display: block;
+  color: #334155;
   font-size: var(--fs-sm);
   font-weight: 700;
 }
@@ -6375,6 +6376,22 @@
   text-decoration: none;
 }
 
+/* Maqueta: UI.socialButton / .btn.social */
+.ds-btn.social {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.ds-btn.social:hover {
+  background: var(--canvas);
+  text-decoration: none;
+}
+
+.ds-btn.social .icon {
+  color: var(--primary);
+}
+
 .ds-alert {
   margin-bottom: 18px;
   padding: 12px 13px;
@@ -6424,35 +6441,203 @@
 }
 
 .simple-header {
+  width: min(960px, 100%);
+  margin: 0 auto 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  box-sizing: border-box;
+}
+
+/* Misma columna que la tarjeta de abajo (evita el “hueco” en pantallas anchas). */
+.flow-screen > .simple-header {
+  width: min(580px, 100%);
+}
+
+.flow-screen:has(.flow-card.wide) > .simple-header {
+  width: min(860px, 100%);
+}
+
+.centered-screen:has(.cuenta-shell) > .simple-header {
+  width: min(560px, 100%);
 }
 
 .simple-header > span {
   color: #fff;
-  font-size: var(--fs-xs);
+  font-size: 14px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .simple-header > span a {
   color: var(--accent);
   font-weight: 700;
+  text-decoration: underline;
 }
 
 .signup-shell {
-  width: min(720px, 100%);
-  margin: 27px auto 0;
-  padding: 31px 48px 29px;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 40px 48px 36px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 20px;
   background: var(--surface);
   box-shadow: var(--shadow-card);
+  box-sizing: border-box;
 }
 
 .signup-shell .form-heading {
-  max-width: 480px;
-  margin: auto;
+  max-width: 520px;
+  margin: 0 auto 28px;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.signup-form > .split-fields {
+  gap: 20px;
+  margin-bottom: 0;
+}
+
+.signup-shell .form-heading > span {
+  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.signup-shell .form-heading h2 {
+  margin: 8px 0;
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.signup-shell .form-heading p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.signup-caja {
+  margin: 0;
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.signup-caja .ds-caja-cabecera {
+  margin-bottom: 0;
+}
+
+.signup-caja .ds-field,
+.signup-caja .split-fields,
+.signup-caja .signup-tel-grid,
+.signup-caja .signup-dom-calle {
+  margin-bottom: 0;
+}
+
+.signup-caja .ds-field > span {
+  margin-bottom: 4px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.signup-caja .signup-dom-calle .ds-field > span,
+.signup-caja .split-fields .ds-field > span,
+.signup-caja > .ds-field > span {
+  font-size: var(--fs-sm);
+}
+
+.signup-caja .ds-field > div,
+.signup-caja .ds-field select,
+.signup-caja .ds-field textarea {
+  border-color: #cbd5e1;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.signup-tel-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 2fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.signup-dom-calle {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.signup-mapa {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  margin-top: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: crosshair;
+  background: radial-gradient(circle at 50% 50%, #f8fafc 10%, #e2e8f0 90%);
+  user-select: none;
+}
+
+.signup-mapa-guia {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.signup-mapa-guia span {
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.signup-mapa-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  color: var(--accent);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.signup-mapa-pie {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.signup-mapa-pie button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 0;
 }
 
 .form-grid {
@@ -6491,7 +6676,7 @@
   padding: 11px 12px;
   border-radius: 7px;
   background: var(--canvas-deep);
-  color: #65716b;
+  color: #64748b;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -7273,18 +7458,27 @@
     grid-template-columns: 1fr;
   }
 
+  .signup-tel-grid,
+  .signup-dom-calle {
+    grid-template-columns: 1fr;
+  }
+
   .merchant-layout {
     gap: 12px;
   }
 
   .simple-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+  }
+
+  .simple-header > span {
+    font-size: 13px;
   }
 
   .simple-header .official-logo img {
-    width: 190px;
+    width: min(190px, 70vw);
   }
 
   .flow-step {
@@ -7413,10 +7607,34 @@
   padding: 0 12px;
 }
 
-.acceso-google-boton {
-  min-height: 44px;
-  display: flex;
-  justify-content: center;
+.acceso-google-wrap {
+  position: relative;
+  min-height: 46px;
+}
+
+.acceso-google-wrap > .ds-btn.social {
+  pointer-events: none;
+}
+
+/* Botón oficial GIS transparente encima del look de la maqueta. */
+.acceso-google-gis {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.acceso-google-gis > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.acceso-google-gis iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
 }
 
 .acceso-google-nota {
@@ -7511,18 +7729,19 @@
   border-top-color: var(--primary);
 }
 
-/* ════════ TIENDA: TELÉFONOS Y UBICACIÓN (alta de comercio de la maqueta) ════════ */
+/* ════════ CUADROS (teléfono / domicilio / alta comercio · maqueta #signup / #merchant) ════════ */
 .ds-caja {
   min-width: 0;
   margin: 0 0 16px;
-  padding: 16px;
-  border: 1px solid var(--border);
+  padding: 20px;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  background: var(--surface);
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 .ds-caja-cabecera {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7532,17 +7751,33 @@
 
 .ds-caja legend {
   float: left;
+  width: 100%;
   padding: 0;
-  color: var(--text);
-  font-size: var(--fs-sm);
+  color: #0f172a;
+  font-size: var(--fs-base);
   font-weight: 800;
+  line-height: 1.3;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .ds-caja legend .icon {
   color: var(--primary);
+  flex-shrink: 0;
+}
+
+.ds-caja .ds-field > span {
+  color: #334155;
+}
+
+.ds-caja .ds-field > div,
+.ds-caja .ds-field select,
+.ds-caja .ds-field textarea,
+.ds-caja .telefono-fila select,
+.ds-caja .telefono-fila input {
+  border-color: #cbd5e1;
+  background: #fff;
 }
 
 .ds-caja > small {
@@ -7552,7 +7787,7 @@
 }
 
 .ds-caja > small.ds-ayuda {
-  color: var(--muted);
+  color: #64748b;
 }
 
 .ds-caja > small[role='alert'] {
@@ -7566,6 +7801,17 @@
   font-size: var(--fs-2xs);
   font-weight: 700;
   gap: 6px;
+}
+
+.ds-caja .ds-btn.secondary.ds-btn-chico {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.ds-caja .ds-btn.secondary.ds-btn-chico:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .telefonos-tienda ul {
@@ -7599,7 +7845,7 @@
 
 .telefono-fila select {
   padding: 0 6px;
-  background: var(--canvas);
+  background: #fff;
 }
 
 .telefono-fila select:focus,
@@ -7657,7 +7903,7 @@ button.telefono-quitar:hover {
 
 .ubicacion-buscar > p {
   margin: 0 0 10px;
-  color: var(--muted);
+  color: #64748b;
   font-size: var(--fs-xs);
   line-height: 1.5;
 }
@@ -7763,6 +8009,18 @@ button.telefono-quitar:hover {
 .ubicacion-tienda .split-fields .ds-field,
 .ubicacion-tienda .row .field {
   margin-bottom: 12px;
+}
+
+.territorio-tienda {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.territorio-ayuda {
+  margin: 0;
+  font-size: var(--fs-2xs);
+  line-height: 1.4;
 }
 
 .ubicacion-mapa {

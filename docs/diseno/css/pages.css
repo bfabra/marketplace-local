@@ -152,6 +152,30 @@
 .result-summary { margin-bottom: 14px; display: flex; justify-content: space-between; color: var(--muted); font-size: var(--fs-xs); }
 .result-summary strong { color: var(--text); }
 
+/* ════════ DETALLE DE PRODUCTO (ESTILO MERCADOLIBRE) ════════ */
+.product-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.product-main-img-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
 /* ════════ PERFIL DE TIENDA ════════ */
 .profile-cover { height: 280px; overflow: hidden; background: var(--primary-soft); }
 .profile-cover img { width: 100%; height: 100%; object-fit: cover; }
@@ -484,15 +508,59 @@
 }
 
 @media (max-width: 720px) {
-  .market-hero { min-height: 470px; background-position: 62% center; }
+  .market-hero { min-height: 380px; background-position: 62% center; }
   .market-hero-overlay { background: linear-gradient(90deg, rgba(5, 33, 64, 0.94), rgba(9, 48, 95, 0.68)); }
-  .market-hero-content { width: calc(100% - 34px); }
-  .market-hero form { height: auto; padding: 7px 7px 7px 13px; flex-wrap: wrap; }
-  .market-hero form button { width: 100%; }
-  .market-section { padding-top: 40px; }
+  .market-hero-content { width: calc(100% - 24px); padding: 20px 0; }
+  
+  /* Buscador principal del Hero adaptado a móvil para que no sea invasivo */
+  .market-hero form { 
+    height: auto; 
+    min-height: 46px;
+    padding: 6px 6px 6px 12px; 
+    flex-direction: row;
+    gap: 8px;
+  }
+  .market-hero form input { font-size: 13px; }
+  .market-hero form button { width: auto; height: 38px; padding: 0 16px; font-size: 13px; }
+
+  .market-section { padding-top: 32px; }
   .market-section-heading { align-items: flex-start; }
-  .home-category-grid { grid-template-columns: repeat(2, 1fr); }
-  .featured-store-grid, .stores-page-grid, .category-page-grid, .product-grid { grid-template-columns: 1fr; }
+
+  /* Versión móvil: Grilla de rubros del Home exactamente en 2 columnas y 4 filas */
+  .home-category-grid { 
+    display: grid !important; 
+    grid-template-columns: repeat(2, 1fr) !important; 
+    gap: 10px !important;
+    overflow: visible;
+  }
+  .home-category-grid button {
+    min-height: 110px;
+    padding: 14px 8px;
+  }
+
+  /* Versión móvil: Grilla de la página de Rubros (#categories) forzada a 1 sola columna vertical */
+  .category-page-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .category-page-grid > button {
+    width: 100% !important;
+    padding: 16px !important;
+    min-height: auto !important;
+  }
+
+  /* Detalle de producto responsivo en móvil */
+  .product-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+    padding: 16px;
+  }
+  .product-main-img-container {
+    height: 280px !important;
+  }
+
+  .featured-store-grid, .stores-page-grid, .product-grid { grid-template-columns: 1fr; }
   .market-store-card.compact { grid-template-columns: 110px 1fr; }
   .locality-section { padding: 27px 22px; grid-template-columns: 1fr; gap: 24px; }
   .market-page { padding-top: 38px; }
@@ -530,3 +598,155 @@
   .hierarchy-card > div { grid-template-columns: 1fr; gap: 7px; }
 }
 
+/* ============================================================
+   OPTIMIZACIÓN DEL MENÚ DE USUARIO EN MÓVIL (Pestañas horizontales)
+   ============================================================ */
+@media (max-width: 900px) {
+  .market-container, .page-wrapper {
+    width: 100% !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .market-container [style*="grid-template-columns"],
+  .page-wrapper [style*="grid-template-columns"] {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
+
+  .market-container aside:not(.category-page-grid), 
+  .page-wrapper .profile-sidebar,
+  .market-container > div > div:first-child:not(.category-page-grid):has(button[data-action], a[href]) {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    gap: 8px !important;
+    background: var(--surface) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  }
+
+  .market-container aside .vector-avatars-container,
+  .market-container aside > div:has(.vector-avatars) {
+    display: none !important;
+  }
+
+  .market-container aside button, 
+  .market-container aside a {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* ============================================================
+   CORRECCIÓN PARA EL CAMPO DE CONTRASEÑA EN LOGIN (#login)
+   ============================================================ */
+.auth-form-area .field, 
+.auth-form-area .field-wrapper,
+.auth-form-area form .input-group {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.auth-form-area input[type="password"],
+.auth-form-area input[type="text"] {
+  border: 1px solid #cbd5e1 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+.auth-form-area input[type="password"]:focus,
+.auth-form-area input[type="text"]:focus {
+  border-color: var(--primary, #fd6910) !important;
+  box-shadow: 0 0 0 3px rgba(253, 105, 16, 0.15) !important;
+}
+
+/* ============================================================
+   CORRECCIÓN DEFINITIVA PARA LA GRILLA DE RUBROS EN MÓVIL
+   ============================================================ */
+@media (max-width: 720px) {
+  .category-page-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+    overflow-x: visible !important;
+  }
+
+  .category-page-grid > button {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    text-align: left !important;
+  }
+}
+
+/* ============================================================
+   CORRECCIÓN DEFINITIVA DE DESBORDE EN FORMULARIO MÓVIL (CREAR COMERCIO)
+   ============================================================ */
+@media (max-width: 720px) {
+  .flow-screen, 
+  .centered-screen, 
+  .flow-card, 
+  .flow-card.wide,
+  .signup-shell,
+  .store-review {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Forzar diseño de columna única para el layout del comerciante (incluyendo el logo) */
+  .flow-card .merchant-layout,
+  .merchant-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Asegurar ajuste total en campos, selectores, mapas y cajas de logo */
+  .flow-card input,
+  .flow-card select,
+  .flow-card textarea,
+  .flow-card .field,
+  .flow-card .upload-box,
+  .flow-card div[style*="map"],
+  .signup-shell input,
+  .signup-shell select,
+  .signup-shell textarea,
+  input[type="text"], 
+  input[type="number"], 
+  input[type="email"],
+  select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .flow-card > *, 
+  .signup-shell > * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}

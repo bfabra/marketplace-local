@@ -6,7 +6,7 @@
 
   Pages.faq = {
     layout: 'market',
-    title: 'Preguntas Frecuentes — CompraLocal San Juan',
+    title: 'Preguntas Frecuentes — Tu Comercio Local',
 
     render() {
       const faqs = [

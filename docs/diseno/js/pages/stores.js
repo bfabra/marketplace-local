@@ -3,22 +3,32 @@
    ============================================================ */
 (function () {
   const { esc, norm } = window.Utils;
-  const { categories, stores } = window.Data;
+  const { categories } = window.Data;
 
   // Filtros locales de la pantalla (se reinician al entrar)
   const F = { query: '', category: '' };
 
+  function getAllStores() {
+    const merchantStores = window.Store?.state?.merchantStores || [];
+    const staticStores = window.Data?.stores || [];
+    // Combinamos uniendo ambas fuentes y evitando duplicados por ID
+    const map = new Map();
+    [...merchantStores, ...staticStores].forEach(s => map.set(s.id, s));
+    return Array.from(map.values());
+  }
+
   function filtered() {
-    return stores.filter((s) =>
-      (!F.query || norm(s.name + s.description).includes(norm(F.query))) &&
-      (!F.category || s.category === F.category)
-    ).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const allStores = getAllStores();
+    return allStores.filter((s) =>
+      (!F.query || norm((s.name || '') + (s.description || '')).includes(norm(F.query))) &&
+      (!F.category || s.category === F.category || s.rubro === F.category)
+    ).sort((a, b) => (a.name || '').localeCompare((b.name || ''), 'es'));
   }
 
   function results() {
     const list = filtered();
     return `
-      <div class="result-summary"><strong>${list.length} comercios</strong><span>Contenido demostrativo</span></div>
+      <div class="result-summary"><strong>${list.length} comercios</strong><span>Contenido activo</span></div>
       ${list.length
         ? `<div class="stores-page-grid">${list.map((s) => Cards.store(s)).join('')}</div>`
         : Cards.empty('No encontramos comercios', 'No hay coincidencias para los filtros seleccionados. Probá ampliando la búsqueda.', 'clear-stores')}`;
@@ -43,7 +53,7 @@
         </div>
         <div class="store-tools">
           <label class="market-filter-search">${Icon('search', 18)}<input id="stores-query" data-input="stores-query" placeholder="Buscar por nombre de tienda" aria-label="Buscar por nombre de tienda" /></label>
-          <select id="stores-category" data-input="stores-category" aria-label="Rubro"><option value="">Todos los rubros</option>${options(categories.slice(0, -1).map((c) => c.name), F.category)}</select>
+          <select id="stores-category" data-input="stores-category" aria-label="Rubro"><option value="">Todos los rubros</option>${options(categories.map((c) => c.name), F.category)}</select>
         </div>
         <div id="stores-results">${results()}</div>
       </div>`;
