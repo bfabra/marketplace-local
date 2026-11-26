@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
@@ -9,12 +9,11 @@ import { useClickOutside } from '@/hooks/use-click-outside';
 import { formatPrice } from '@/lib/utils';
 import { plural } from '@/lib/visual';
 import { Icon } from '@/components/ui/icon';
-import { SearchBox } from '@/components/search/search-box';
 import { Logo } from './logo';
 import { UserMenu } from './user-menu';
 
+/** Maqueta header.js: solo Tiendas y Rubros (Inicio = logo). */
 const SECCIONES = [
-  { href: '/', label: 'Inicio', activa: (p: string) => p === '/' },
   { href: '/tiendas', label: 'Tiendas', activa: (p: string) => p.startsWith('/tiendas') },
   { href: '/rubros', label: 'Rubros', activa: (p: string) => p.startsWith('/rubros') },
 ];
@@ -145,10 +144,6 @@ export function Header() {
             </Link>
           ))}
         </nav>
-
-        <Suspense fallback={<div className="search market-header-search" />}>
-          <SearchBox className="market-header-search" />
-        </Suspense>
 
         <div className="market-actions">
           {loading ? (

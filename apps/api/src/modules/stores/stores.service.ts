@@ -5,7 +5,7 @@ import { ejecutar, llamar, prisma, withUser } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { conContrato } from '../../common/utils/contrato.js';
-import { borrarImagen, conUrlPerfil, guardarImagen } from '../../common/utils/images.js';
+import { borrarImagen, conUrlPerfil, guardarImagen, urlImagen } from '../../common/utils/images.js';
 import { slugify } from '../../common/utils/slug.js';
 import { CreateStoreInput, UpdateStoreInput } from './stores.schema.js';
 
@@ -30,7 +30,7 @@ async function guardarContacto(
 
 export class StoresService {
   /**
-   * La tienda nace "pendiente" y con el plan gratuito (Starter). La base pone al usuario como
+   * La tienda nace "pendiente" y con el Plan Gratuito. La base pone al usuario como
    * dueño y rechaza una segunda tienda gratis del mismo dueño.
    */
   static async create(userId: string, data: CreateStoreInput) {
@@ -79,6 +79,13 @@ export class StoresService {
     return StoresService.detail(userId, storeId);
   }
 
+  /** Dueño archiva (elimina del panel) una sucursal si le queda otra vigente. */
+  static async archive(userId: string, storeId: string) {
+    await withUser(userId, (tx) =>
+      ejecutar(tx, Prisma.sql`select pkg_tiendas.archivar(${storeId}::uuid)`)
+    );
+  }
+
   static async update(userId: string, storeId: string, data: UpdateStoreInput) {
     const { telefonos, ubicacion, ...datos } = data;
     await withUser(userId, async (tx) => {
@@ -99,9 +106,23 @@ export class StoresService {
     return StoresService.detail(userId, storeId);
   }
 
-  /** Cuántos siguen a la tienda; la base exige que quien pregunta sea de la tienda. */
+  /** Seguidores de la tienda (total + listado); solo miembros. */
   static followers(userId: string, storeId: string) {
     return withUser(userId, (tx) => llamar(tx, Prisma.sql`select pkg_tiendas.seguidores(${storeId}::uuid) as r`));
+  }
+
+  /** Productos de la tienda guardados en favoritos por clientes. */
+  static async favoritedProducts(userId: string, storeId: string) {
+    const r = await withUser(userId, (tx) =>
+      llamar<{
+        total: number;
+        productos: { id: string; nombre: string; slug: string; imagen: string | null; precio: number | null; veces: number }[];
+      }>(tx, Prisma.sql`select pkg_tiendas.productos_en_favoritos(${storeId}::uuid) as r`)
+    );
+    return {
+      total: r.total,
+      productos: r.productos.map((p) => ({ ...p, imagen: p.imagen ? urlImagen(p.imagen) : null })),
+    };
   }
 
   static plans(userId: string, storeId: string) {

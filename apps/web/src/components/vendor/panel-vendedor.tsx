@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { api, type Tienda, type Venta } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { verTelefono } from '@/lib/telefonos';
 import { iniciales } from '@/lib/visual';
 import { recordarTienda } from '@/lib/vendedor';
 import { Alert } from '@/components/ui/alert';
@@ -61,13 +62,6 @@ function seccionActiva(path: string, s: Seccion) {
   return path.startsWith(`${s.href}/`);
 }
 
-function telefonoPrincipal(tienda: Tienda) {
-  const t = tienda.telefonos[0];
-  if (!t) return null;
-  const prefijo = t.tipo === 'fijo' ? '+54' : '+54 9';
-  return `${prefijo} ${t.numero}`;
-}
-
 function Enlace({ s, activa }: { s: Seccion; activa: boolean }) {
   // Maqueta #merchant-panel: ítems solo texto (sin iconos), badge rojo en Pedidos.
   return (
@@ -87,7 +81,11 @@ function HeroTienda({
   tiendas: { id: string; nombre: string }[];
   onCambiar: (id: string) => void;
 }) {
-  const telefono = telefonoPrincipal(tienda);
+  const rubro = tienda.rubro
+    ? `${tienda.rubro.nombre}${tienda.subrubro ? ` · ${tienda.subrubro.nombre}` : ''}`
+    : null;
+  const telefonos = tienda.telefonos.map(verTelefono).filter(Boolean);
+  const direccion = `${tienda.direccion}, ${tienda.localidad.nombre}`;
   return (
     <header className="mp-hero">
       <div className="mp-hero-arriba">
@@ -108,20 +106,9 @@ function HeroTienda({
               </span>
             </div>
             <div className="mp-hero-meta">
-              {tienda.rubro && (
-                <span>
-                  <Icon name="store" size={14} /> {tienda.rubro.nombre}
-                  {tienda.subrubro ? ` · ${tienda.subrubro.nombre}` : ''}
-                </span>
-              )}
-              <span>
-                <Icon name="pin" size={14} /> {tienda.direccion}, {tienda.localidad.nombre}
-              </span>
-              {telefono && (
-                <span>
-                  <Icon name="phone" size={14} /> {telefono}
-                </span>
-              )}
+              {rubro && <span>{rubro}</span>}
+              {telefonos.length > 0 && <span>{telefonos.join(' · ')}</span>}
+              <span>{direccion}</span>
             </div>
           </div>
         </div>

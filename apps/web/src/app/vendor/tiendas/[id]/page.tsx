@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type Direccion, type Tienda } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { verTelefono } from '@/lib/telefonos';
 import { iniciales } from '@/lib/visual';
 import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
 import { PageSkeleton } from '@/components/ui/skeleton';
+import { ModalEditarDatosPersonales } from '@/components/vendor/modal-editar-datos-personales';
 import { ModalRegistrarTienda } from '@/components/vendor/modal-registrar-tienda';
 
 function textoDireccionPersonal(d: Direccion | null) {
@@ -40,7 +42,6 @@ function Paso({ hecho, numero, titulo, children }: { hecho: boolean; numero: num
 }
 
 const nombrePlan = (nombre: string) => (/^plan\b/i.test(nombre) ? nombre : `Plan ${nombre}`);
-const fechaLarga = (f: string) => new Date(f).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 const MENSAJE_APROBACION: Record<string, string> = {
   activa: 'Tu tienda está aprobada y visible para todos.',
@@ -53,7 +54,7 @@ const MENSAJE_APROBACION: Record<string, string> = {
 
 /** Panel #merchant-panel → Perfil Comerciante. */
 export default function StorePanelPage({ params }: { params: { id: string } }) {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const router = useRouter();
   const [tienda, setTienda] = useState<Tienda | null>(null);
   const [fichas, setFichas] = useState<Record<string, Tienda>>({});
@@ -61,8 +62,10 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
   const [modalTiendaAbierto, setModalTiendaAbierto] = useState(false);
+  const [modalPerfilAbierto, setModalPerfilAbierto] = useState(false);
   const [tiendaEditando, setTiendaEditando] = useState<Tienda | null>(null);
   const [abriendoEdicion, setAbriendoEdicion] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState<string | null>(null);
 
   const cargar = useCallback(() => {
     api<Tienda>(`/stores/${params.id}`)
@@ -116,6 +119,33 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
     };
   }, [user?.tiendas, params.id]);
 
+async function eliminarSucursal(id: string, nombre: string) {
+    const vigentes = (user?.tiendas ?? []).filter((t) => t.estado !== 'archivada');
+    if (vigentes.length < 2) return;
+    if (!window.confirm(`¿Eliminar la sucursal "${nombre}"? Dejará de aparecer en tu panel.`)) return;
+    setEliminando(id);
+    setError(null);
+    try {
+      await api(`/stores/${id}`, { method: 'DELETE' });
+      await refresh();
+      if (id === params.id) {
+        const otra = vigentes.find((t) => t.id !== id);
+        router.push(otra ? `/vendor/tiendas/${otra.id}` : '/vendor');
+        return;
+      }
+      setFichas((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'No se pudo eliminar la sucursal');
+    } finally {
+      setEliminando(null);
+    }
+  }
+
+
   async function vincularPrueba() {
     setVinculando(true);
     setError(null);
@@ -144,7 +174,8 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
   const pasosHechos = 1 + Number(!!tienda.plan) + Number(tienda.mercadoPago.vinculada) + Number(activa);
   const rubroTxt = tienda.rubro?.nombre ?? 'Sin rubro';
   const dirTxt = tienda.direccion;
-  const misTiendas = user?.tiendas ?? [];
+  const misTiendas = (user?.tiendas ?? []).filter((t) => t.estado !== 'archivada');
+  const puedeEliminarSucursal = misTiendas.length > 1;
 
   return (
     <div className="mp-perfil">
@@ -156,9 +187,9 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
               Información de contacto del titular responsable de las tiendas.
             </p>
           </div>
-          <Link href="/cuenta" className="mp-btn-editar">
+          <button type="button" className="mp-btn-editar" onClick={() => setModalPerfilAbierto(true)}>
             <Icon name="pencil" size={14} /> Editar datos personales
-          </Link>
+          </button>
         </div>
         <div className="mp-datos-grid">
           <div>
@@ -170,7 +201,7 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
             <strong>{user?.apellido || '—'}</strong>
           </div>
           <div>
-            <span>DNI</span>
+            <span>CUIT / CUIL</span>
             <strong>{user?.dni || '—'}</strong>
           </div>
           <div>
@@ -223,9 +254,12 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
               : actual
                 ? `${dirTxt}, ${tienda.localidad.nombre}`
                 : null;
-            const telefono = ficha?.telefonos?.[0]
-              ? `${ficha.telefonos[0].pais} ${ficha.telefonos[0].numero}`
-              : ficha?.telefono;
+            const telefonosTxt =
+              ficha?.telefonos?.length
+                ? ficha.telefonos.map(verTelefono).join(' · ')
+                : ficha?.telefono
+                  ? `Tel: ${ficha.telefono}`
+                  : null;
             const puedeEditarEsta =
               actual ? puedeEditar || tienda.esDuenio : true;
             const estado = actual ? tienda.estado : t.estado;
@@ -251,16 +285,16 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
                 </div>
                 <div className="mp-tienda-card-meta">
                   {rubro && <span>{rubro}</span>}
+                  {telefonosTxt && <span>{telefonosTxt.startsWith('Tel:') ? telefonosTxt : `Tel: ${telefonosTxt}`}</span>}
                   {direccion && <span>{direccion}</span>}
-                  {telefono && <span>Tel: {telefono}</span>}
                 </div>
                 <div className="mp-tienda-card-acciones">
-                  {/* Maqueta: Editar abre el mismo popup que Registrar */}
+                  {/* Maqueta: Editar abre el mismo popup que Registrar; Eliminar si hay más de una */}
                   {puedeEditarEsta ? (
                     <button
                       type="button"
                       className="mp-tienda-btn"
-                      disabled={abriendoEdicion === t.id}
+                      disabled={abriendoEdicion === t.id || eliminando === t.id}
                       onClick={async () => {
                         const lista = fichas[t.id] ?? (actual ? tienda : null);
                         if (lista) {
@@ -288,6 +322,21 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
                       Editar
                     </span>
                   )}
+                  {(actual ? tienda.esDuenio : t.rol === 'propietario' || fichas[t.id]?.esDuenio) && (
+                    <button
+                      type="button"
+                      className="mp-tienda-btn peligro"
+                      disabled={eliminando === t.id || !puedeEliminarSucursal}
+                      title={
+                        puedeEliminarSucursal
+                          ? 'Eliminar esta sucursal'
+                          : 'Registrá otra sucursal para poder eliminar esta'
+                      }
+                      onClick={() => eliminarSucursal(t.id, nombre)}
+                    >
+                      {eliminando === t.id ? 'Eliminando…' : 'Eliminar'}
+                    </button>
+                  )}
                 </div>
                 <div className="mp-tienda-card-pie">
                   {actual ? (
@@ -308,31 +357,6 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
         </div>
       </section>
 
-      {/* Publicar / carga masiva viven en Mis Productos (maqueta #merchant-panel → products) */}
-      {(puedeEditar || tienda.esDuenio) && (
-        <nav className="mp-anexos" aria-label="Acciones de la tienda">
-          {puedeEditar && (
-            <button
-              type="button"
-              className="mp-anexo-btn"
-              onClick={() => {
-                setTiendaEditando(tienda);
-                setModalTiendaAbierto(true);
-              }}
-            >
-              <Icon name="pencil" size={16} /> Datos de la tienda
-            </button>
-          )}
-          {tienda.esDuenio && (
-            <Link href={`${base}/plan`}>
-              <Icon name="sparkles" size={16} /> Plan
-            </Link>
-          )}
-          <Link href="/vendor">
-            <Icon name="store" size={16} /> Mis tiendas
-          </Link>
-        </nav>
-      )}
 
       {error && <Alert>{error}</Alert>}
       {(tienda.estado === 'suspendida' || tienda.estado === 'archivada') && tienda.motivo_estado && (
@@ -355,7 +379,7 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
           {puedeEditar && (
             <button
               type="button"
-              className="btn btn-accent"
+              className="mp-btn-editar"
               onClick={() => {
                 setTiendaEditando(tienda);
                 setModalTiendaAbierto(true);
@@ -412,49 +436,16 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
         </section>
       )}
 
-      {tienda.esDuenio && (
-        <section className="card">
-          <div className="pt-card-head">
-            <h2>
-              <Icon name="users" size={20} /> Plan y equipo
-            </h2>
-          </div>
-          {tienda.plan ? (
-            <>
-              <p className="pt-uso">
-                <strong>{nombrePlan(tienda.plan.nombre)}</strong>
-              </p>
-              <p className="muted">
-                {tienda.plan.max_empleados === 0
-                  ? 'No incluye empleados. Cambiá de plan para sumar a tu equipo.'
-                  : tienda.plan.max_empleados === null
-                    ? 'Empleados ilimitados.'
-                    : `Hasta ${tienda.plan.max_empleados} empleados.`}
-                {!tienda.plan.es_gratis && tienda.plan.fin_periodo
-                  ? ` Se renueva el ${fechaLarga(tienda.plan.fin_periodo)}.`
-                  : ''}
-              </p>
-            </>
-          ) : (
-            <p className="muted">La tienda no tiene un plan vigente.</p>
-          )}
-          <div className="actions pt-al-pie">
-            <Link href={`${base}/equipo`} className="btn">
-              Administrar equipo
-            </Link>
-            <Link href={`${base}/plan`} className="btn btn-secondary">
-              Cambiar plan
-            </Link>
-          </div>
-        </section>
-      )}
 
-      <p className="mp-atajo-ventas">
-        <Link href={`${base}/ventas`}>
-          Ver mis ventas y métricas <Icon name="arrow-right" size={15} />
-        </Link>
-      </p>
 
+      <ModalEditarDatosPersonales
+        abierto={modalPerfilAbierto}
+        direccion={direccionPersonal}
+        onCerrar={() => setModalPerfilAbierto(false)}
+        onGuardado={(_u, dir) => {
+          setDireccionPersonal(dir);
+        }}
+      />
       <ModalRegistrarTienda
         key={tiendaEditando?.id ?? 'nueva'}
         abierto={modalTiendaAbierto}

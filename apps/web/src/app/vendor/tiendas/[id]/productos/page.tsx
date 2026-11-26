@@ -3,29 +3,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiError, api, type EstadoProducto, type ListadoProductos, type ProductoListado, type Tienda } from '@/lib/api-client';
+import { formatPrice } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
-import { Price } from '@/components/ui/price';
-import { ProductStatus } from '@/components/ui/product-status';
 import { AVISO_REVISION, NotaModeracion, puedeVolverAPublicar } from '@/components/catalog/moderacion-vendedor';
-import { Icon } from '@/components/ui/icon';
 import { ListaScroll } from '@/components/ui/lista-scroll';
 import { PageSkeleton } from '@/components/ui/skeleton';
-import { BarraUso, EncabezadoPanel } from '@/components/vendor/panel-tienda';
+import { EncabezadoPanel } from '@/components/vendor/panel-tienda';
 import { ModalPublicar } from '@/components/vendor/modal-publicar';
 
-const VISTAS: { id: string; label: string; estado: EstadoProducto | null }[] = [
-  { id: 'todos', label: 'Todos', estado: null },
-  { id: 'publicados', label: 'Publicados', estado: 'publicado' },
-  { id: 'borradores', label: 'Borradores', estado: 'borrador' },
-  { id: 'pausados', label: 'Pausados', estado: 'pausado' },
-];
+type VistaModo = 'grid' | 'list';
 
+const ETIQUETA_ESTADO: Partial<Record<EstadoProducto, string>> = {
+  publicado: 'Publicado',
+  borrador: 'Borrador',
+  pausado: 'Pausado',
+};
+
+/** Panel #merchant-panel → Mis Productos (merchant.js renderProductsTab). */
 export default function ProductsPage({ params }: { params: { id: string } }) {
   const base = `/stores/${params.id}/products`;
   const [tienda, setTienda] = useState<Tienda | null>(null);
   const [listado, setListado] = useState<ListadoProductos | null>(null);
-  const [vista, setVista] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [modo, setModo] = useState<VistaModo>('grid');
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -67,8 +67,8 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
     );
 
   function borrar(p: ProductoListado) {
-    if (!window.confirm(`¿Borrar "${p.nombre}"? No se puede deshacer.`)) return;
-    ejecutar(p, () => api(`${base}/${p.id}`, { method: 'DELETE' }), `"${p.nombre}" fue borrado.`);
+    if (!window.confirm(`¿Eliminar "${p.nombre}"? No se puede deshacer.`)) return;
+    ejecutar(p, () => api(`${base}/${p.id}`, { method: 'DELETE' }), `"${p.nombre}" fue eliminado.`);
   }
 
   if (error && !listado) {
@@ -84,19 +84,66 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
   const puedeEditar = tienda.permisos.includes('productos.editar');
   const puedePublicar = tienda.permisos.includes('productos.publicar');
   const { limite, productos } = listado;
-  const actual = VISTAS.find((v) => v.id === vista)!;
   const texto = busqueda.trim().toLowerCase();
-  const visibles = productos.filter(
-    (p) => (!actual.estado || p.estado === actual.estado) && (!texto || p.nombre.toLowerCase().includes(texto))
-  );
+  const visibles = productos.filter((p) => {
+    if (!texto) return true;
+    return (
+      p.nombre.toLowerCase().includes(texto) ||
+      (p.categoria ?? '').toLowerCase().includes(texto) ||
+      p.id.toLowerCase().includes(texto)
+    );
+  });
+  const cupo = `${productos.length}/${limite.max ?? '∞'}`;
+
+  function acciones(p: ProductoListado) {
+    return (
+      <div className="mp-prod-acciones">
+        <Link
+          href={`/vendor/tiendas/${params.id}/productos/${p.id}`}
+          className="mp-prod-btn-editar"
+        >
+          {puedeEditar ? 'Editar' : 'Ver'}
+        </Link>
+        {puedePublicar && p.estado !== 'publicado' && puedeVolverAPublicar(p.motivo_pausa) && (
+          <button
+            type="button"
+            className="mp-prod-btn-editar"
+            disabled={ocupado === p.id}
+            onClick={() => cambiarEstado(p, 'publicado', `"${p.nombre}" está publicado.`)}
+          >
+            {p.motivo_pausa === 'rechazado' ? 'Reenviar' : 'Publicar'}
+          </button>
+        )}
+        {puedePublicar && p.estado === 'publicado' && (
+          <button
+            type="button"
+            className="mp-prod-btn-editar"
+            disabled={ocupado === p.id}
+            onClick={() => cambiarEstado(p, 'pausado', `"${p.nombre}" quedó pausado.`)}
+          >
+            Pausar
+          </button>
+        )}
+        {puedeEditar && (
+          <button
+            type="button"
+            className="mp-prod-btn-eliminar"
+            disabled={ocupado === p.id}
+            onClick={() => borrar(p)}
+          >
+            Eliminar
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <section className="mp-panel">
+    <section className="mp-panel mp-productos">
       <EncabezadoPanel
         tienda={tienda}
-        titulo={`Mis Productos (${limite.publicados}/${limite.max ?? '∞'}) — ${tienda.nombre}`}
-        icono="package"
-        descripcion="Publicá, editá o eliminá el stock exclusivo de esta sucursal."
+        titulo={`Mis Productos (${cupo}) — ${tienda.nombre}`}
+        descripcion="Gestioná, buscá y alterná la vista de tu inventario."
       >
         {puedeEditar && (
           <button type="button" className="mp-btn-crear mp-btn-crear-acento" onClick={() => setModalPublicar(true)}>
@@ -110,27 +157,14 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
         tiendaNombre={tienda.nombre}
         abierto={modalPublicar}
         onCerrar={() => setModalPublicar(false)}
+        onPublicado={cargar}
+        puedePublicar={puedePublicar}
       />
-
-      <div className="mp-uso-plan">
-        <div>
-          <p className="mp-uso-texto">
-            <strong>{limite.publicados}</strong> de {limite.max ?? 'ilimitados'} publicados
-            {limite.plan ? ` · Plan ${limite.plan}` : ''}
-          </p>
-          <BarraUso usado={limite.publicados} maximo={limite.max} label="Uso del límite del plan" />
-        </div>
-        {tienda.esDuenio && limite.max !== null && (
-          <Link href={`/vendor/tiendas/${params.id}/plan`} className="mp-link-navy">
-            Ampliar mi plan →
-          </Link>
-        )}
-      </div>
 
       {tienda.estado !== 'activa' && (
         <Alert kind="info">
-          Tu tienda todavía no está aprobada: podés cargar y publicar productos, pero los clientes los van a ver
-          cuando la tienda esté activa.
+          Tu tienda todavía no está aprobada: podés cargar y publicar productos, pero los clientes los van a ver cuando
+          la tienda esté activa.
         </Alert>
       )}
       {listado.revisionActiva && (
@@ -141,109 +175,126 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
       {error && <Alert>{error}</Alert>}
       {aviso && <Alert kind="success">{aviso}</Alert>}
 
+      <div className="mp-prod-toolbar">
+        <label className="mp-prod-buscar">
+          <span className="mp-prod-buscar-icono" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <span className="sr-only">Buscar producto</span>
+          <input
+            type="search"
+            placeholder="Buscá por nombre, ID / SKU o categoría..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </label>
+        <div className="mp-prod-vista">
+          <span>Vista:</span>
+          <button
+            type="button"
+            className={modo === 'grid' ? 'is-activa' : undefined}
+            aria-pressed={modo === 'grid'}
+            onClick={() => setModo('grid')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Grilla
+          </button>
+          <button
+            type="button"
+            className={modo === 'list' ? 'is-activa' : undefined}
+            aria-pressed={modo === 'list'}
+            onClick={() => setModo('list')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            Lista
+          </button>
+        </div>
+      </div>
+
       {productos.length === 0 ? (
-        <div className="mp-vacio" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-          <p style={{ margin: 0 }}>Sin productos publicados todavía en esta sucursal.</p>
+        <div className="mp-prod-vacio">
+          <p>Sin productos publicados todavía en esta sucursal.</p>
           {puedeEditar && (
             <button type="button" className="mp-btn-crear mp-btn-crear-acento" onClick={() => setModalPublicar(true)}>
               + Publicar Producto / Carga Masiva
             </button>
           )}
         </div>
+      ) : visibles.length === 0 ? (
+        <p className="mp-prod-filtro-vacio">No se encontraron productos con el filtro ingresado.</p>
+      ) : modo === 'grid' ? (
+        <ListaScroll as="ul" className="mp-productos-grid" etiqueta="Productos de la tienda">
+          {visibles.map((p) => (
+            <li key={p.id} className="mp-producto-card">
+              {p.imagen ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.imagen} alt="" />
+              ) : (
+                <div className="mp-producto-sin-foto" aria-hidden="true" />
+              )}
+              <div className="mp-producto-body">
+                <strong>{p.nombre}</strong>
+                <span className="mp-producto-meta">SKU: N/D</span>
+                <span className="mp-producto-meta">
+                  Stock: <b>{p.stock}</b> un.
+                </span>
+                <NotaModeracion motivo={p.motivo_pausa} nota={p.nota_moderacion} />
+                <div className="mp-producto-pie">
+                  <span className="mp-producto-precio">{formatPrice(p.precio_oferta ?? p.precio)}</span>
+                  <span className="mp-producto-badge">{ETIQUETA_ESTADO[p.estado] ?? p.estado}</span>
+                </div>
+                {acciones(p)}
+              </div>
+            </li>
+          ))}
+        </ListaScroll>
       ) : (
-        <>
-          <div className="mp-filtros">
-            <nav className="mp-tabs" aria-label="Filtrar productos">
-              {VISTAS.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  className={vista === v.id ? 'is-activa' : undefined}
-                  aria-pressed={vista === v.id}
-                  onClick={() => setVista(v.id)}
-                >
-                  {v.label}{' '}
-                  <em>{productos.filter((p) => !v.estado || p.estado === v.estado).length}</em>
-                </button>
-              ))}
-            </nav>
-            <label className="mp-buscar">
-              <Icon name="search" size={16} />
-              <span className="sr-only">Buscar producto</span>
-              <input
-                type="search"
-                placeholder="Buscar por nombre…"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-            </label>
-          </div>
-
-          {visibles.length === 0 ? (
-            <p className="mp-vacio">No hay productos que coincidan.</p>
-          ) : (
-            <ListaScroll as="ul" className="mp-productos-grid" etiqueta="Productos de la tienda">
-              {visibles.map((p) => (
-                <li key={p.id} className="mp-producto-card">
-                  {p.imagen ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imagen} alt="" />
-                  ) : (
-                    <div className="mp-producto-sin-foto">
-                      <Icon name="image" size={22} />
-                    </div>
-                  )}
-                  <div className="mp-producto-body">
-                    <strong>{p.nombre}</strong>
-                    <span className="muted">
-                      {p.categoria} · Stock {p.stock}
-                    </span>
-                    <NotaModeracion motivo={p.motivo_pausa} nota={p.nota_moderacion} />
-                    <div className="mp-producto-pie">
-                      <Price precio={p.precio} oferta={p.precio_oferta} desde={p.desde} />
-                      <ProductStatus estado={p.estado} motivo={p.motivo_pausa} />
-                    </div>
-                  </div>
-                  <div className="mp-producto-acciones">
-                    <Link href={`/vendor/tiendas/${params.id}/productos/${p.id}`} className="mp-btn-secundario">
-                      {puedeEditar ? 'Editar' : 'Ver'}
-                    </Link>
-                    {puedePublicar && p.estado !== 'publicado' && puedeVolverAPublicar(p.motivo_pausa) && (
-                      <button
-                        type="button"
-                        className="mp-btn-crear"
-                        disabled={ocupado === p.id}
-                        onClick={() => cambiarEstado(p, 'publicado', `"${p.nombre}" está publicado.`)}
-                      >
-                        {p.motivo_pausa === 'rechazado' ? 'Reenviar' : 'Publicar'}
-                      </button>
-                    )}
-                    {puedePublicar && p.estado === 'publicado' && (
-                      <button
-                        type="button"
-                        className="mp-btn-secundario"
-                        disabled={ocupado === p.id}
-                        onClick={() => cambiarEstado(p, 'pausado', `"${p.nombre}" quedó pausado.`)}
-                      >
-                        Pausar
-                      </button>
-                    )}
-                    {puedeEditar && (
-                      <button
-                        type="button"
-                        className="mp-btn-peligro"
-                        disabled={ocupado === p.id}
-                        onClick={() => borrar(p)}
-                      >
-                        Borrar
-                      </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ListaScroll>
-          )}
-        </>
+        <ListaScroll as="ul" className="mp-productos-lista" etiqueta="Productos de la tienda">
+          {visibles.map((p) => (
+            <li key={p.id} className="mp-producto-fila">
+              <div className="mp-producto-fila-izq">
+                {p.imagen ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.imagen} alt="" />
+                ) : (
+                  <div className="mp-producto-fila-sin-foto" aria-hidden="true" />
+                )}
+                <div>
+                  <strong>{p.nombre}</strong>
+                  <span className="mp-producto-meta">
+                    SKU: N/D · Categoría: {p.categoria || 'N/D'}
+                  </span>
+                  <NotaModeracion motivo={p.motivo_pausa} nota={p.nota_moderacion} />
+                </div>
+              </div>
+              <div className="mp-producto-fila-der">
+                <div className="mp-producto-fila-stock">
+                  <span className="mp-producto-meta">
+                    Stock: <b>{p.stock}</b>
+                  </span>
+                  <strong className="mp-producto-precio">{formatPrice(p.precio_oferta ?? p.precio)}</strong>
+                </div>
+                <span className="mp-producto-badge">{ETIQUETA_ESTADO[p.estado] ?? p.estado}</span>
+                {acciones(p)}
+              </div>
+            </li>
+          ))}
+        </ListaScroll>
       )}
     </section>
   );

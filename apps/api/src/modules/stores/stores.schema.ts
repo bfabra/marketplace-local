@@ -20,20 +20,41 @@ const datosTienda = z.object({
   cuit: z
     .string()
     .trim()
-    .refine(cuitValido, 'El CUIT no es válido (son 11 números, por ejemplo 20-12345678-6)')
+    .refine(cuitValido, 'El último dígito no coincide con el verificador de AFIP. Revisá tu CUIT/CUIL completo')
     .transform(formatearCuit),
   razon_social: textoOpcional(120),
   telefonos: z
     .array(
-      z.object({
-        pais: z.string().trim().regex(/^\+\d{1,4}$/, 'Elegí la característica del país'),
-        numero: z
-          .string()
-          .trim()
-          .max(20, 'Máximo 20 caracteres')
-          .refine((v) => v === '' || (/^[\d ()-]+$/.test(v) && v.replace(/\D/g, '').length >= 6), 'El teléfono no es válido'),
-        tipo: z.enum(['whatsapp', 'celular', 'fijo'], { errorMap: () => ({ message: 'Elegí el tipo de teléfono' }) }),
-      })
+      z
+        .object({
+          pais: z.string().trim().regex(/^\+\d{1,4}$/, 'Elegí la característica del país'),
+          numero: z.string().trim().max(10, 'Máximo 10 dígitos'),
+          tipo: z.enum(['whatsapp', 'celular', 'fijo'], { errorMap: () => ({ message: 'Elegí el tipo de teléfono' }) }),
+        })
+        .superRefine((t, ctx) => {
+          if (t.numero === '') return;
+          const digitos = t.numero.replace(/\D/g, '');
+          if (!/^[\d ()-]+$/.test(t.numero)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Usá solo números', path: ['numero'] });
+            return;
+          }
+          const esAr = t.pais === '+54';
+          if (esAr && digitos.length !== 10) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'En Argentina el número tiene 10 dígitos (área + número, sin 0 ni 15)',
+              path: ['numero'],
+            });
+            return;
+          }
+          if (!esAr && (digitos.length < 6 || digitos.length > 10)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Usá entre 6 y 10 dígitos, sin el código de país',
+              path: ['numero'],
+            });
+          }
+        })
     )
     .max(3, 'Podés cargar hasta 3 teléfonos')
     .transform((lista) => lista.filter((t) => t.numero !== ''))

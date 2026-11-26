@@ -172,7 +172,7 @@ export function UbicacionTienda({
 
       {children}
 
-      {ubicacion && importado ? (
+      {ubicacion ? (
         <div className="ubicacion-mapa">
           <MapaTienda ubicacion={ubicacion} titulo="Ubicación del local en el mapa" />
           <button type="button" className="text-link" onClick={onQuitarUbicacion}>

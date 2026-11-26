@@ -49,7 +49,7 @@ export default function AcercaPage() {
             <ul>
               <li>Publicá catálogo, stock y ofertas en minutos</li>
               <li>Gestioná pedidos vigentes desde el panel</li>
-              <li>Empezá con el plan Starter sin costo de alta</li>
+              <li>Empezá con el Plan Gratuito sin costo de alta</li>
             </ul>
           </section>
         </div>

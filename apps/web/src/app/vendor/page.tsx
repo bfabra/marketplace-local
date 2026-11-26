@@ -10,7 +10,7 @@ import { StoreStatus } from '@/components/ui/store-status';
 import { CuentaNav } from '@/components/layout/cuenta-nav';
 
 const BENEFICIOS: { icono: IconName; titulo: string; texto: string }[] = [
-  { icono: 'sparkles', titulo: 'Gratis para empezar', texto: 'Con el plan Starter, sin costo, publicás hasta 10 productos.' },
+  { icono: 'sparkles', titulo: 'Gratis para empezar', texto: 'Con el Plan Gratuito, sin costo, publicás hasta 3 productos.' },
   { icono: 'card', titulo: 'Cobrás con Mercado Pago', texto: 'El dinero de cada venta llega directo a tu cuenta.' },
   { icono: 'truck', titulo: 'Envío o retiro', texto: 'Tus clientes eligen recibirlo en su casa o pasar por tu local.' },
 ];
@@ -133,7 +133,7 @@ export default function VendorPage() {
           <Link href="/vendor/nueva-tienda" className="mi-tienda-nueva">
             <Icon name="plus" size={22} />
             <strong>Abrir otra tienda</strong>
-            <span className="muted">Empezás con el plan Starter, sin costo.</span>
+            <span className="muted">Empezás con el Plan Gratuito, sin costo.</span>
           </Link>
         </li>
       </ul>

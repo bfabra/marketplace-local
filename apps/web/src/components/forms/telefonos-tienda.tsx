@@ -1,7 +1,15 @@
 'use client';
 
 import type { TelefonoTienda, TipoTelefono } from '@/lib/api-client';
-import { MAX_TELEFONOS, PAISES, TIPOS_TELEFONO, prefijoTelefono, telefonoVacio } from '@/lib/telefonos';
+import {
+  DIGITOS_TELEFONO_AR,
+  MAX_TELEFONOS,
+  PAISES,
+  TIPOS_TELEFONO,
+  prefijoTelefono,
+  soloDigitosTelefono,
+  telefonoVacio,
+} from '@/lib/telefonos';
 import { Icon } from '@/components/ui/icon';
 
 /** Teléfonos de contacto de la tienda (docs/diseno #merchant): país, tipo, nº con prefijo. */
@@ -73,9 +81,9 @@ export function TelefonosTienda({
                     aria-label={`Número del teléfono ${i + 1}`}
                     aria-invalid={!!error}
                     placeholder="Ej. 2644123456"
-                    maxLength={10}
+                    maxLength={DIGITOS_TELEFONO_AR}
                     value={t.numero}
-                    onChange={(e) => cambiar(i, { numero: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    onChange={(e) => cambiar(i, { numero: soloDigitosTelefono(e.target.value) })}
                   />
                 </div>
                 {lista.length > 1 ? (
@@ -101,7 +109,8 @@ export function TelefonosTienda({
         <small role="alert">{errores.telefonos}</small>
       ) : (
         <small className="ds-ayuda">
-          Ingresá solo el código de área y número sin el 0 ni el 15. Podés registrar hasta {MAX_TELEFONOS} teléfonos.
+          En Argentina son {DIGITOS_TELEFONO_AR} dígitos (área + número), sin el 0 ni el 15. Máximo{' '}
+          {MAX_TELEFONOS} teléfonos.
         </small>
       )}
     </fieldset>

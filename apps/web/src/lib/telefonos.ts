@@ -3,6 +3,12 @@ import type { TelefonoTienda, TipoTelefono } from '@/lib/api-client';
 /** Maqueta #merchant: hasta 3 teléfonos de contacto. */
 export const MAX_TELEFONOS = 3;
 
+/**
+ * Dígitos del número nacional argentino (código de área + abonado), sin +54 / 9 / 0 / 15.
+ * ENACOM PFNN: longitud fija de 10; el área (2–4) y el abonado (6–8) varían, la suma no.
+ */
+export const DIGITOS_TELEFONO_AR = 10;
+
 /** Países LATAM (+ códigos habituales) — maqueta #signup. */
 export const PAISES = [
   { codigo: '+54', etiqueta: 'Argentina (+54)' },
@@ -32,8 +38,7 @@ export function armarTelefonoPerfil(pais: string, tipo: TipoTelefono, numero: st
   const digitos = numero.replace(/\D/g, '');
   if (!digitos) return undefined;
   const local = digitos.replace(/^0/, '');
-  if (tipo === 'whatsapp' && pais === '+54') return `+54 9 ${local}`;
-  return `${pais} ${local}`;
+  return `${prefijoTelefono(pais, tipo)} ${local}`;
 }
 
 export const TIPOS_TELEFONO: Record<TipoTelefono, string> = {
@@ -42,10 +47,13 @@ export const TIPOS_TELEFONO: Record<TipoTelefono, string> = {
   fijo: 'Fijo',
 };
 
-/** Prefijo visible en el input (maqueta #merchant / onboarding). */
+/**
+ * Prefijo visible en el input (AR: fijo = +54, celular/WhatsApp = +549).
+ * Maqueta #merchant / onboarding + regla AR.
+ */
 export function prefijoTelefono(pais: string, tipo: TipoTelefono) {
   if (pais === '+54' || pais.includes('+54')) {
-    return tipo === 'fijo' ? '+54' : '+54 9';
+    return tipo === 'fijo' ? '+54' : '+549';
   }
   return pais.startsWith('+') ? pais : `+${pais}`;
 }
@@ -56,15 +64,28 @@ export const telefonoVacio = (tipo: TipoTelefono = 'whatsapp'): TelefonoTienda =
 export const telefonosCargados = (lista: TelefonoTienda[]) =>
   lista.map((t) => ({ ...t, numero: t.numero.trim() })).filter((t) => t.numero);
 
-export const verTelefono = (t: TelefonoTienda) => `${t.pais} ${t.numero}`;
+export const verTelefono = (t: TelefonoTienda) => `${prefijoTelefono(t.pais, t.tipo)} ${t.numero}`;
 
-/** WhatsApp abre el chat; el resto, la llamada. En Argentina WhatsApp usa 54 9 + número sin el 15. */
+/** WhatsApp abre el chat; el resto, la llamada. En Argentina WhatsApp/celular usan 549 + número sin el 15. */
 export function enlaceTelefono(t: TelefonoTienda) {
   const digitos = t.numero.replace(/\D/g, '');
-  const pais = t.pais.replace(/\D/g, '');
-  if (t.tipo !== 'whatsapp') return `tel:+${pais}${digitos.replace(/^0/, '')}`;
   const local = digitos.replace(/^0/, '');
-  return `https://wa.me/${pais}${pais === '54' && !local.startsWith('9') ? `9${local}` : local}`;
+  const pais = t.pais.replace(/\D/g, '');
+  const esArMovil = pais === '54' && t.tipo !== 'fijo';
+  const e164 = esArMovil
+    ? `549${local.replace(/^9/, '')}`
+    : `${pais}${local}`;
+  if (t.tipo === 'whatsapp') return `https://wa.me/${e164}`;
+  return `tel:+${e164}`;
+}
+
+/** Normaliza a solo dígitos y recorta al máximo nacional (10). */
+export function soloDigitosTelefono(valor: string, max = DIGITOS_TELEFONO_AR) {
+  return valor.replace(/\D/g, '').slice(0, max);
+}
+
+function esArgentina(pais: string) {
+  return pais === '+54' || pais.includes('+54');
 }
 
 /** Lo mínimo antes de mandarlo; el API vuelve a validar. Devuelve errores con la ruta del API. */
@@ -72,8 +93,22 @@ export function validarTelefonos(lista: TelefonoTienda[]) {
   const errores: Record<string, string> = {};
   lista.forEach((t, i) => {
     const numero = t.numero.trim();
-    if (numero && (!/^[0-9 ()-]+$/.test(numero) || numero.replace(/\D/g, '').length < 6))
-      errores[`telefonos.${i}.numero`] = 'Usá solo números (mínimo 6), sin el código de país';
+    if (!numero) return;
+    const digitos = numero.replace(/\D/g, '');
+    if (!/^[0-9 ()-]+$/.test(numero)) {
+      errores[`telefonos.${i}.numero`] = 'Usá solo números, sin el código de país';
+      return;
+    }
+    if (esArgentina(t.pais)) {
+      if (digitos.length !== DIGITOS_TELEFONO_AR) {
+        errores[`telefonos.${i}.numero`] =
+          `En Argentina el número tiene ${DIGITOS_TELEFONO_AR} dígitos (código de área + número, sin 0 ni 15)`;
+      }
+      return;
+    }
+    if (digitos.length < 6 || digitos.length > DIGITOS_TELEFONO_AR) {
+      errores[`telefonos.${i}.numero`] = `Usá entre 6 y ${DIGITOS_TELEFONO_AR} dígitos, sin el código de país`;
+    }
   });
   return errores;
 }

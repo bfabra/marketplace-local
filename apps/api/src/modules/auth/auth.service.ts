@@ -7,6 +7,7 @@ import { hashPassword, comparePassword } from '../../common/utils/bcrypt.js';
 import { MENSAJE_CUENTA_BLOQUEADA, olvidarBloqueo } from '../../common/utils/bloqueos.js';
 import { correoDisponible, enviarCorreo } from '../../common/utils/correo.js';
 import { verificarTokenGoogle } from '../../common/utils/google.js';
+import { consumirCodigo2fa, emitirCodigo2fa } from './auth-2fa.js';
 import {
   RegisterInput,
   LoginInput,
@@ -149,8 +150,51 @@ export class AuthService {
     return AuthService.me(userId);
   }
 
-  /** Quien entra solo con Google no tiene contraseña: la crea sin escribir la actual. */
+  /**
+   * Envía un código 2FA de 6 dígitos al correo del usuario para autorizar el cambio de contraseña.
+   * En desarrollo sin SMTP el código aparece en la consola del API.
+   */
+  static async solicitarCodigo2fa(userId: string) {
+    if (!correoDisponible()) {
+      throw new AppError('El envío de códigos 2FA todavía no está habilitado', 503);
+    }
+    const sesion = await AuthService.me(userId);
+    if (!sesion.email) throw new AppError('Tu cuenta no tiene un correo para recibir el código 2FA', 400);
+
+    const { codigo, reintentoEn } = emitirCodigo2fa(userId);
+    if (reintentoEn > 0) {
+      throw new AppError(`Esperá ${reintentoEn}s antes de pedir otro código`, 429);
+    }
+
+    const saludo = sesion.nombre ? `Hola ${sesion.nombre}` : 'Hola';
+    await enviarCorreo({
+      para: sesion.email,
+      asunto: 'Código de seguridad (2FA) — Tu Comercio Local',
+      texto:
+        `${saludo},\n\nTu código de doble autenticación para cambiar la contraseña es: ${codigo}\n` +
+        `Vence en 10 minutos. Si no pediste este código, ignorá este mensaje.\n\nTu Comercio Local`,
+      html:
+        `<p>${saludo},</p>` +
+        `<p>Tu código de doble autenticación para cambiar la contraseña es:</p>` +
+        `<p style="font-size:28px;font-weight:800;letter-spacing:4px;color:#09305f">${codigo}</p>` +
+        `<p>Vence en 10 minutos. Si no pediste este código, ignorá este mensaje.</p>` +
+        `<p>Tu Comercio Local</p>`,
+    });
+
+    return {
+      destino: sesion.email.replace(/(.{2}).+(@.+)/, '$1***$2'),
+      telefono: sesion.telefono
+        ? sesion.telefono.replace(/\d(?=\d{4})/g, '•')
+        : null,
+    };
+  }
+
+  /** Quien entra solo con Google no tiene contraseña: la crea sin escribir la actual. Requiere 2FA. */
   static async changePassword(userId: string, data: ChangePasswordInput) {
+    if (!consumirCodigo2fa(userId, data.codigo2fa)) {
+      throw new AppError('El código de doble autenticación (2FA) es inválido o venció', 400);
+    }
+
     const hash = await llamar<string | null>(
       prisma,
       Prisma.sql`select pkg_auth.hash_actual(${userId}::uuid) as r`

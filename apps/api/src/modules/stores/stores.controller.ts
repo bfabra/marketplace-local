@@ -21,6 +21,15 @@ export class StoresController {
     }
   }
 
+  static async archive(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      await StoresService.archive(req.user!.id, req.params.id);
+      return res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const result = await StoresService.update(req.user!.id, req.params.id, req.body);

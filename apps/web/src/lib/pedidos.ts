@@ -78,17 +78,39 @@ export const ACCION_COMERCIO: Partial<Record<EstadoPedidoTienda, string>> = {
   cancelado: 'Cancelar',
 };
 
+/** Los 3 botones fijos de #merchant-panel → Cambiar Estado del Pedido. */
+export type BotonEstadoMaqueta = 'preparar' | 'listo' | 'entregado';
+
+export function bucketEstadoPedido(estado: EstadoPedidoTienda): BotonEstadoMaqueta | null {
+  if (estado === 'pago_confirmado' || estado === 'en_preparacion') return 'preparar';
+  if (estado === 'listo_para_recoleccion' || estado === 'listo_para_retiro') return 'listo';
+  if (estado === 'entregado') return 'entregado';
+  return null;
+}
+
+/** Estado de API al que apunta cada botón de la maqueta. */
+export function estadoDestinoMaqueta(
+  boton: BotonEstadoMaqueta,
+  modalidad: Modalidad
+): EstadoPedidoTienda {
+  if (boton === 'preparar') return 'en_preparacion';
+  if (boton === 'listo') {
+    return modalidad === 'retiro_en_local' ? 'listo_para_retiro' : 'listo_para_recoleccion';
+  }
+  return 'entregado';
+}
+
 /** Pedidos seed de #merchant-panel (merchant.js → getMerchantOrders). */
 export const esPedidoEjemplo = (id: string) => id.startsWith('ejemplo-');
 
 function accionesEjemplo(estado: EstadoPedidoTienda, modalidad: Modalidad): EstadoPedidoTienda[] {
-  if (estado === 'pago_confirmado') return ['en_preparacion', 'cancelado'];
+  if (estado === 'pago_confirmado') return ['en_preparacion', 'listo_para_recoleccion', 'listo_para_retiro', 'entregado', 'cancelado'];
   if (estado === 'en_preparacion') {
     return modalidad === 'retiro_en_local'
-      ? ['listo_para_retiro', 'cancelado']
-      : ['listo_para_recoleccion', 'cancelado'];
+      ? ['listo_para_retiro', 'entregado', 'cancelado']
+      : ['listo_para_recoleccion', 'entregado', 'cancelado'];
   }
-  if (estado === 'listo_para_retiro') return ['entregado', 'cancelado'];
+  if (estado === 'listo_para_retiro' || estado === 'listo_para_recoleccion') return ['entregado'];
   return [];
 }
 

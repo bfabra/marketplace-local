@@ -55,6 +55,7 @@ router.get(
 );
 router.get('/:id', StoresController.detail);
 router.patch('/:id', validate(updateStoreSchema), StoresController.update);
+router.delete('/:id', StoresController.archive);
 router.post(
   '/:id/imagen/:tipo',
   subirFoto,
@@ -66,6 +67,7 @@ router.delete(
 );
 router.post('/:id/mercadopago/prueba', StoresController.linkTestMercadoPago);
 router.get('/:id/seguidores', responder((req) => StoresService.followers(req.user!.id, req.params.id)));
+router.get('/:id/favoritos', responder((req) => StoresService.favoritedProducts(req.user!.id, req.params.id)));
 router.get('/:id/planes', responder((req) => StoresService.plans(req.user!.id, req.params.id)));
 router.post(
   '/:id/plan',

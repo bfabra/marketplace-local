@@ -253,7 +253,7 @@ export default function NewStorePage() {
             <i>
               <Icon name="check" size={13} />
             </i>
-            Empezás con el plan Starter, sin costo
+            Empezás con el Plan Gratuito, sin costo
           </span>
           <span>
             <i>

@@ -65,6 +65,12 @@ router.post('/logout', AuthController.logout);
 router.get('/me', authenticate, AuthController.me);
 router.patch('/me', authenticate, validate(updateProfileSchema), AuthController.updateProfile);
 router.post(
+  '/password/2fa',
+  authenticate,
+  recoverLimiter,
+  responder((req) => AuthService.solicitarCodigo2fa(req.user!.id))
+);
+router.post(
   '/password',
   authenticate,
   loginLimiter,

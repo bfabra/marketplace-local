@@ -7,27 +7,39 @@ import {
   api,
   type DatosTienda,
   type Localidad,
+  type LugarGoogle,
   type OpcionRubro,
   type TelefonoTienda,
   type Tienda,
   type TipoTelefono,
+  type Ubicacion,
 } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
-import { PAISES, TIPOS_TELEFONO, telefonoVacio, telefonosCargados, validarTelefonos } from '@/lib/telefonos';
+import { useOpciones } from '@/hooks/use-opciones';
+import {
+  DIGITOS_TELEFONO_AR,
+  PAISES,
+  TIPOS_TELEFONO,
+  prefijoTelefono,
+  soloDigitosTelefono,
+  telefonoVacio,
+  telefonosCargados,
+  validarTelefonos,
+} from '@/lib/telefonos';
 import { useFormErrors } from '@/components/forms/use-form-errors';
+import { UbicacionTienda } from '@/components/forms/ubicacion-tienda';
 import { Icon } from '@/components/ui/icon';
 import { ModalPortal } from '@/components/vendor/modal-portal';
+import { cuitValido, formatearCuit, mensajeCuitInvalido } from '@/lib/cuit';
+import {
+  direccionConZona,
+  localidadesDeDepartamento,
+  zonaDesdeDireccion,
+} from '@/lib/san-juan-territorio';
 
 const MAX_LOGO = 5 * 1024 * 1024;
 const TIPOS_LOGO = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_TEL = 3;
-
-function formatearCuit(valor: string) {
-  const d = valor.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d;
-  if (d.length <= 10) return `${d.slice(0, 2)}-${d.slice(2)}`;
-  return `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}`;
-}
 
 type Borrador = {
   nombre: string;
@@ -35,7 +47,9 @@ type Borrador = {
   telefonos: TelefonoTienda[];
   descripcion: string;
   localidad_id: string;
+  zona: string;
   direccion: string;
+  ubicacion: Ubicacion | null;
   rubro_id: string;
   subrubro_id: string;
 };
@@ -46,19 +60,25 @@ const VACIO: Borrador = {
   telefonos: [telefonoVacio()],
   descripcion: '',
   localidad_id: '',
+  zona: '',
   direccion: '',
+  ubicacion: null,
   rubro_id: '',
   subrubro_id: '',
 };
 
 function borradorDesdeTienda(t: Tienda): Borrador {
+  const zona = zonaDesdeDireccion(t.direccion);
+  const villas = localidadesDeDepartamento(t.localidad.nombre);
   return {
     nombre: t.nombre,
     cuit: formatearCuit(t.cuit),
     telefonos: t.telefonos.length ? t.telefonos.map((x) => ({ ...x })) : [telefonoVacio()],
     descripcion: t.descripcion ?? '',
     localidad_id: t.localidad.id,
-    direccion: t.direccion,
+    zona: zona || (villas.includes(t.localidad.nombre) ? t.localidad.nombre : villas[0] ?? ''),
+    direccion: t.direccion.replace(/\s*·\s*Zona:\s*.+$/i, '').trim(),
+    ubicacion: t.ubicacion ?? null,
     rubro_id: t.rubro?.id ?? '',
     subrubro_id: t.subrubro?.id ?? '',
   };
@@ -82,6 +102,7 @@ export function ModalRegistrarTienda({
 }) {
   const router = useRouter();
   const { refresh } = useAuth();
+  const opciones = useOpciones();
   const errors = useFormErrors();
   const [b, setB] = useState<Borrador>(() => (tienda ? borradorDesdeTienda(tienda) : VACIO));
   const [rubros, setRubros] = useState<OpcionRubro[]>([]);
@@ -100,10 +121,15 @@ export function ModalRegistrarTienda({
     .filter((l) => l.provincia === provinciaModal)
     .slice()
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const deptoElegido = localidades.find((l) => l.id === b.localidad_id);
+  const villasZona = localidadesDeDepartamento(deptoElegido?.nombre ?? '');
 
   useEffect(() => {
     if (!abierto) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !creando && onCerrar();
+    // Escape no cierra: un cierre accidental borraría el formulario (solo X / Cancelar).
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') e.stopPropagation();
+    };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -168,14 +194,16 @@ export function ModalRegistrarTienda({
     if (archivo.size > MAX_LOGO) return setErrorLogo('El logo no puede pesar más de 5 MB');
     setErrorLogo(null);
     setLogoUrl(null);
-    setLogo({ archivo, url: URL.createObjectURL(archivo) });
+    setLogo((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return { archivo, url: URL.createObjectURL(archivo) };
+    });
   }
 
   function agregarLogoUrl() {
     const url = window.prompt('Pegá la URL de la imagen del logo:')?.trim();
     if (!url) return;
     try {
-      // Validación básica de URL http(s)
       const u = new URL(url);
       if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('protocolo');
     } catch {
@@ -183,18 +211,87 @@ export function ModalRegistrarTienda({
       return;
     }
     setErrorLogo(null);
-    setLogo(null);
+    setLogo((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return null;
+    });
     setLogoUrl(url);
+  }
+
+  function quitarLogo() {
+    setLogo((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+    setLogoUrl(null);
+    setErrorLogo(null);
+  }
+
+  async function archivoDesdeUrl(url: string): Promise<File> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch');
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) throw new Error('tipo');
+    const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
+    return new File([blob], `logo.${ext}`, { type: blob.type });
+  }
+
+  async function subirLogo(tiendaId: string) {
+    let archivo = logo?.archivo ?? null;
+    if (!archivo && logoUrl && logoUrl !== tienda?.logo) {
+      try {
+        archivo = await archivoDesdeUrl(logoUrl);
+      } catch {
+        throw new ApiError(
+          'No pudimos bajar el logo desde esa URL. Subí el archivo con “Subir Archivo Local”.',
+          400
+        );
+      }
+    }
+    if (!archivo) return null;
+    const cuerpo = new FormData();
+    cuerpo.append('foto', archivo);
+    return api<Tienda>(`/stores/${tiendaId}/imagen/logo`, { method: 'POST', body: cuerpo });
   }
 
   function validarLocal(borrador: Borrador) {
     const err: Record<string, string> = {};
     if (borrador.nombre.trim().length < 3) err.nombre = 'El nombre debe tener al menos 3 caracteres';
-    if (borrador.cuit.replace(/\D/g, '').length !== 11) err.cuit = 'El CUIT son 11 números';
+    if (!cuitValido(borrador.cuit)) err.cuit = mensajeCuitInvalido(borrador.cuit);
+    if (!telefonosCargados(borrador.telefonos).length) {
+      err['telefonos.0.numero'] = 'Agregá al menos un teléfono de contacto';
+    }
     if (!borrador.rubro_id) err.rubro_id = 'Elegí el rubro principal';
-    if (!borrador.localidad_id) err.localidad_id = 'Elegí una localidad';
+    if (!borrador.localidad_id) err.localidad_id = 'Elegí un departamento';
+    const depto = localidades.find((l) => l.id === borrador.localidad_id);
+    const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+    if (villas.length > 0 && !borrador.zona.trim()) err.zona = 'Elegí localidad / villa / zona';
     if (borrador.direccion.trim().length < 5) err.direccion = 'Ingresá la dirección del local';
     return { ...err, ...validarTelefonos(borrador.telefonos) };
+  }
+
+  /** Completa dirección/coords desde Google sin pisar lo ya cargado (salvo la calle). */
+  function importarDesdeMaps(lugar: LugarGoogle) {
+    setB((actual) => {
+      const cargados = telefonosCargados(actual.telefonos);
+      const yaEsta =
+        lugar.telefono &&
+        cargados.some(
+          (t) => t.numero.replace(/\D/g, '') === lugar.telefono!.numero.replace(/\D/g, '')
+        );
+      const depto = localidades.find((l) => l.id === (lugar.localidad?.id ?? actual.localidad_id));
+      const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+      return {
+        ...actual,
+        nombre: actual.nombre.trim() ? actual.nombre : lugar.nombre.slice(0, 80),
+        direccion: lugar.direccion.slice(0, 200),
+        localidad_id: lugar.localidad?.id ?? actual.localidad_id,
+        zona: actual.zona || villas[0] || actual.zona,
+        ubicacion: lugar.ubicacion,
+        telefonos: lugar.telefono && !yaEsta ? [...cargados, lugar.telefono].slice(0, MAX_TEL) : actual.telefonos,
+      };
+    });
+    ['nombre', 'direccion', 'localidad_id', 'zona', 'telefonos'].forEach(errors.dismiss);
   }
 
   async function guardar() {
@@ -211,7 +308,8 @@ export function ModalRegistrarTienda({
       telefonos: telefonosCargados(b.telefonos),
       descripcion: b.descripcion.trim() || undefined,
       localidad_id: b.localidad_id,
-      direccion: b.direccion.trim(),
+      direccion: direccionConZona(b.direccion, b.zona),
+      ubicacion: b.ubicacion,
       rubro_id: b.rubro_id,
       subrubro_id: b.subrubro_id || null,
     };
@@ -222,12 +320,15 @@ export function ModalRegistrarTienda({
       } else {
         guardada = await api<Tienda>('/stores', { method: 'POST', body: datos });
       }
-      if (logo) {
-        const cuerpo = new FormData();
-        cuerpo.append('foto', logo.archivo);
-        guardada = await api<Tienda>(`/stores/${guardada.id}/imagen/logo`, { method: 'POST', body: cuerpo }).catch(
-          () => guardada
-        );
+      if (logo || (logoUrl && logoUrl !== tienda?.logo)) {
+        try {
+          const conLogo = await subirLogo(guardada.id);
+          if (conLogo) guardada = conLogo;
+        } catch (logoErr) {
+          errors.set(logoErr);
+          onGuardado?.(guardada);
+          return;
+        }
       }
       await refresh();
       onGuardado?.(guardada);
@@ -244,13 +345,12 @@ export function ModalRegistrarTienda({
 
   return (
     <ModalPortal>
-    <div className="mp-modal-overlay" role="presentation" onClick={() => !creando && onCerrar()}>
+    <div className="mp-modal-overlay" role="presentation">
       <div
         className="mp-modal mp-modal-tienda"
         role="dialog"
         aria-modal="true"
         aria-labelledby="mp-modal-tienda-titulo"
-        onClick={(e) => e.stopPropagation()}
       >
         <header className="mp-modal-cabecera">
           <h3 id="mp-modal-tienda-titulo">
@@ -287,7 +387,7 @@ export function ModalRegistrarTienda({
               value={b.cuit}
               inputMode="numeric"
               autoComplete="off"
-              placeholder="Ej. 20-38492819-4"
+              placeholder="Ej. 20-12345678-6"
               maxLength={13}
               onChange={(e) => poner('cuit', formatearCuit(e.target.value))}
             />
@@ -333,18 +433,27 @@ export function ModalRegistrarTienda({
                         </option>
                       ))}
                     </select>
-                    <input
-                      type="tel"
-                      value={t.numero}
-                      placeholder="Ej. 2644123456"
-                      maxLength={12}
-                      onChange={(e) =>
-                        poner(
-                          'telefonos',
-                          telefonos.map((x, i) => (i === idx ? { ...x, numero: e.target.value } : x))
-                        )
-                      }
-                    />
+                    <div className="mp-modal-phone-numero">
+                      <span className="mp-modal-phone-prefijo" aria-hidden="true">
+                        {prefijoTelefono(t.pais, t.tipo)}
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={t.numero}
+                        placeholder="Ej. 2644123456"
+                        maxLength={DIGITOS_TELEFONO_AR}
+                        aria-label={`Número del teléfono ${idx + 1}`}
+                        onChange={(e) =>
+                          poner(
+                            'telefonos',
+                            telefonos.map((x, i) =>
+                              i === idx ? { ...x, numero: soloDigitosTelefono(e.target.value) } : x
+                            )
+                          )
+                        }
+                      />
+                    </div>
                     {telefonos.length > 1 ? (
                       <button
                         type="button"
@@ -375,33 +484,44 @@ export function ModalRegistrarTienda({
                 + Agregar otro teléfono (máx. {MAX_TEL})
               </button>
             )}
+            <small className="mp-modal-phone-ayuda">
+              En Argentina son {DIGITOS_TELEFONO_AR} dígitos (área + número), sin el 0 ni el 15.
+            </small>
           </div>
 
           <div className="mp-modal-logo-box">
             <span>Logotipo de la Tienda</span>
             <div className="mp-modal-logo-actions">
-              <label className="mp-modal-logo-file">
+              <label className="mp-modal-logo-file" htmlFor="mp-modal-logo-input">
                 Subir Archivo Local
-                <input type="file" accept="image/*" className="sr-only" onChange={elegirLogo} />
+                <input
+                  id="mp-modal-logo-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="mp-modal-logo-input"
+                  onChange={elegirLogo}
+                />
               </label>
               <button type="button" className="mp-modal-logo-url" onClick={agregarLogoUrl}>
                 Agregar por URL
               </button>
+              {previewLogo && (
+                <button type="button" className="mp-modal-logo-quitar" onClick={quitarLogo}>
+                  Quitar logo
+                </button>
+              )}
             </div>
             {previewLogo && (
               <div className="mp-modal-logo-preview">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={previewLogo} alt="" />
-                <span>Logo cargado correctamente</span>
+                <span>Logo listo para guardar</span>
               </div>
             )}
             {errorLogo && (
               <small className="mp-modal-logo-err" role="alert">
                 {errorLogo}
               </small>
-            )}
-            {logoUrl && !logo && (
-              <small className="mp-modal-logo-hint">La URL se muestra como vista previa; podés subir el archivo luego desde la tienda.</small>
             )}
           </div>
 
@@ -461,7 +581,9 @@ export function ModalRegistrarTienda({
                   setProvinciaModal(e.target.value);
                   if (b.localidad_id) {
                     const ok = localidades.some((l) => l.id === b.localidad_id && l.provincia === e.target.value);
-                    if (!ok) poner('localidad_id', '');
+                    if (!ok) {
+                      setB((actual) => ({ ...actual, localidad_id: '', zona: '' }));
+                    }
                   }
                 }}
               >
@@ -473,8 +595,22 @@ export function ModalRegistrarTienda({
               </select>
             </label>
             <label className={`mp-modal-field${f.localidad_id ? ' is-error' : ''}`}>
-              <span>Departamento *</span>
-              <select value={b.localidad_id} onChange={(e) => poner('localidad_id', e.target.value)}>
+              <span>Departamento en San Juan *</span>
+              <select
+                value={b.localidad_id}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const depto = localidades.find((l) => l.id === id);
+                  const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+                  setB((actual) => ({
+                    ...actual,
+                    localidad_id: id,
+                    zona: villas[0] ?? '',
+                  }));
+                  errors.dismiss('localidad_id');
+                  errors.dismiss('zona');
+                }}
+              >
                 <option value="">
                   {departamentosModal.length ? 'Seleccioná departamento' : 'Cargando…'}
                 </option>
@@ -488,17 +624,51 @@ export function ModalRegistrarTienda({
             </label>
           </div>
 
-          <label className={`mp-modal-field${f.direccion ? ' is-error' : ''}`}>
-            <span>Calle y altura *</span>
-            <input
-              type="text"
-              value={b.direccion}
-              maxLength={200}
-              placeholder="Ej. Av. Libertador 1240 (O)"
-              onChange={(e) => poner('direccion', e.target.value)}
-            />
-            {f.direccion && <small role="alert">{f.direccion}</small>}
+          <label className={`mp-modal-field${f.zona ? ' is-error' : ''}`}>
+            <span>Localidad / Villa / Zona *</span>
+            <select
+              value={b.zona}
+              disabled={!b.localidad_id || villasZona.length === 0}
+              onChange={(e) => poner('zona', e.target.value)}
+            >
+              <option value="">
+                {!b.localidad_id
+                  ? 'Primero elegí el departamento'
+                  : villasZona.length
+                    ? 'Seleccioná localidad'
+                    : 'Sin localidades cargadas'}
+              </option>
+              {villasZona.map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+            {f.zona && <small role="alert">{f.zona}</small>}
           </label>
+
+          <div className="mp-modal-ubicacion">
+            <UbicacionTienda
+              conGoogleMaps={!!opciones?.googleMaps}
+              ubicacion={b.ubicacion}
+              nombre={b.nombre}
+              onImportar={importarDesdeMaps}
+              onUbicacion={(ubicacion) => setB((actual) => ({ ...actual, ubicacion }))}
+              onQuitarUbicacion={() => setB((actual) => ({ ...actual, ubicacion: null }))}
+            >
+              <label className={`mp-modal-field${f.direccion ? ' is-error' : ''}`}>
+                <span>Calle, Altura y Detalles *</span>
+                <input
+                  type="text"
+                  value={b.direccion}
+                  maxLength={200}
+                  placeholder="Ej. Av. Libertador 1240 (O)"
+                  onChange={(e) => poner('direccion', e.target.value)}
+                />
+                {f.direccion && <small role="alert">{f.direccion}</small>}
+              </label>
+            </UbicacionTienda>
+          </div>
         </div>
 
         <footer className="mp-modal-pie">

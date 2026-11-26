@@ -123,11 +123,31 @@ textarea {
 
 .marketplace-shell > main {
   flex: 1;
-  /* Contiene position:fixed de .mp-modal-overlay entre cabecera y pie
-     (como #page-content.page-enter con transform en la maqueta). */
+  /* Contiene el overlay del modal entre cabecera y pie del sitio
+     (como #page-content.page-enter en la maqueta). */
   transform: translateZ(0);
   position: relative;
   z-index: 0;
+  min-height: 0;
+}
+
+/* Modal abierto: shell a la ventana → main tiene altura definida, pie del sitio visible */
+html.mp-modal-abierto,
+html.mp-modal-abierto body {
+  overflow: hidden;
+  height: 100%;
+}
+
+html.mp-modal-abierto .marketplace-shell {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+html.mp-modal-abierto .marketplace-shell > main {
+  overflow: hidden;
 }
 
 .market-main {
@@ -901,7 +921,7 @@ pre {
   margin: 0 auto;
   height: 100%;
   display: grid;
-  grid-template-columns: 250px auto minmax(240px, 1fr) auto;
+  grid-template-columns: 250px 1fr auto;
   align-items: center;
   gap: 24px;
 }
@@ -1248,7 +1268,7 @@ pre {
 
 @media (max-width: 1000px) {
   .market-header .header-inner {
-    grid-template-columns: 115px auto minmax(180px, 1fr) auto;
+    grid-template-columns: 115px 1fr auto;
     gap: 13px;
   }
 
@@ -1317,13 +1337,6 @@ pre {
 
   .market-header nav a {
     min-height: 42px;
-  }
-
-  .market-header-search.search {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    max-width: none;
-    order: 4;
   }
 
   .market-actions {

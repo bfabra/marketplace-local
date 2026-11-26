@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { ApiError, api, type EstadoPedidoTienda, type Tienda, type Venta } from '@/lib/api-client';
 import { formatPrice } from '@/lib/utils';
 import {
-  ACCION_COMERCIO,
-  aplicarEstadoEjemplo,
-  esPedidoEjemplo,
+  bucketEstadoPedido,
+  estadoDestinoMaqueta,
   MODALIDAD,
   MP_BADGE_PEDIDO,
   MP_ESTADO_PEDIDO,
-  pedidosEjemploDeTienda,
   ESTADO_PEDIDO,
+  type BotonEstadoMaqueta,
 } from '@/lib/pedidos';
 import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
@@ -20,6 +19,12 @@ import { PageSkeleton } from '@/components/ui/skeleton';
 import { EncabezadoPanel } from '@/components/vendor/panel-tienda';
 import { usePanelTienda } from '@/components/vendor/panel-vendedor';
 import { ModalPortal } from '@/components/vendor/modal-portal';
+
+const BOTONES_ESTADO: { id: BotonEstadoMaqueta; label: string; clase: string }[] = [
+  { id: 'preparar', label: 'Por preparar', clase: 'is-preparar' },
+  { id: 'listo', label: 'Listo para retirar / enviar', clase: 'is-listo' },
+  { id: 'entregado', label: 'Entregado (Archivar)', clase: 'is-entregado' },
+];
 
 const fecha = (f: string) =>
   new Date(f).toLocaleString('es-AR', {
@@ -39,10 +44,10 @@ function BadgePedido({ estado }: { estado: EstadoPedidoTienda }) {
 export default function StoreOrdersPage({ params }: { params: { id: string } }) {
   const [tienda, setTienda] = useState<Tienda | null>(null);
   const [ventas, setVentas] = useState<Venta[] | null>(null);
-  const [esEjemplo, setEsEjemplo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [ticket, setTicket] = useState<Venta | null>(null);
+  const [archivar, setArchivar] = useState<Venta | null>(null);
   const { recontarPedidos } = usePanelTienda();
 
   const cargar = useCallback(() => {
@@ -50,19 +55,7 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
     api<Tienda>(`/stores/${params.id}`)
       .then(async (t) => {
         setTienda(t);
-        try {
-          const lista = await api<Venta[]>(`/stores/${params.id}/orders`);
-          if (lista.length === 0) {
-            setVentas(pedidosEjemploDeTienda(params.id));
-            setEsEjemplo(true);
-          } else {
-            setVentas(lista);
-            setEsEjemplo(false);
-          }
-        } catch {
-          setVentas(pedidosEjemploDeTienda(params.id));
-          setEsEjemplo(true);
-        }
+        setVentas(await api<Venta[]>(`/stores/${params.id}/orders`));
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Error inesperado'));
   }, [params.id]);
@@ -123,12 +116,6 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
     setOcupado(venta.id);
     setError(null);
     try {
-      if (esEjemplo || esPedidoEjemplo(venta.id)) {
-        setVentas((lista) =>
-          lista?.map((v) => (v.id === venta.id ? aplicarEstadoEjemplo(v, estado, motivo) : v)) ?? null
-        );
-        return;
-      }
       const actualizada = await api<Venta>(`/stores/${params.id}/orders/${venta.id}`, {
         method: 'PATCH',
         body: { estado, motivo },
@@ -139,7 +126,41 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
       setError(e instanceof ApiError ? e.message : 'Error inesperado');
     } finally {
       setOcupado(null);
+      setArchivar(null);
     }
+  }
+
+  function clicEstado(venta: Venta, boton: BotonEstadoMaqueta) {
+    if (bucketEstadoPedido(venta.estado) === boton) return;
+    const destino = estadoDestinoMaqueta(boton, venta.modalidad);
+    if (boton === 'entregado') {
+      setArchivar(venta);
+      return;
+    }
+    if (!venta.acciones.includes(destino)) {
+      setError(
+        boton === 'listo'
+          ? 'Pasá primero el pedido a “Por preparar” y después a listo.'
+          : 'Ese cambio de estado no está disponible todavía para este pedido.'
+      );
+      return;
+    }
+    void cambiar(venta, destino);
+  }
+
+  function confirmarArchivar() {
+    if (!archivar) return;
+    const destino = estadoDestinoMaqueta('entregado', archivar.modalidad);
+    if (!archivar.acciones.includes(destino)) {
+      setError(
+        archivar.modalidad === 'entrega_plataforma'
+          ? 'En envíos a domicilio, la plataforma marca Entregado cuando llega el repartidor.'
+          : 'Marcá el pedido como listo para retirar antes de archivarlo.'
+      );
+      setArchivar(null);
+      return;
+    }
+    void cambiar(archivar, destino);
   }
 
   if (error && !tienda) {
@@ -153,7 +174,6 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
   if (!tienda || !ventas) return <PageSkeleton />;
 
   const vigentes = ventas.filter((v) => v.estado !== 'entregado' && v.estado !== 'cancelado' && v.estado !== 'rechazado');
-  const lista = vigentes.length > 0 ? vigentes : ventas;
 
   return (
     <section className="mp-panel">
@@ -170,23 +190,13 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
         </button>
       </EncabezadoPanel>
 
-      {esEjemplo && (
-        <div className="mp-demo" role="status">
-          <Icon name="info" size={18} />
-          <div>
-            <strong>Pedido de ejemplo</strong>
-            <p>Así se ve un pedido vigente en la plantilla. Las compras reales reemplazan este ejemplo.</p>
-          </div>
-        </div>
-      )}
-
       {error && <Alert>{error}</Alert>}
 
-      {lista.length === 0 ? (
+      {vigentes.length === 0 ? (
         <p className="mp-vacio">No hay pedidos vigentes en este momento para esta sucursal.</p>
       ) : (
         <div className="mp-pedidos">
-          {lista.map((v) => (
+          {vigentes.map((v) => (
             <article key={v.id} className="mp-pedido">
               <div className="mp-pedido-top">
                 <div className="mp-pedido-id">
@@ -218,11 +228,7 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
                   <strong>{MODALIDAD[v.modalidad]}</strong>
                   <span className="mp-pedido-dato">
                     <Icon name="pin" size={12} />
-                    {esEjemplo
-                      ? 'Calle Mendoza 1420 Sur, San Juan'
-                      : v.modalidad === 'retiro_en_local'
-                        ? tienda.direccion
-                        : 'Envío a domicilio'}
+                    {v.modalidad === 'retiro_en_local' ? tienda.direccion : 'Envío a domicilio'}
                   </span>
                 </div>
                 <div>
@@ -241,30 +247,65 @@ export default function StoreOrdersPage({ params }: { params: { id: string } }) 
               )}
 
               <div className="mp-pedido-estados">
-                <span>Cambiar estado del pedido:</span>
+                <span>Cambiar Estado del Pedido:</span>
                 <div className="mp-pedido-acciones">
-                  {v.acciones.length === 0 ? (
-                    <span className="muted">Sin acciones disponibles</span>
-                  ) : (
-                    v.acciones.map((a) => (
+                  {BOTONES_ESTADO.map((b) => {
+                    const activo = bucketEstadoPedido(v.estado) === b.id;
+                    return (
                       <button
-                        key={a}
+                        key={b.id}
                         type="button"
-                        className={`mp-estado-btn${a === 'cancelado' ? ' peligro' : ''}${
-                          a === 'entregado' ? ' ok' : ''
-                        }${a === 'listo_para_recoleccion' || a === 'listo_para_retiro' ? ' listo' : ''}`}
+                        className={`mp-estado-btn ${b.clase}${activo ? ' is-activo' : ''}`}
                         disabled={ocupado === v.id}
-                        onClick={() => cambiar(v, a)}
+                        aria-pressed={activo}
+                        onClick={() => clicEstado(v, b.id)}
                       >
-                        {ACCION_COMERCIO[a] ?? a}
+                        {b.label}
                       </button>
-                    ))
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             </article>
           ))}
         </div>
+      )}
+
+      {archivar && (
+        <ModalPortal>
+          <div className="mp-modal-overlay mp-confirm-archive-overlay" role="presentation">
+            <div
+              className="mp-modal mp-confirm-archive"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mp-archivar-titulo"
+            >
+              <div className="mp-confirm-archive-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h3 id="mp-archivar-titulo">¿Confirmar Entrega y Archivar?</h3>
+              <p>
+                ¿Estás seguro de marcar este pedido como <strong>Entregado</strong>? Al hacerlo, se removerá de los
+                pedidos vigentes y se registrará permanentemente en el <strong>Historial de Ventas</strong>.
+              </p>
+              <div className="mp-confirm-archive-acciones">
+                <button type="button" className="mp-checkout-btn-sec" disabled={ocupado !== null} onClick={() => setArchivar(null)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="mp-confirm-archive-ok"
+                  disabled={ocupado !== null}
+                  onClick={confirmarArchivar}
+                >
+                  {ocupado === archivar.id ? 'Archivando…' : 'Sí, Entregado y Archivar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
       )}
 
       {ticket && tienda && (

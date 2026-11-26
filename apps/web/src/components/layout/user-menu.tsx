@@ -11,28 +11,25 @@ import { panelVendedor } from '@/lib/vendedor';
 import { avatarVisible } from '@/lib/avatar';
 import { fullName } from '@/lib/utils';
 import { iniciales } from '@/lib/visual';
-import { Icon, type IconName } from '@/components/ui/icon';
 
+/** Ítem de menú — maqueta `docs/diseno/js/components/header.js` (solo texto). */
 function Opcion({
   href,
-  icono,
   children,
   className,
 }: {
   href: string;
-  icono: IconName;
   children: string;
   className?: string;
 }) {
   return (
     <Link href={href} className={`dropdown-item${className ? ` ${className}` : ''}`}>
-      <Icon name={icono} size={16} />
       {children}
     </Link>
   );
 }
 
-/** Menú desplegable cliente / comercio, al estilo de la maqueta (docs/diseno). */
+/** Menú desplegable cliente / comercio — solo los ítems de la maqueta #header. */
 export function UserMenu({ user }: { user: Usuario }) {
   const { logout } = useAuth();
   const pathname = usePathname();
@@ -44,10 +41,10 @@ export function UserMenu({ user }: { user: Usuario }) {
   useEffect(cerrar, [pathname, cerrar]);
 
   const nombre = user.nombre ? fullName(user.nombre, user.apellido) : (user.email ?? 'Mi cuenta');
-  const nombreCorto = (user.nombre?.trim().split(/\s+/)[0] || 'Mi cuenta');
+  const nombreCorto = user.nombre?.trim().split(/\s+/)[0] || 'Mi cuenta';
   const tieneTienda = user.tiendas.length > 0;
   const tienda = user.tiendas[0];
-  /** Cabecera del menú: tienda si hay; el chip del header siempre muestra a la persona (maqueta #header). */
+  /** Cabecera: nombre de tienda si hay; el chip del header muestra a la persona. */
   const tituloMenu = tieneTienda ? tienda.nombre : nombre;
   const avatar = avatarVisible(user.id, user.avatar_url);
 
@@ -70,7 +67,6 @@ export function UserMenu({ user }: { user: Usuario }) {
           )}
         </span>
         <span className="hide-mobile">{nombreCorto}</span>
-        <Icon name="grid-dots" size={18} strokeWidth={2.2} className="btn-user-caret" />
       </button>
 
       {abierto && (
@@ -82,7 +78,7 @@ export function UserMenu({ user }: { user: Usuario }) {
 
           {esEquipo(user) && (
             <div className="dropdown-grupo">
-              <Opcion href="/admin" icono="shield" className="dropdown-item-destacado">
+              <Opcion href="/admin" className="dropdown-item-destacado">
                 Panel de administración
               </Opcion>
             </div>
@@ -90,46 +86,21 @@ export function UserMenu({ user }: { user: Usuario }) {
 
           {tieneTienda ? (
             <div className="dropdown-grupo">
-              <Opcion href={panelVendedor(user)} icono="store" className="dropdown-item-destacado">
+              <Opcion href={panelVendedor(user)} className="dropdown-item-destacado">
                 Perfil Comerciante
               </Opcion>
-              <Opcion href={`/vendor/tiendas/${tienda.id}/pedidos`} icono="bag">
-                Pedidos vigentes
-              </Opcion>
-              <Opcion href={`/vendor/tiendas/${tienda.id}/ventas`} icono="chart">
-                Mis ventas y métricas
-              </Opcion>
-              <Opcion href={`/vendor/tiendas/${tienda.id}/productos`} icono="package">
-                Mis productos
-              </Opcion>
-              <Opcion href={`/vendor/tiendas/${tienda.id}/equipo`} icono="users">
-                Roles y empleados
-              </Opcion>
-              <Opcion href={`/vendor/tiendas/${tienda.id}/seguridad`} icono="lock">
-                Seguridad y cuenta
-              </Opcion>
+              <Opcion href={`/vendor/tiendas/${tienda.id}/ventas`}>Mis Ventas</Opcion>
+              <Opcion href={`/vendor/tiendas/${tienda.id}/productos`}>Mis Productos</Opcion>
             </div>
           ) : (
             <>
               <div className="dropdown-grupo">
-                <Opcion href="/cuenta" icono="user" className="dropdown-item-destacado">
+                <Opcion href="/cuenta" className="dropdown-item-destacado">
                   Mi perfil
                 </Opcion>
-                <Opcion href="/mis-tiendas" icono="store">
-                  Tiendas favoritas
-                </Opcion>
-                <Opcion href="/favoritos" icono="heart">
-                  Productos guardados
-                </Opcion>
-                <Opcion href="/mis-compras" icono="bag">
-                  Mis compras
-                </Opcion>
-                <Opcion href="/mis-envios" icono="box">
-                  Mis pedidos
-                </Opcion>
-                <Opcion href="/preguntas" icono="message">
-                  Preguntas
-                </Opcion>
+                <Opcion href="/mis-tiendas">Tiendas favoritas</Opcion>
+                <Opcion href="/favoritos">Productos guardados</Opcion>
+                <Opcion href="/mis-compras">Mis compras</Opcion>
               </div>
               <div className="dropdown-grupo">
                 <Link href="/vendor/nueva-tienda" className="dropdown-item highlight-merchant">
@@ -147,7 +118,6 @@ export function UserMenu({ user }: { user: Usuario }) {
                 void logout();
               }}
             >
-              <Icon name="logout" size={16} />
               Cerrar sesión
             </button>
           </div>

@@ -178,8 +178,8 @@ $$;
 with lista(orden, rubro, subrubros) as (values
   (1, 'Alimentos y bebidas', array['Almacén', 'Carnicería', 'Fiambrería', 'Panadería y pastelería',
       'Verdulería y frutería', 'Bebidas', 'Dietética', 'Productos naturales', 'Comida elaborada / gastronomía']),
-  (2, 'Indumentaria y moda', array['Ropa de mujer', 'Ropa de hombre', 'Ropa infantil', 'Calzado',
-      'Ropa deportiva', 'Lencería', 'Accesorios y bijouterie', 'Bolsos y carteras']),
+  (2, 'Indumentaria y moda', array['Ropa de mujer', 'Ropa de hombre', 'Ropa unisex', 'Ropa infantil',
+      'Calzado', 'Ropa deportiva', 'Lencería', 'Accesorios y bijouterie', 'Bolsos y carteras']),
   (3, 'Hogar y decoración', array['Muebles', 'Decoración', 'Iluminación', 'Cocina', 'Baño',
       'Textiles para el hogar', 'Jardinería', 'Organización y almacenamiento']),
   (4, 'Electrónica y tecnología', array['Celulares', 'Computación', 'Accesorios tecnológicos', 'Audio',
