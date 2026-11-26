@@ -83,7 +83,7 @@ export function TerritorioTienda({
         />
       </div>
       <p className="territorio-ayuda muted">
-        En San Juan el catálogo usa departamentos (Capital, Rawson, Chimbas…). La calle y el mapa precisan la zona.
+        Elegí provincia y departamento. La localidad / villa y el mapa afinan la zona del local.
       </p>
     </div>
   );

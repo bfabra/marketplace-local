@@ -3,14 +3,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ApiError, api, type Tienda } from '@/lib/api-client';
+import { ApiError, api, type Direccion, type Tienda } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
-import { fullName } from '@/lib/utils';
 import { iniciales } from '@/lib/visual';
 import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { ModalRegistrarTienda } from '@/components/vendor/modal-registrar-tienda';
+
+function textoDireccionPersonal(d: Direccion | null) {
+  if (!d) return '—';
+  const piso = d.piso_depto ? `, ${d.piso_depto}` : '';
+  return `${d.calle} ${d.numero}${piso}, ${d.localidad.nombre}`;
+}
 
 const ESTADO_TIENDA: Record<string, string> = {
   pendiente: 'En revisión',
@@ -39,7 +44,8 @@ const fechaLarga = (f: string) => new Date(f).toLocaleDateString('es-AR', { day:
 
 const MENSAJE_APROBACION: Record<string, string> = {
   activa: 'Tu tienda está aprobada y visible para todos.',
-  pendiente: 'Cuando completes los pasos anteriores, el equipo de Tu Comercio Local revisa tus datos y la aprueba.',
+  pendiente:
+    'Tu tienda ya está cargada, pero no es pública todavía. Un superadmin tiene que aprobarla desde el panel de administración.',
   suspendida: 'Tu tienda fue suspendida. Resolvé el motivo indicado y contactá a soporte para reactivarla.',
   vencida: 'La suscripción venció. Renová el plan para volver a mostrar tu tienda.',
   archivada: 'Esta tienda está archivada.',
@@ -51,9 +57,12 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [tienda, setTienda] = useState<Tienda | null>(null);
   const [fichas, setFichas] = useState<Record<string, Tienda>>({});
+  const [direccionPersonal, setDireccionPersonal] = useState<Direccion | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
-  const [modalNuevaTienda, setModalNuevaTienda] = useState(false);
+  const [modalTiendaAbierto, setModalTiendaAbierto] = useState(false);
+  const [tiendaEditando, setTiendaEditando] = useState<Tienda | null>(null);
+  const [abriendoEdicion, setAbriendoEdicion] = useState<string | null>(null);
 
   const cargar = useCallback(() => {
     api<Tienda>(`/stores/${params.id}`)
@@ -67,6 +76,21 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => {
+    let vivo = true;
+    api<Direccion[]>('/addresses')
+      .then((lista) => {
+        if (!vivo) return;
+        setDireccionPersonal(lista.find((d) => d.es_principal) ?? lista[0] ?? null);
+      })
+      .catch(() => {
+        if (vivo) setDireccionPersonal(null);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   // Fichas de las otras sucursales para armar las tarjetas como en la maqueta.
   useEffect(() => {
@@ -150,19 +174,13 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
             <strong>{user?.dni || '—'}</strong>
           </div>
           <div>
-            <span>Correo</span>
-            <strong>{user?.email || '—'}</strong>
+            <span>Dirección Personal</span>
+            <strong>{textoDireccionPersonal(direccionPersonal)}</strong>
           </div>
           <div>
-            <span>Teléfono personal</span>
+            <span>Teléfono Personal</span>
             <strong>{user?.telefono || '—'}</strong>
           </div>
-          {user?.nombre && user?.apellido && (
-            <div>
-              <span>Titular</span>
-              <strong>{fullName(user.nombre, user.apellido)}</strong>
-            </div>
-          )}
         </div>
       </section>
 
@@ -174,8 +192,15 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
               Administrá tus locales, puntos de venta o agregá nuevas sucursales en San Juan.
             </p>
           </div>
-          {/* Maqueta #merchant-panel: abre modal add-store, no navega a onboarding */}
-          <button type="button" className="mp-btn-crear mp-btn-nueva-tienda" onClick={() => setModalNuevaTienda(true)}>
+          {/* Maqueta #merchant-panel: mismo modal add/edit-store */}
+          <button
+            type="button"
+            className="mp-btn-crear mp-btn-nueva-tienda"
+            onClick={() => {
+              setTiendaEditando(null);
+              setModalTiendaAbierto(true);
+            }}
+          >
             + Registrar Nueva Tienda
           </button>
         </div>
@@ -203,10 +228,13 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
               : ficha?.telefono;
             const puedeEditarEsta =
               actual ? puedeEditar || tienda.esDuenio : true;
+            const estado = actual ? tienda.estado : t.estado;
 
             return (
               <article key={t.id} className={`mp-tienda-card${actual ? ' is-actual' : ''}`}>
-                {actual && <span className="mp-tienda-badge">Activa</span>}
+                <span className={`mp-tienda-badge mp-tienda-badge-${estado}`}>
+                  {ESTADO_TIENDA[estado] ?? estado}
+                </span>
                 <div className="mp-tienda-card-top">
                   <span className="mp-tienda-card-logo" aria-hidden="true">
                     {logo ? (
@@ -225,16 +253,36 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
                   {rubro && <span>{rubro}</span>}
                   {direccion && <span>{direccion}</span>}
                   {telefono && <span>Tel: {telefono}</span>}
-                  {!actual && !ficha && (
-                    <span className="muted">{ESTADO_TIENDA[t.estado] ?? t.estado}</span>
-                  )}
                 </div>
                 <div className="mp-tienda-card-acciones">
-                  {/* Maqueta: Editar siempre visible → datos de la sucursal */}
+                  {/* Maqueta: Editar abre el mismo popup que Registrar */}
                   {puedeEditarEsta ? (
-                    <Link href={`/vendor/tiendas/${t.id}/datos`} className="mp-tienda-btn">
-                      Editar
-                    </Link>
+                    <button
+                      type="button"
+                      className="mp-tienda-btn"
+                      disabled={abriendoEdicion === t.id}
+                      onClick={async () => {
+                        const lista = fichas[t.id] ?? (actual ? tienda : null);
+                        if (lista) {
+                          setTiendaEditando(lista);
+                          setModalTiendaAbierto(true);
+                          return;
+                        }
+                        setAbriendoEdicion(t.id);
+                        try {
+                          const f = await api<Tienda>(`/stores/${t.id}`);
+                          setFichas((prev) => ({ ...prev, [f.id]: f }));
+                          setTiendaEditando(f);
+                          setModalTiendaAbierto(true);
+                        } catch (e) {
+                          setError(e instanceof ApiError ? e.message : 'No se pudo abrir la tienda');
+                        } finally {
+                          setAbriendoEdicion(null);
+                        }
+                      }}
+                    >
+                      {abriendoEdicion === t.id ? 'Abriendo…' : 'Editar'}
+                    </button>
                   ) : (
                     <span className="mp-tienda-btn is-disabled" title="Sin permiso para editar esta tienda">
                       Editar
@@ -250,7 +298,7 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
                       className="mp-tienda-btn primaria mp-tienda-seleccionar"
                       onClick={() => router.push(`/vendor/tiendas/${t.id}`)}
                     >
-                      Seleccionar como Activa
+                      Gestionar esta tienda
                     </button>
                   )}
                 </div>
@@ -264,9 +312,16 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
       {(puedeEditar || tienda.esDuenio) && (
         <nav className="mp-anexos" aria-label="Acciones de la tienda">
           {puedeEditar && (
-            <Link href={`${base}/datos`}>
+            <button
+              type="button"
+              className="mp-anexo-btn"
+              onClick={() => {
+                setTiendaEditando(tienda);
+                setModalTiendaAbierto(true);
+              }}
+            >
               <Icon name="pencil" size={16} /> Datos de la tienda
-            </Link>
+            </button>
           )}
           {tienda.esDuenio && (
             <Link href={`${base}/plan`}>
@@ -298,9 +353,16 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
             </p>
           </div>
           {puedeEditar && (
-            <Link href={`${base}/datos`} className="btn btn-accent">
+            <button
+              type="button"
+              className="btn btn-accent"
+              onClick={() => {
+                setTiendaEditando(tienda);
+                setModalTiendaAbierto(true);
+              }}
+            >
               Elegir rubro
-            </Link>
+            </button>
           )}
         </section>
       )}
@@ -393,7 +455,20 @@ export default function StorePanelPage({ params }: { params: { id: string } }) {
         </Link>
       </p>
 
-      <ModalRegistrarTienda abierto={modalNuevaTienda} onCerrar={() => setModalNuevaTienda(false)} />
+      <ModalRegistrarTienda
+        key={tiendaEditando?.id ?? 'nueva'}
+        abierto={modalTiendaAbierto}
+        tienda={tiendaEditando}
+        onCerrar={() => {
+          setModalTiendaAbierto(false);
+          setTiendaEditando(null);
+        }}
+        onGuardado={(guardada) => {
+          setFichas((prev) => ({ ...prev, [guardada.id]: guardada }));
+          if (guardada.id === params.id) setTienda(guardada);
+          cargar();
+        }}
+      />
     </div>
   );
 }

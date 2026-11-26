@@ -60,15 +60,15 @@ Fuente: `css/tokens.css` + `AGENTS.md`.
 | Nombre | ✔ obligatorio | ✔ |
 | CUIT | ✔ | ✔ |
 | Razón social | — | ✔ opcional (**extra en app**) |
-| Teléfonos (país/tipo/nº, máx. 3) | ✔ | ✔ (`TelefonosTienda`) |
+| Teléfonos (país/tipo/nº + prefijo, máx. 3) | ✔ cabecera simétrica + grilla 140/100/1fr | ✔ (`TelefonosTienda`) |
 | Correo comercio | — | ✔ opcional (**extra en app**) |
 | Rubro / subrubro | ✔ / opcional | ✔ |
 | Especialidades | — | ✔ chips (**extra en app**) |
 | Descripción | ✔ (máx. 240) | ✔ (máx. 500) |
-| **Provincia** | ✔ select fijo SJ | Embebida en label de localidad |
+| **Provincia** | ✔ select fijo SJ | ✔ (`TerritorioTienda`) |
 | **Departamento** | ✔ **obligatorio** | ✔ (`TerritorioTienda` → `localidad_id`) |
-| Localidad / villa | ✔ (demo en maqueta) | No hay villas en DB aún; la calle/mapa precisan la zona |
-| Calle y mapa | ✔ mapa demo + import Maps | ✔ + Google si hay API key |
+| Localidad / villa | ✔ (demo en maqueta) | ✔ texto libre → se guarda en `direccion` |
+| Calle y mapa | ✔ mapa demo + import Maps | ✔ mapa soft + Google si hay API key |
 | Logo | ✔ | ✔ |
 
 **Conclusión:** la maqueta pide **más pasos de territorio** (Provincia + Departamento + Localidad). La app pide **más datos comerciales** (razón social, email, especialidades) pero aplana el domicilio a una sola localidad. El modal rápido del panel (`ModalRegistrarTienda`) es aún más corto (sin razón social / email / especialidades / mapa).

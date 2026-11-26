@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiError, api, type PaginaTiendasAdmin, type TableroAdmin, type TiendaAdmin } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { formatPrice } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -111,10 +112,12 @@ function Bloque({ titulo, icon, children }: { titulo: string; icon: IconName; ch
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [tablero, setTablero] = useState<TableroAdmin | null>(null);
   const [tiendasPendientes, setTiendasPendientes] = useState<TiendaAdmin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [aprobando, setAprobando] = useState<string | null>(null);
 
   const cargar = useCallback(() => {
     setCargando(true);
@@ -132,6 +135,20 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(cargar, [cargar]);
+
+  async function aprobarTienda(tienda: TiendaAdmin) {
+    setAprobando(tienda.id);
+    setError(null);
+    try {
+      await api(`/admin/stores/${tienda.id}/estado`, { method: 'PATCH', body: { estado: 'activa' } });
+      toast({ titulo: 'Tienda aprobada', texto: `${tienda.nombre} ya está visible en el sitio.` });
+      cargar();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Error inesperado');
+    } finally {
+      setAprobando(null);
+    }
+  }
 
   if (error && !tablero) return <Alert>{error}</Alert>;
   if (!tablero) return <PageSkeleton />;
@@ -197,12 +214,22 @@ export default function AdminDashboardPage() {
                     <strong>{tienda.nombre}</strong>
                     <span>
                       {tienda.duenio.email ?? 'Sin correo'}
-                      {tienda.mercadoPagoVinculada ? '' : ' · falta Mercado Pago'}
+                      {tienda.mercadoPagoVinculada ? '' : ' · sin Mercado Pago'}
                     </span>
                   </Link>
-                  <Link href={`/admin/tiendas/${tienda.id}`} className="btn btn-secondary">
-                    Revisar
-                  </Link>
+                  <div className="actions">
+                    <Link href={`/admin/tiendas/${tienda.id}`} className="btn btn-secondary">
+                      Revisar
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={aprobando === tienda.id}
+                      onClick={() => aprobarTienda(tienda)}
+                    >
+                      {aprobando === tienda.id ? 'Aprobando…' : 'Aprobar'}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

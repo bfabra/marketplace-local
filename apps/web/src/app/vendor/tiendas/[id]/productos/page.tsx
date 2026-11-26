@@ -94,12 +94,12 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
     <section className="mp-panel">
       <EncabezadoPanel
         tienda={tienda}
-        titulo={`Catálogo de Productos — ${tienda.nombre}`}
+        titulo={`Mis Productos (${limite.publicados}/${limite.max ?? '∞'}) — ${tienda.nombre}`}
         icono="package"
-        descripcion="Publicá artículos exclusivos para esta sucursal."
+        descripcion="Publicá, editá o eliminá el stock exclusivo de esta sucursal."
       >
         {puedeEditar && (
-          <button type="button" className="mp-btn-crear" onClick={() => setModalPublicar(true)}>
+          <button type="button" className="mp-btn-crear mp-btn-crear-acento" onClick={() => setModalPublicar(true)}>
             + Publicar Producto / Carga Masiva
           </button>
         )}
@@ -145,7 +145,7 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
         <div className="mp-vacio" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
           <p style={{ margin: 0 }}>Sin productos publicados todavía en esta sucursal.</p>
           {puedeEditar && (
-            <button type="button" className="mp-btn-crear" onClick={() => setModalPublicar(true)}>
+            <button type="button" className="mp-btn-crear mp-btn-crear-acento" onClick={() => setModalPublicar(true)}>
               + Publicar Producto / Carga Masiva
             </button>
           )}

@@ -42,6 +42,14 @@ export const TIPOS_TELEFONO: Record<TipoTelefono, string> = {
   fijo: 'Fijo',
 };
 
+/** Prefijo visible en el input (maqueta #merchant / onboarding). */
+export function prefijoTelefono(pais: string, tipo: TipoTelefono) {
+  if (pais === '+54' || pais.includes('+54')) {
+    return tipo === 'fijo' ? '+54' : '+54 9';
+  }
+  return pais.startsWith('+') ? pais : `+${pais}`;
+}
+
 export const telefonoVacio = (tipo: TipoTelefono = 'whatsapp'): TelefonoTienda => ({ pais: '+54', numero: '', tipo });
 
 /** Los que tienen número: las filas vacías no se guardan. */

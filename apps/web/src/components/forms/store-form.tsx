@@ -121,6 +121,7 @@ export function StoreForm({ title, submitLabel, sendingLabel, tienda, onSubmit, 
         ubicacion={ubicacion}
         nombre={tienda?.nombre ?? ''}
         onImportar={importar}
+        onUbicacion={setUbicacion}
         onQuitarUbicacion={() => setUbicacion(null)}
       >
         <div className="row">

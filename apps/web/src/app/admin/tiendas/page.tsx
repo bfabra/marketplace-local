@@ -213,14 +213,16 @@ function Tiendas() {
                   <Link href={`/admin/tiendas/${t.id}`} className="btn btn-secondary">
                     Ver ficha
                   </Link>
-                  {t.estado === 'pendiente' &&
-                    (t.mercadoPagoVinculada ? (
+                  {t.estado === 'pendiente' && (
+                    <>
                       <button className="btn" disabled={ocupada === t.id} onClick={() => aprobar(t)}>
-                        Aprobar
+                        {ocupada === t.id ? 'Aprobando…' : 'Aprobar'}
                       </button>
-                    ) : (
-                      <span className="muted">Para aprobarla tiene que vincular Mercado Pago.</span>
-                    ))}
+                      {!t.mercadoPagoVinculada && (
+                        <span className="muted">Sin Mercado Pago: igual podés aprobarla; el dueño tendrá que vincularlo para cobrar.</span>
+                      )}
+                    </>
+                  )}
                 </div>
               </li>
             ))}

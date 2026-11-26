@@ -39,6 +39,7 @@ const VACIO = {
   email: '',
   descripcion: '',
   localidad_id: '',
+  zona: '',
   direccion: '',
   rubro_id: '',
   subrubro_id: '',
@@ -186,6 +187,7 @@ export default function NewStorePage() {
   async function crear() {
     setCreando(true);
     errors.clear();
+    const zona = b.zona.trim();
     const datos: DatosTienda = {
       nombre: b.nombre,
       cuit: b.cuit,
@@ -195,7 +197,7 @@ export default function NewStorePage() {
       email: b.email,
       descripcion: b.descripcion,
       localidad_id: b.localidad_id,
-      direccion: b.direccion,
+      direccion: [b.direccion.trim(), zona ? `Zona: ${zona}` : ''].filter(Boolean).join(' · ').slice(0, 200),
       rubro_id: b.rubro_id,
       subrubro_id: b.subrubro_id || null,
       especialidades: b.especialidades,
@@ -332,7 +334,9 @@ export default function NewStorePage() {
               <Icon name="pin" size={18} />
               <div>
                 <small>{b.ubicacion ? 'UBICACIÓN Y MAPA' : 'UBICACIÓN'}</small>
-                <strong>{localidad ? `${localidad.nombre}, ${localidad.provincia}` : ''}</strong>
+                <strong>
+                  {[b.zona.trim(), localidad ? `${localidad.nombre}, ${localidad.provincia}` : ''].filter(Boolean).join(' · ')}
+                </strong>
                 <span>{b.direccion}</span>
               </div>
             </div>
@@ -366,7 +370,7 @@ export default function NewStorePage() {
   return (
     <Marco ancho>
       <Pasos actual={2} />
-      <div className="form-heading flow-heading">
+      <div className="form-heading centered flow-heading">
         <span>CONFIGURÁ TU TIENDA</span>
         <h2>Creá tu comercio</h2>
         <p>Completá los datos legales, comerciales y de ubicación de tu tienda.</p>
@@ -393,7 +397,7 @@ export default function NewStorePage() {
               value={b.cuit}
               onChange={(e) => poner('cuit', formatearCuit(e.target.value))}
               error={f.cuit}
-              ayuda="Solo números: los guiones se agregan solos."
+              ayuda="Ingresá solo números."
             />
             <CampoDisenio
               label="Razón social (opcional)"
@@ -484,19 +488,27 @@ export default function NewStorePage() {
             </small>
             {f.descripcion && <small role="alert">{f.descripcion}</small>}
           </label>
+          <TerritorioTienda
+            localidades={localidades}
+            localidadId={b.localidad_id}
+            onChange={(v) => poner('localidad_id', v)}
+            error={f.localidad_id}
+          />
+          <CampoDisenio
+            label="Localidad / villa / zona"
+            placeholder="Ej. Villa Krause, Rivadavia"
+            value={b.zona}
+            onChange={(e) => poner('zona', e.target.value)}
+            maxLength={80}
+          />
           <UbicacionTienda
             conGoogleMaps={!!opciones?.googleMaps}
             ubicacion={b.ubicacion}
             nombre={b.nombre}
             onImportar={importar}
+            onUbicacion={(ubicacion) => setB((actual) => ({ ...actual, ubicacion }))}
             onQuitarUbicacion={() => setB((actual) => ({ ...actual, ubicacion: null }))}
           >
-            <TerritorioTienda
-              localidades={localidades}
-              localidadId={b.localidad_id}
-              onChange={(v) => poner('localidad_id', v)}
-              error={f.localidad_id}
-            />
             <CampoDisenio
               label="Calle y altura"
               icono="pin"

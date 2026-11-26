@@ -1,10 +1,10 @@
 'use client';
 
 import type { TelefonoTienda, TipoTelefono } from '@/lib/api-client';
-import { MAX_TELEFONOS, PAISES, TIPOS_TELEFONO, telefonoVacio } from '@/lib/telefonos';
+import { MAX_TELEFONOS, PAISES, TIPOS_TELEFONO, prefijoTelefono, telefonoVacio } from '@/lib/telefonos';
 import { Icon } from '@/components/ui/icon';
 
-/** Teléfonos de contacto de la tienda (docs/diseno, alta de comercio): país, número y tipo. */
+/** Teléfonos de contacto de la tienda (docs/diseno #merchant): país, tipo, nº con prefijo. */
 export function TelefonosTienda({
   valor,
   onChange,
@@ -23,17 +23,20 @@ export function TelefonosTienda({
     <fieldset className="ds-caja telefonos-tienda">
       <div className="ds-caja-cabecera">
         <legend>
-          <Icon name="phone" size={16} /> Teléfonos de contacto
+          <Icon name="phone" size={16} /> Teléfonos de contacto (máx. {MAX_TELEFONOS})
         </legend>
-        {lista.length < MAX_TELEFONOS && (
+        {lista.length < MAX_TELEFONOS ? (
           <button type="button" className="ds-btn secondary ds-btn-chico" onClick={() => onChange([...lista, telefonoVacio('celular')])}>
-            <Icon name="plus" size={14} /> Agregar otro teléfono
+            + Agregar otro teléfono
           </button>
+        ) : (
+          <span className="telefonos-limite">Límite de {MAX_TELEFONOS} teléfonos alcanzado</span>
         )}
       </div>
       <ul>
         {lista.map((t, i) => {
           const error = errores[`telefonos.${i}.numero`] ?? errores[`telefonos.${i}.pais`] ?? errores[`telefonos.${i}.tipo`];
+          const prefijo = prefijoTelefono(t.pais, t.tipo);
           return (
             <li key={i} className={error ? 'error' : undefined}>
               <div className="telefono-fila">
@@ -49,16 +52,6 @@ export function TelefonosTienda({
                     </option>
                   ))}
                 </select>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  aria-label={`Número del teléfono ${i + 1}`}
-                  aria-invalid={!!error}
-                  placeholder="Ej. 264 4123456"
-                  maxLength={20}
-                  value={t.numero}
-                  onChange={(e) => cambiar(i, { numero: e.target.value })}
-                />
                 <select
                   aria-label={`Tipo del teléfono ${i + 1}`}
                   value={t.tipo}
@@ -70,6 +63,21 @@ export function TelefonosTienda({
                     </option>
                   ))}
                 </select>
+                <div className="telefono-numero">
+                  <span className="telefono-prefijo" aria-hidden="true">
+                    {prefijo}
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    aria-label={`Número del teléfono ${i + 1}`}
+                    aria-invalid={!!error}
+                    placeholder="Ej. 2644123456"
+                    maxLength={10}
+                    value={t.numero}
+                    onChange={(e) => cambiar(i, { numero: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  />
+                </div>
                 {lista.length > 1 ? (
                   <button
                     type="button"
@@ -78,10 +86,10 @@ export function TelefonosTienda({
                     title="Quitar"
                     onClick={() => onChange(lista.filter((_, j) => j !== i))}
                   >
-                    <Icon name="trash" size={16} />
+                    Quitar
                   </button>
                 ) : (
-                  <span className="telefono-quitar" aria-hidden="true" />
+                  <span className="telefono-quitar telefono-quitar--hueco" aria-hidden="true" />
                 )}
               </div>
               {error && <small role="alert">{error}</small>}
@@ -93,7 +101,7 @@ export function TelefonosTienda({
         <small role="alert">{errores.telefonos}</small>
       ) : (
         <small className="ds-ayuda">
-          Podés cargar hasta {MAX_TELEFONOS} números para WhatsApp, llamadas o líneas fijas. El primero es el principal.
+          Ingresá solo el código de área y número sin el 0 ni el 15. Podés registrar hasta {MAX_TELEFONOS} teléfonos.
         </small>
       )}
     </fieldset>

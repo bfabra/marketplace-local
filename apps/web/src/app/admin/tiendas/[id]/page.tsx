@@ -140,10 +140,10 @@ export default function AdminStorePage({ params }: { params: { id: string } }) {
             <>
               <button
                 className="btn"
-                disabled={ocupado || !t.mercadoPagoVinculada}
+                disabled={ocupado}
                 onClick={() => cambiarEstado('activa', 'Tienda aprobada')}
               >
-                Aprobar
+                {ocupado ? 'Aprobando…' : 'Aprobar'}
               </button>
               <AccionConMotivo
                 label="Rechazar"
@@ -155,7 +155,9 @@ export default function AdminStorePage({ params }: { params: { id: string } }) {
                 onConfirmar={(motivo) => cambiarEstado('archivada', 'Tienda rechazada', motivo)}
               />
               {!t.mercadoPagoVinculada && (
-                <span className="muted">Para aprobarla, el dueño tiene que vincular Mercado Pago.</span>
+                <span className="muted">
+                  Sin Mercado Pago: podés aprobarla igual; el dueño tendrá que vincularlo para cobrar.
+                </span>
               )}
             </>
           )}

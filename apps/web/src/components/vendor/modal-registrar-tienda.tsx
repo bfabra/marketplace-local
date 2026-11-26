@@ -51,22 +51,47 @@ const VACIO: Borrador = {
   subrubro_id: '',
 };
 
+function borradorDesdeTienda(t: Tienda): Borrador {
+  return {
+    nombre: t.nombre,
+    cuit: formatearCuit(t.cuit),
+    telefonos: t.telefonos.length ? t.telefonos.map((x) => ({ ...x })) : [telefonoVacio()],
+    descripcion: t.descripcion ?? '',
+    localidad_id: t.localidad.id,
+    direccion: t.direccion,
+    rubro_id: t.rubro?.id ?? '',
+    subrubro_id: t.subrubro?.id ?? '',
+  };
+}
+
 /**
- * Modal #merchant-panel → add-store-modal (docs/diseno/js/pages/merchant.js).
- * Alta rápida de sucursal desde el panel; el onboarding completo sigue en /vendor/nueva-tienda.
+ * Modal #merchant-panel → add/edit-store-modal (docs/diseno/js/pages/merchant.js).
+ * Alta o edición rápida de sucursal desde el panel (mismo popup).
  */
-export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
+export function ModalRegistrarTienda({
+  abierto,
+  onCerrar,
+  tienda,
+  onGuardado,
+}: {
+  abierto: boolean;
+  onCerrar: () => void;
+  /** Si viene, el modal edita esa sucursal; si no, registra una nueva. */
+  tienda?: Tienda | null;
+  onGuardado?: (tienda: Tienda) => void;
+}) {
   const router = useRouter();
   const { refresh } = useAuth();
   const errors = useFormErrors();
-  const [b, setB] = useState<Borrador>(VACIO);
+  const [b, setB] = useState<Borrador>(() => (tienda ? borradorDesdeTienda(tienda) : VACIO));
   const [rubros, setRubros] = useState<OpcionRubro[]>([]);
   const [localidades, setLocalidades] = useState<Localidad[]>([]);
   const [logo, setLogo] = useState<{ archivo: File; url: string } | null>(null);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(() => tienda?.logo ?? null);
   const [errorLogo, setErrorLogo] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
-  const [provinciaModal, setProvinciaModal] = useState('San Juan');
+  const [provinciaModal, setProvinciaModal] = useState(tienda?.localidad?.provincia || 'San Juan');
+  const editando = !!tienda;
 
   const provinciasModal = [...new Set(localidades.map((l) => l.provincia))].sort((a, b) =>
     a.localeCompare(b, 'es')
@@ -90,22 +115,32 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
 
   useEffect(() => {
     if (!abierto) return;
-    setB(VACIO);
     setLogo(null);
-    setLogoUrl(null);
     setErrorLogo(null);
-    setProvinciaModal('San Juan');
     errors.clear();
+    if (tienda) {
+      setB(borradorDesdeTienda(tienda));
+      setLogoUrl(tienda.logo);
+      setProvinciaModal(tienda.localidad?.provincia || 'San Juan');
+    } else {
+      setB(VACIO);
+      setLogoUrl(null);
+      setProvinciaModal('San Juan');
+    }
     api<OpcionRubro[]>('/catalog/rubros').then(setRubros).catch(errors.set);
     api<Localidad[]>('/locations/localidades')
       .then((lista) => {
         setLocalidades(lista);
-        const primera = [...new Set(lista.map((l) => l.provincia))].sort((a, b) => a.localeCompare(b, 'es'))[0];
-        if (primera) setProvinciaModal(primera);
+        if (tienda) {
+          setProvinciaModal(tienda.localidad?.provincia || 'San Juan');
+        } else {
+          const primera = [...new Set(lista.map((l) => l.provincia))].sort((a, b) => a.localeCompare(b, 'es'))[0];
+          if (primera) setProvinciaModal(primera);
+        }
       })
       .catch(errors.set);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abierto]);
+  }, [abierto, tienda?.id]);
 
   useEffect(
     () => () => {
@@ -162,7 +197,7 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
     return { ...err, ...validarTelefonos(borrador.telefonos) };
   }
 
-  async function registrar() {
+  async function guardar() {
     errors.clear();
     const encontrados = Object.entries(validarLocal(b)).map(([path, message]) => ({ path, message }));
     if (encontrados.length > 0) {
@@ -181,15 +216,23 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
       subrubro_id: b.subrubro_id || null,
     };
     try {
-      const tienda = await api<Tienda>('/stores', { method: 'POST', body: datos });
+      let guardada: Tienda;
+      if (editando && tienda) {
+        guardada = await api<Tienda>(`/stores/${tienda.id}`, { method: 'PATCH', body: datos });
+      } else {
+        guardada = await api<Tienda>('/stores', { method: 'POST', body: datos });
+      }
       if (logo) {
         const cuerpo = new FormData();
         cuerpo.append('foto', logo.archivo);
-        await api(`/stores/${tienda.id}/imagen/logo`, { method: 'POST', body: cuerpo }).catch(() => null);
+        guardada = await api<Tienda>(`/stores/${guardada.id}/imagen/logo`, { method: 'POST', body: cuerpo }).catch(
+          () => guardada
+        );
       }
       await refresh();
+      onGuardado?.(guardada);
       onCerrar();
-      router.push(`/vendor/tiendas/${tienda.id}`);
+      if (!editando) router.push(`/vendor/tiendas/${guardada.id}`);
     } catch (error) {
       errors.set(error);
     } finally {
@@ -210,7 +253,9 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
         onClick={(e) => e.stopPropagation()}
       >
         <header className="mp-modal-cabecera">
-          <h3 id="mp-modal-tienda-titulo">Registrar Nueva Tienda / Sucursal</h3>
+          <h3 id="mp-modal-tienda-titulo">
+            {editando ? `Editar Sucursal: ${tienda?.nombre ?? ''}` : 'Registrar Nueva Tienda / Sucursal'}
+          </h3>
           <button type="button" className="mp-modal-cerrar" onClick={() => !creando && onCerrar()} aria-label="Cerrar">
             <Icon name="x" size={22} />
           </button>
@@ -460,8 +505,8 @@ export function ModalRegistrarTienda({ abierto, onCerrar }: { abierto: boolean; 
           <button type="button" className="mp-modal-pie-cancelar" onClick={() => !creando && onCerrar()} disabled={creando}>
             Cancelar
           </button>
-          <button type="button" className="mp-modal-pie-primary" onClick={registrar} disabled={creando}>
-            {creando ? 'Registrando…' : 'Registrar Tienda'}
+          <button type="button" className="mp-modal-pie-primary" onClick={guardar} disabled={creando}>
+            {creando ? (editando ? 'Guardando…' : 'Registrando…') : editando ? 'Guardar Cambios' : 'Registrar Tienda'}
           </button>
         </footer>
       </div>

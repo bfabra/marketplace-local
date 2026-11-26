@@ -114,14 +114,19 @@ export default function VentasPage({ params }: { params: { id: string } }) {
           <span>Operaciones (mes actual)</span>
           <strong>{opsMes} ventas</strong>
         </div>
+        <div className="mp-metrica">
+          <span>Prestigio de la tienda</span>
+          <strong className="mp-metrica-prestigio">{esEjemplo ? '4,8 ★' : 'Sin valoraciones aún'}</strong>
+          <em className="mp-metrica-nota">Basado exclusivamente en compras verificadas</em>
+        </div>
         <Link href={`${base}/pedidos`} className="mp-metrica mp-metrica-link">
           <span>Seguidores de tienda</span>
           <strong className="mp-metrica-accent">{seguidores || '—'} usuarios</strong>
           <em>Ver listado →</em>
         </Link>
         <Link href={`${base}/productos`} className="mp-metrica mp-metrica-link">
-          <span>Productos guardados</span>
-          <strong className="mp-metrica-blue">{favoritos} en favoritos</strong>
+          <span>Productos en favoritos</span>
+          <strong className="mp-metrica-blue">{favoritos} guardados</strong>
           <em>Ver favoritos →</em>
         </Link>
       </div>

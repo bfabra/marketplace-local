@@ -3,16 +3,40 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ApiError, api, type Plan, type PlanesTienda, type Tienda } from '@/lib/api-client';
+import { useAuth } from '@/hooks/use-auth';
 import { formatPrice } from '@/lib/utils';
+import { PRODUCT_NAME } from '@/components/layout/logo';
 import { Alert } from '@/components/ui/alert';
-import { Icon } from '@/components/ui/icon';
 import { PageSkeleton } from '@/components/ui/skeleton';
-import { BarraUso, EncabezadoPanel } from '@/components/vendor/panel-tienda';
 
-const limite = (n: number | null, unidad: string) =>
-  n === null ? `${unidad[0].toUpperCase()}${unidad.slice(1)} ilimitados` : `Hasta ${n} ${unidad}`;
+const limiteTxt = (n: number | null, singular: string, plural: string, ilimitado: string) =>
+  n === null ? ilimitado : n === 1 ? `1 ${singular}` : `Hasta ${n} ${plural}`;
 
+function etiquetaVencimiento(plan: Tienda['plan']) {
+  if (!plan || plan.es_gratis || !plan.fin_periodo) return 'Sin vencimiento (plan permanente)';
+  const fin = new Date(plan.fin_periodo).getTime();
+  const dias = Math.ceil((fin - Date.now()) / (1000 * 60 * 60 * 24));
+  return `Vence en ${Math.max(0, dias)} días (vigencia mensual)`;
+}
+
+function colorPrecio(p: Plan, orden: Plan[]) {
+  if (p.es_gratis || p.precio_mensual === 0) return 'mp-plan-precio-gratis';
+  const pagos = orden.filter((x) => x.precio_mensual > 0);
+  const ultimo = pagos[pagos.length - 1];
+  return ultimo && p.id === ultimo.id ? 'mp-plan-precio-pro' : 'mp-plan-precio-std';
+}
+
+function etiquetaCta(p: Plan, orden: Plan[]) {
+  if (p.es_gratis || p.precio_mensual === 0) return `Cambiar a ${p.nombre}`;
+  const pagos = orden.filter((x) => x.precio_mensual > 0);
+  const ultimo = pagos[pagos.length - 1];
+  if (ultimo && p.id === ultimo.id) return `Pasar a ${p.nombre}`;
+  return `Contratar ${p.nombre}`;
+}
+
+/** Panel #merchant-panel → Suscripción y Planes (maqueta merchant.js). */
 export default function PlanPage({ params }: { params: { id: string } }) {
+  const { user } = useAuth();
   const [tienda, setTienda] = useState<Tienda | null>(null);
   const [datos, setDatos] = useState<PlanesTienda | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +68,12 @@ export default function PlanPage({ params }: { params: { id: string } }) {
     ) {
       return;
     }
-    if (plan.precio_mensual > 0 && !window.confirm(`El plan ${plan.nombre} cuesta ${formatPrice(plan.precio_mensual)} por mes. En desarrollo el pago con Mercado Pago se simula aprobado. ¿Continuar?`)) {
+    if (
+      plan.precio_mensual > 0 &&
+      !window.confirm(
+        `El plan ${plan.nombre} cuesta ${formatPrice(plan.precio_mensual)} por mes. En desarrollo el pago con Mercado Pago se simula aprobado. ¿Continuar?`
+      )
+    ) {
       return;
     }
 
@@ -62,6 +91,22 @@ export default function PlanPage({ params }: { params: { id: string } }) {
     }
   }
 
+  function cancelarSuscripcion() {
+    const gratis = datos?.planes.find((p) => p.es_gratis || p.precio_mensual === 0);
+    if (!gratis) {
+      setError('No hay un plan gratuito disponible para bajar.');
+      return;
+    }
+    if (
+      !window.confirm(
+        '¿Cancelar la suscripción y el cobro automático? Tu tienda pasará al plan gratuito.'
+      )
+    ) {
+      return;
+    }
+    void elegir(gratis);
+  }
+
   if (error && !datos) {
     return (
       <div className="stack">
@@ -72,92 +117,147 @@ export default function PlanPage({ params }: { params: { id: string } }) {
   }
   if (!tienda || !datos) return <PageSkeleton />;
 
-  const planActual = datos.planes.find((p) => p.id === datos.actual);
+  const orden = [...datos.planes].sort((a, b) => a.precio_mensual - b.precio_mensual);
+  const planActual = orden.find((p) => p.id === datos.actual) ?? null;
+  const upgrade = orden.find((p) => planActual && p.precio_mensual > planActual.precio_mensual);
+  const tiendasCount = user?.tiendas.length ?? 1;
+  const alDia = planActual && (tienda.plan?.estado === 'activa' || tienda.plan?.estado === 'en_gracia' || planActual.es_gratis);
 
   return (
-    <section className="mp-panel">
-      <EncabezadoPanel
-        tienda={tienda}
-        titulo="Plan de la tienda"
-        icono="sparkles"
-        descripcion="Elegí el plan que mejor acompaña el crecimiento de tu comercio."
-      />
-
-      <section className="mp-uso-plan" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+    <section className="mp-panel mp-suscripcion">
+      <div className="mp-suscripcion-cabecera">
         <div>
-          <p className="mp-uso-texto">
-            <strong>{datos.uso.publicados}</strong> de {planActual?.max_productos ?? 'ilimitados'} productos publicados
-          </p>
-          <BarraUso usado={datos.uso.publicados} maximo={planActual?.max_productos ?? null} label="Productos publicados" />
+          <span className="mp-suscripcion-eyebrow">Estado de tu cuenta</span>
+          <h2>Plan actual: {planActual?.nombre ?? 'Sin plan'}</h2>
+          <span className="mp-suscripcion-vence">{etiquetaVencimiento(tienda.plan)}</span>
         </div>
-        <div>
-          {planActual?.max_empleados === 0 ? (
-            <p className="mp-uso-texto">Tu plan actual no incluye empleados.</p>
-          ) : (
-            <>
-              <p className="mp-uso-texto">
-                <strong>{datos.uso.empleados}</strong> de {planActual?.max_empleados ?? 'ilimitados'} empleados
-              </p>
-              <BarraUso usado={datos.uso.empleados} maximo={planActual?.max_empleados ?? null} label="Empleados" />
-            </>
+        <div className="mp-suscripcion-acciones">
+          {datos.esDuenio && upgrade && (
+            <button
+              type="button"
+              className="mp-btn-upgrade"
+              disabled={ocupado !== null}
+              onClick={() => elegir(upgrade)}
+            >
+              {ocupado === upgrade.id ? 'Cambiando…' : `Pasar a ${upgrade.nombre} (${formatPrice(upgrade.precio_mensual)})`}
+            </button>
           )}
+          <span className={`mp-suscripcion-badge${alDia ? '' : ' is-warn'}`}>
+            {alDia ? 'Activo y al día' : tienda.plan?.estado ?? 'Pendiente'}
+          </span>
         </div>
-      </section>
+      </div>
+
+      <div className="mp-suscripcion-uso">
+        <div>
+          <span>Tiendas registradas</span>
+          <strong>
+            {tiendasCount}{' '}
+            <em>/ {planActual?.es_gratis ? '1' : 'Ilimitadas'}</em>
+          </strong>
+        </div>
+        <div>
+          <span>Productos publicados</span>
+          <strong>
+            {datos.uso.publicados}{' '}
+            <em>/ {planActual?.max_productos == null ? 'Ilimitados' : planActual.max_productos}</em>
+          </strong>
+        </div>
+        <div>
+          <span>Empleados activos</span>
+          <strong>
+            {datos.uso.empleados}{' '}
+            <em>
+              /{' '}
+              {planActual?.max_empleados == null
+                ? 'Ilimitados'
+                : planActual.max_empleados === 0
+                  ? 'Sin cupo'
+                  : planActual.max_empleados}
+            </em>
+          </strong>
+        </div>
+      </div>
 
       {error && <Alert>{error}</Alert>}
       {aviso && <Alert kind="success">{aviso}</Alert>}
       {!datos.esDuenio && <Alert kind="info">Solo el dueño de la tienda puede cambiar el plan.</Alert>}
 
-      <section className="pt-planes">
-        {datos.planes.map((p) => {
+      <h3 className="mp-suscripcion-titulo-planes">
+        Planes disponibles en {PRODUCT_NAME} (vigencia mensual)
+      </h3>
+
+      <div className="mp-planes-grid">
+        {orden.map((p) => {
           const actual = p.id === datos.actual;
+          const ctaCls =
+            p.es_gratis || p.precio_mensual === 0
+              ? 'mp-plan-cta-sec'
+              : colorPrecio(p, orden) === 'mp-plan-precio-pro'
+                ? 'mp-plan-cta-navy'
+                : 'mp-plan-cta-accent';
           return (
-            <div key={p.id} className={`card pt-plan${actual ? ' pt-plan-actual' : ''}`}>
-              {actual && <span className="pt-plan-cinta">Tu plan actual</span>}
-              <h2>{p.nombre}</h2>
-              <p className="pt-plan-precio">
-                {p.precio_mensual > 0 ? (
-                  <>
-                    <strong>{formatPrice(p.precio_mensual)}</strong> <span>/ mes</span>
-                  </>
-                ) : (
-                  <>
-                    <strong>Gratis</strong> <span>sin costo mensual</span>
-                  </>
-                )}
-              </p>
-              <ul className="pt-plan-beneficios">
-                <li>
-                  <Icon name="package" size={18} /> {limite(p.max_productos, 'productos publicados')}
-                </li>
-                <li className={p.max_empleados === 0 ? 'pt-plan-no' : undefined}>
-                  <Icon name="users" size={18} /> {p.max_empleados === 0 ? 'Sin empleados' : limite(p.max_empleados, 'empleados')}
-                </li>
-                <li>
-                  <Icon name="card" size={18} /> Cobros con Mercado Pago
-                </li>
-              </ul>
-              <div className="pt-al-pie">
+            <article key={p.id} className={`mp-plan-card${actual ? ' is-actual' : ''}`}>
+              <div>
+                <h4>{p.nombre}</h4>
+                <p className={`mp-plan-precio ${colorPrecio(p, orden)}`}>
+                  {p.precio_mensual > 0 ? (
+                    <>
+                      {formatPrice(p.precio_mensual)} <span>/ mes</span>
+                    </>
+                  ) : (
+                    <>
+                      $0 <span>/ permanente</span>
+                    </>
+                  )}
+                </p>
+                <ul>
+                  <li>
+                    {p.es_gratis || p.precio_mensual === 0
+                      ? '1 tienda en San Juan'
+                      : 'Tiendas ilimitadas'}
+                  </li>
+                  <li>{limiteTxt(p.max_productos, 'producto publicado', 'productos publicados', 'Carga ilimitada de productos')}</li>
+                  <li>
+                    {p.max_empleados === 0
+                      ? 'Sin empleados'
+                      : limiteTxt(p.max_empleados, 'empleado', 'empleados', 'Empleados ilimitados')}
+                  </li>
+                  <li>{p.precio_mensual > 0 ? 'Prioridad en listados y soporte' : 'Soporte estándar'}</li>
+                </ul>
+              </div>
+              <div>
                 {actual ? (
-                  <span className="btn btn-block pt-plan-elegido">
-                    <Icon name="shield" size={18} /> Plan vigente
-                  </span>
+                  <span className="mp-plan-actual-label">Tu plan actual</span>
                 ) : (
                   datos.esDuenio && (
                     <button
-                      className={`btn btn-block${p.precio_mensual > (planActual?.precio_mensual ?? 0) ? ' btn-accent' : ' btn-secondary'}`}
+                      type="button"
+                      className={ctaCls}
                       disabled={ocupado !== null}
                       onClick={() => elegir(p)}
                     >
-                      {ocupado === p.id ? 'Cambiando…' : `Elegir ${p.nombre}`}
+                      {ocupado === p.id ? 'Cambiando…' : etiquetaCta(p, orden)}
                     </button>
                   )
                 )}
               </div>
-            </div>
+            </article>
           );
         })}
-      </section>
+      </div>
+
+      {planActual && !planActual.es_gratis && planActual.precio_mensual > 0 && datos.esDuenio && (
+        <div className="mp-suscripcion-cancelar">
+          <div>
+            <strong>Gestión de renovación automática</strong>
+            <span>Podés dar de baja el cobro automático de tu pasarela en cualquier momento.</span>
+          </div>
+          <button type="button" className="mp-btn-cancelar-plan" disabled={ocupado !== null} onClick={cancelarSuscripcion}>
+            Cancelar suscripción y cobro automático
+          </button>
+        </div>
+      )}
     </section>
   );
 }

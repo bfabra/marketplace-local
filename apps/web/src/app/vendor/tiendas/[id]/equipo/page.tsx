@@ -144,7 +144,7 @@ export default function TeamPage({ params }: { params: { id: string } }) {
         tienda={tienda}
         titulo={`Roles y Empleados — ${tienda.nombre}`}
         icono="users"
-        descripcion="Invitá colaboradores por correo y asigná múltiples roles de gestión."
+        descripcion="Invitá colaboradores por correo y asigná roles de gestión para esta sucursal."
       >
         <Link href={`/vendor/tiendas/${params.id}/plan`} className="mp-btn-secundario">
           <Icon name="sparkles" size={14} /> Cambiar plan

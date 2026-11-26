@@ -31,21 +31,23 @@ interface Seccion {
 const tiendaDeRuta = (path: string) => path.match(/^\/vendor\/tiendas\/([^/]+)/)?.[1] ?? null;
 
 const ESTADO_HERO: Record<string, string> = {
-  pendiente: 'En revisión',
-  activa: 'Tienda Activa',
+  pendiente: 'Pendiente de aprobación',
+  activa: 'Tienda activa',
   suspendida: 'Suspendida',
   vencida: 'Vencida',
   archivada: 'Archivada',
 };
 
-/** Las 6 pestañas de #merchant-panel (siempre visibles, como en la maqueta). */
+/** Pestañas de #merchant-panel (orden de la maqueta merchant.js). */
 function seccionesDe(id: string, porPreparar = 0): Seccion[] {
   const base = `/vendor/tiendas/${id}`;
   return [
     { href: base, label: 'Perfil Comerciante', icon: 'store' },
+    { href: `${base}/plan`, label: 'Suscripción y Planes', icon: 'sparkles' },
     { href: `${base}/pedidos`, label: 'Pedidos Vigentes', icon: 'bag', contador: porPreparar },
     { href: `${base}/ventas`, label: 'Mis Ventas y Métricas', icon: 'chart' },
     { href: `${base}/productos`, label: 'Mis Productos', icon: 'package' },
+    { href: `${base}/mensajes`, label: 'Mensajes y Consultas', icon: 'message' },
     { href: `${base}/equipo`, label: 'Roles y Empleados', icon: 'users' },
     { href: `${base}/seguridad`, label: 'Seguridad y Cuenta', icon: 'lock' },
   ];
@@ -167,7 +169,7 @@ function SinSesion({ children }: { children: ReactNode }) {
 }
 
 /**
- * Panel #merchant-panel: hero + 6 pestañas fijas (perfil, pedidos, ventas, productos, roles, seguridad).
+ * Panel #merchant-panel: hero + nav lateral (perfil, planes, pedidos, ventas, productos, mensajes, roles, seguridad).
  */
 export function PanelVendedor({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
