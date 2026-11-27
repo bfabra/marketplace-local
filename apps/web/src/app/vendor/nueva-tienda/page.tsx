@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useOpciones } from '@/hooks/use-opciones';
 import { TIPOS_TELEFONO, enlaceTelefono, telefonoVacio, telefonosCargados, validarTelefonos, verTelefono } from '@/lib/telefonos';
+import { localidadesDeDepartamento } from '@/lib/san-juan-territorio';
 import { Icon } from '@/components/ui/icon';
 import { BRAND_NAME } from '@/components/layout/logo';
 import { useFormErrors } from '@/components/forms/use-form-errors';
@@ -33,10 +34,8 @@ const TIPOS_LOGO = ['image/jpeg', 'image/png', 'image/webp'];
 const VACIO = {
   nombre: '',
   cuit: '',
-  razon_social: '',
   telefonos: [telefonoVacio()] as TelefonoTienda[],
   ubicacion: null as Ubicacion | null,
-  email: '',
   descripcion: '',
   localidad_id: '',
   zona: '',
@@ -65,6 +64,14 @@ function validar(b: Borrador) {
   if (!b.localidad_id) errores.localidad_id = 'Elegí el departamento';
   if (b.direccion.trim().length < 5) errores.direccion = 'Ingresá la dirección del local';
   return { ...errores, ...validarTelefonos(b.telefonos) };
+}
+
+function validarConZona(b: Borrador, localidades: Localidad[]) {
+  const errores = validar(b);
+  const depto = localidades.find((l) => l.id === b.localidad_id);
+  const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+  if (villas.length > 0 && !b.zona.trim()) errores.zona = 'Elegí localidad / villa / zona';
+  return errores;
 }
 
 function Pasos({ actual }: { actual: 2 | 3 }) {
@@ -148,16 +155,21 @@ export default function NewStorePage() {
     setB((actual) => {
       const cargados = telefonosCargados(actual.telefonos);
       const yaEsta = lugar.telefono && cargados.some((t) => t.numero.replace(/\D/g, '') === lugar.telefono!.numero.replace(/\D/g, ''));
+      const localidadId = lugar.localidad?.id ?? actual.localidad_id;
+      const depto = localidades.find((l) => l.id === localidadId) ?? lugar.localidad;
+      const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+      const mismaDepto = localidadId === actual.localidad_id;
       return {
         ...actual,
         nombre: actual.nombre.trim() ? actual.nombre : lugar.nombre.slice(0, 80),
         direccion: lugar.direccion.slice(0, 200),
-        localidad_id: lugar.localidad?.id ?? actual.localidad_id,
+        localidad_id: localidadId,
+        zona: mismaDepto && actual.zona && villas.includes(actual.zona) ? actual.zona : villas[0] ?? '',
         ubicacion: lugar.ubicacion,
         telefonos: lugar.telefono && !yaEsta ? [...cargados, lugar.telefono].slice(0, 5) : actual.telefonos,
       };
     });
-    ['nombre', 'direccion', 'localidad_id', 'telefonos'].forEach(errors.dismiss);
+    ['nombre', 'direccion', 'localidad_id', 'zona', 'telefonos'].forEach(errors.dismiss);
   }
 
   const rubro = rubros.find((r) => r.id === b.rubro_id);
@@ -176,7 +188,10 @@ export default function NewStorePage() {
 
   function continuar() {
     errors.clear();
-    const encontrados = Object.entries(validar(b)).map(([path, message]) => ({ path, message }));
+    const encontrados = Object.entries(validarConZona(b, localidades)).map(([path, message]) => ({
+      path,
+      message,
+    }));
     if (encontrados.length > 0) {
       errors.set(new ApiError('Revisá los datos marcados en rojo', 400, encontrados));
       return;
@@ -191,10 +206,8 @@ export default function NewStorePage() {
     const datos: DatosTienda = {
       nombre: b.nombre,
       cuit: b.cuit,
-      razon_social: b.razon_social,
       telefonos: b.telefonos,
       ubicacion: b.ubicacion,
-      email: b.email,
       descripcion: b.descripcion,
       localidad_id: b.localidad_id,
       direccion: [b.direccion.trim(), zona ? `Zona: ${zona}` : ''].filter(Boolean).join(' · ').slice(0, 200),
@@ -312,7 +325,7 @@ export default function NewStorePage() {
               <b>Vista previa</b>
             </div>
             <p>{b.descripcion || 'Sin descripción por ahora. Podés sumarla más adelante.'}</p>
-            {(telefonos.length > 0 || b.email) && (
+            {telefonos.length > 0 && (
               <ul className="store-review-contacto">
                 {telefonos.map((t, i) => (
                   <li key={i}>
@@ -323,11 +336,6 @@ export default function NewStorePage() {
                     <span className={`telefono-tipo ${t.tipo}`}>{TIPOS_TELEFONO[t.tipo]}</span>
                   </li>
                 ))}
-                {b.email && (
-                  <li>
-                    <Icon name="mail" size={15} /> {b.email}
-                  </li>
-                )}
               </ul>
             )}
             <div className="store-location">
@@ -387,28 +395,17 @@ export default function NewStorePage() {
             maxLength={80}
             error={f.nombre}
           />
-          <div className="split-fields">
-            <CampoDisenio
-              label="CUIT / CUIL"
-              icono="id"
-              placeholder="Ej. 20381234563"
-              inputMode="numeric"
-              autoComplete="off"
-              value={b.cuit}
-              onChange={(e) => poner('cuit', formatearCuit(e.target.value))}
-              error={f.cuit}
-              ayuda="Ingresá solo números."
-            />
-            <CampoDisenio
-              label="Razón social (opcional)"
-              icono="briefcase"
-              placeholder="Como figura en AFIP"
-              value={b.razon_social}
-              onChange={(e) => poner('razon_social', e.target.value)}
-              maxLength={120}
-              error={f.razon_social}
-            />
-          </div>
+          <CampoDisenio
+            label="CUIT / CUIL"
+            icono="id"
+            placeholder="Ej. 20381234563"
+            inputMode="numeric"
+            autoComplete="off"
+            value={b.cuit}
+            onChange={(e) => poner('cuit', formatearCuit(e.target.value))}
+            error={f.cuit}
+            ayuda="Ingresá solo números."
+          />
           <TelefonosTienda
             valor={b.telefonos}
             onChange={(telefonos) => {
@@ -416,15 +413,6 @@ export default function NewStorePage() {
               errors.dismiss('telefonos');
             }}
             errores={f}
-          />
-          <CampoDisenio
-            label="Correo del comercio (opcional)"
-            icono="mail"
-            type="email"
-            placeholder="ventas@tucomercio.com"
-            value={b.email}
-            onChange={(e) => poner('email', e.target.value)}
-            error={f.email}
           />
           <div className="split-fields">
             <SelectorDisenio
@@ -491,16 +479,43 @@ export default function NewStorePage() {
           <TerritorioTienda
             localidades={localidades}
             localidadId={b.localidad_id}
-            onChange={(v) => poner('localidad_id', v)}
+            onChange={(v) => {
+              const depto = localidades.find((l) => l.id === v);
+              const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+              setB((actual) => ({
+                ...actual,
+                localidad_id: v,
+                zona: villas[0] ?? '',
+              }));
+              errors.dismiss('localidad_id');
+              errors.dismiss('zona');
+            }}
             error={f.localidad_id}
           />
-          <CampoDisenio
-            label="Localidad / villa / zona"
-            placeholder="Ej. Villa Krause, Rivadavia"
-            value={b.zona}
-            onChange={(e) => poner('zona', e.target.value)}
-            maxLength={80}
-          />
+          {(() => {
+            const villasZona = localidadesDeDepartamento(localidad?.nombre ?? '');
+            return (
+              <SelectorDisenio
+                label="Localidad / Villa / Zona *"
+                name="zona"
+                value={b.zona}
+                onChange={(v) => {
+                  poner('zona', v);
+                  errors.dismiss('zona');
+                }}
+                placeholder={
+                  !b.localidad_id
+                    ? 'Primero elegí el departamento'
+                    : villasZona.length
+                      ? 'Seleccioná localidad'
+                      : 'Sin localidades cargadas'
+                }
+                opciones={villasZona.map((z) => ({ value: z, label: z }))}
+                disabled={!b.localidad_id || villasZona.length === 0}
+                error={f.zona}
+              />
+            );
+          })()}
           <UbicacionTienda
             conGoogleMaps={!!opciones?.googleMaps}
             ubicacion={b.ubicacion}

@@ -83,7 +83,7 @@ export function TerritorioTienda({
         />
       </div>
       <p className="territorio-ayuda muted">
-        Elegí provincia y departamento. La localidad / villa y el mapa afinan la zona del local.
+        Elegí provincia y departamento. Después seleccioná la localidad / villa / zona.
       </p>
     </div>
   );
