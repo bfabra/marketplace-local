@@ -255,7 +255,7 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
                 </span>
                 <NotaModeracion motivo={p.motivo_pausa} nota={p.nota_moderacion} />
                 <div className="mp-producto-pie">
-                  <span className="mp-producto-precio">{formatPrice(p.precio_oferta ?? p.precio)}</span>
+                  <span className="mp-producto-precio">{formatPrice(p.precio_oferta ?? p.precio ?? 0)}</span>
                   <span className="mp-producto-badge">{ETIQUETA_ESTADO[p.estado] ?? p.estado}</span>
                 </div>
                 {acciones(p)}
@@ -287,7 +287,7 @@ export default function ProductsPage({ params }: { params: { id: string } }) {
                   <span className="mp-producto-meta">
                     Stock: <b>{p.stock}</b>
                   </span>
-                  <strong className="mp-producto-precio">{formatPrice(p.precio_oferta ?? p.precio)}</strong>
+                  <strong className="mp-producto-precio">{formatPrice(p.precio_oferta ?? p.precio ?? 0)}</strong>
                 </div>
                 <span className="mp-producto-badge">{ETIQUETA_ESTADO[p.estado] ?? p.estado}</span>
                 {acciones(p)}

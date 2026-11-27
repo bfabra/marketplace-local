@@ -203,7 +203,11 @@ export function UbicacionTienda({
             </span>
           </div>
           <div className="signup-mapa-pie">
-            <span>{ubicacion ? `Pin: Lat ${ubicacion.lat}, Lng ${ubicacion.lng}` : pin.texto}</span>
+            <span>
+              {pin.x !== PIN_CENTRO.x || pin.y !== PIN_CENTRO.y
+                ? `Pin: Lat ${pin.lat}, Lng ${pin.lng}`
+                : pin.texto}
+            </span>
             <button type="button" onClick={centrarPin}>
               Centrar pin
             </button>
