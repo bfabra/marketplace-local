@@ -8,7 +8,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { useCart } from '@/hooks/use-cart';
 import { safeNext } from '@/lib/redirect';
 import { destinoAlIngresar } from '@/lib/equipo';
-import { PAISES, TIPOS_TELEFONO, armarTelefonoPerfil } from '@/lib/telefonos';
+import {
+  DIGITOS_TELEFONO_AR,
+  PAISES,
+  TIPOS_TELEFONO,
+  armarTelefonoPerfil,
+  prefijoTelefono,
+  soloDigitosTelefono,
+} from '@/lib/telefonos';
 import { Icon } from '@/components/ui/icon';
 import { BRAND_NAME, PRODUCT_NAME } from '@/components/layout/logo';
 import { useFormErrors } from './use-form-errors';
@@ -31,7 +38,10 @@ export function RegisterForm() {
   const [localidad, setLocalidad] = useState('');
   const [pais, setPais] = useState('+54');
   const [tipoTel, setTipoTel] = useState<TipoTelefono>('whatsapp');
+  const [telefonoNum, setTelefonoNum] = useState('');
+  const [dni, setDni] = useState('');
   const [pin, setPin] = useState(PIN_CENTRO);
+  const prefijoTel = prefijoTelefono(pais, tipoTel);
 
   useEffect(() => {
     wakeRegistro();
@@ -68,15 +78,31 @@ export function RegisterForm() {
       errors.field('repetir', 'Las contraseñas no coinciden');
       return;
     }
+    if (!/^\d{7,8}$/.test(dni)) {
+      errors.field('dni', 'El DNI son 7 u 8 números, sin puntos');
+      return;
+    }
     if (!localidad) {
       errors.field('domicilio.localidad_id', 'Elegí el departamento');
       return;
     }
-    const telefono = armarTelefonoPerfil(pais, tipoTel, texto('telefono'));
-    if (!telefono) {
+    const digitosTel = (telefonoNum || texto('telefono')).replace(/\D/g, '');
+    if (!digitosTel) {
       errors.field('telefono', 'Ingresá tu teléfono');
       return;
     }
+    if (digitosTel.length > DIGITOS_TELEFONO_AR) {
+      errors.field('telefono', `Máximo ${DIGITOS_TELEFONO_AR} dígitos`);
+      return;
+    }
+    if ((pais === '+54' || pais.includes('+54')) && digitosTel.length !== DIGITOS_TELEFONO_AR) {
+      errors.field(
+        'telefono',
+        `En Argentina el número tiene ${DIGITOS_TELEFONO_AR} dígitos (área + número, sin 0 ni 15)`
+      );
+      return;
+    }
+    const telefono = armarTelefonoPerfil(pais, tipoTel, digitosTel);
     const barrio = texto('barrio');
     const refs = texto('referencias');
     const referencias = [barrio ? `Barrio: ${barrio}` : '', refs].filter(Boolean).join(' · ') || undefined;
@@ -89,7 +115,7 @@ export function RegisterForm() {
         nombre: texto('nombre'),
         apellido: texto('apellido'),
         telefono,
-        dni: texto('dni'),
+        dni,
         domicilio: {
           calle: texto('calle'),
           numero: texto('numero'),
@@ -177,14 +203,19 @@ export function RegisterForm() {
 
               <div className="split-fields">
                 <CampoDisenio
-                  label="DNI"
+                  label="DNI (7 u 8 números, sin puntos)"
                   name="dni"
                   placeholder="Ej. 38123456"
                   inputMode="numeric"
                   autoComplete="off"
-                  maxLength={10}
+                  maxLength={8}
                   required
+                  value={dni}
                   error={f.dni}
+                  onChange={(e) => {
+                    setDni(e.target.value.replace(/\D/g, '').slice(0, 8));
+                    errors.dismiss('dni');
+                  }}
                 />
                 <CampoDisenio
                   label="Correo electrónico"
@@ -229,18 +260,36 @@ export function RegisterForm() {
                       ))}
                     </select>
                   </label>
-                  <CampoDisenio
-                    label="Número (solo números)"
-                    name="telefono"
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="Ej. 2645123456"
-                    autoComplete="tel-national"
-                    required
-                    error={f.telefono}
-                  />
+                  <label className={`ds-field${f.telefono ? ' error' : ''}`}>
+                    <span>Número (solo números)</span>
+                    <div className="telefono-numero signup-tel-numero">
+                      <span className="telefono-prefijo" aria-hidden="true">
+                        {prefijoTel}
+                      </span>
+                      <input
+                        type="tel"
+                        name="telefono"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        placeholder="Ej. 2645123456"
+                        maxLength={DIGITOS_TELEFONO_AR}
+                        value={telefonoNum}
+                        required
+                        aria-invalid={!!f.telefono}
+                        aria-label={`Número de teléfono con prefijo ${prefijoTel}`}
+                        onChange={(e) => {
+                          setTelefonoNum(soloDigitosTelefono(e.target.value));
+                          errors.dismiss('telefono');
+                        }}
+                      />
+                    </div>
+                    {f.telefono && <small role="alert">{f.telefono}</small>}
+                  </label>
                 </div>
-                <small className="ds-ayuda">Sin el 0 ni el 15. Ej.: 2645123456</small>
+                <small className="ds-ayuda">
+                  Máximo {DIGITOS_TELEFONO_AR} dígitos. En Argentina: fijo +54, celular/WhatsApp +549. Sin el 0 ni el
+                  15. Ej.: 2645123456
+                </small>
               </fieldset>
 
               <fieldset className="ds-caja signup-caja">

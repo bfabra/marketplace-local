@@ -7,7 +7,7 @@ import { hashPassword, comparePassword } from '../../common/utils/bcrypt.js';
 import { MENSAJE_CUENTA_BLOQUEADA, olvidarBloqueo } from '../../common/utils/bloqueos.js';
 import { correoDisponible, enviarCorreo } from '../../common/utils/correo.js';
 import { verificarTokenGoogle } from '../../common/utils/google.js';
-import { consumirCodigo2fa, emitirCodigo2fa } from './auth-2fa.js';
+import { emitirCodigo2fa } from './auth-2fa.js';
 import {
   RegisterInput,
   LoginInput,
@@ -189,12 +189,8 @@ export class AuthService {
     };
   }
 
-  /** Quien entra solo con Google no tiene contraseña: la crea sin escribir la actual. Requiere 2FA. */
+  /** Quien entra solo con Google no tiene contraseña: la crea sin escribir la actual. */
   static async changePassword(userId: string, data: ChangePasswordInput) {
-    if (!consumirCodigo2fa(userId, data.codigo2fa)) {
-      throw new AppError('El código de doble autenticación (2FA) es inválido o venció', 400);
-    }
-
     const hash = await llamar<string | null>(
       prisma,
       Prisma.sql`select pkg_auth.hash_actual(${userId}::uuid) as r`

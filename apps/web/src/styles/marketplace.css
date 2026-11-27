@@ -3571,6 +3571,281 @@
   font-weight: 700;
 }
 
+.cuenta-compras-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cuenta-compras-aviso p {
+  margin: 0;
+}
+
+.cuenta-tickets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cuenta-ticket {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.cuenta-ticket-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cuenta-ticket-info strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+}
+
+.cuenta-ticket-info span {
+  font-size: 12px;
+  color: var(--muted, #64748b);
+}
+
+.cuenta-ticket-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cuenta-ticket-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary, #fd6910);
+}
+
+.cuenta-ticket-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #09305f;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cuenta-ticket-btn:hover {
+  filter: brightness(1.05);
+}
+
+.cuenta-ticket-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cuenta-ticket-detalle-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cuenta-ticket-volver {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  background: #fff;
+}
+
+.cuenta-ticket-pagar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cuenta-ticket-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.cuenta-ticket-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.cuenta-ticket-meta span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cuenta-ticket-meta strong {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.cuenta-ticket-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cuenta-ticket-bloque-cabecera {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.cuenta-ticket-bloque-cabecera em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cuenta-ticket-etiqueta {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cuenta-ticket-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cuenta-ticket-items li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 13px;
+}
+
+.cuenta-ticket-items li span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cuenta-ticket-montos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.cuenta-ticket-montos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cuenta-ticket-montos-total {
+  margin-top: 4px;
+  color: var(--primary, #fd6910);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.cuenta-ticket-pie {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cuenta-ticket-opiniones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.cuenta-ticket-opiniones strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.cuenta-ticket-opiniones span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cuenta-ticket-opiniones-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cuenta-ticket-opiniones-btns button {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: not-allowed;
+}
+
 .cuenta-cifras {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -3800,6 +4075,197 @@
   color: var(--primary);
   font-size: 13px;
   font-weight: 700;
+}
+
+.cuenta-trazabilidad {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cuenta-envio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.cuenta-envio-card-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cuenta-envio-card-cabecera strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cuenta-envio-card-cabecera span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cuenta-envio-card-cabecera em {
+  font-style: normal;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary, #fd6910);
+}
+
+.cuenta-envio-timeline {
+  margin: 0;
+  padding: 10px 0 4px 10px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.cuenta-envio-timeline > li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+
+.cuenta-envio-timeline > li:last-child {
+  padding-bottom: 0;
+}
+
+.cuenta-envio-timeline > li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.cuenta-envio-timeline > li.is-hecho:not(:last-child)::before {
+  background: #22c55e;
+}
+
+.cuenta-envio-timeline-punto {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  background: #e2e8f0;
+  color: #64748b;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  z-index: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.cuenta-envio-timeline > li.is-hecho .cuenta-envio-timeline-punto {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #fff;
+}
+
+.cuenta-envio-timeline > li.is-actual .cuenta-envio-timeline-punto {
+  border-color: var(--primary, #fd6910);
+  background: var(--primary, #fd6910);
+  color: #fff;
+}
+
+.cuenta-envio-timeline > li strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cuenta-envio-timeline > li.is-actual strong {
+  font-weight: 800;
+  color: var(--primary, #fd6910);
+}
+
+.cuenta-envio-timeline > li span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cuenta-envio-historial {
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.cuenta-envio-historial > strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.cuenta-envio-historial > p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cuenta-envio-historial ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cuenta-envio-historial li {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #f1f5f9;
+  font-size: 12px;
+}
+
+.cuenta-envio-historial li:last-child {
+  border-bottom: 0;
+}
+
+.cuenta-envio-historial time {
+  min-width: 110px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.cuenta-envio-historial li > span {
+  color: var(--text);
+}
+
+.cuenta-envio-destino {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cuenta-envio-card > .cuenta-ticket-btn {
+  align-self: flex-start;
 }
 
 .cuenta-fav-grid {
@@ -9854,9 +10320,16 @@
   box-sizing: border-box;
 }
 
-.telefono-fila .telefono-numero input {
-  padding: 0 10px 0 52px;
+.telefono-fila .telefono-numero input,
+.ds-field .telefono-numero input,
+.signup-tel-numero input {
+  padding: 0 10px 0 3.6rem;
   font-size: 13px;
+}
+
+.ds-field .telefono-numero,
+.signup-tel-numero {
+  width: 100%;
 }
 
 .telefono-fila select {

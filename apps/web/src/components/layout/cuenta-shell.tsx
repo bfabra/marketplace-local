@@ -168,13 +168,9 @@ export function CuentaShell({
               </Link>
             )}
 
-            {user.tiendas.length > 0 ? (
+            {user.tiendas.length > 0 && (
               <Link href={panelVendedor(user)} className="cuenta-sidebar-comercio">
                 <Icon name="store" size={18} /> Panel de vendedor
-              </Link>
-            ) : (
-              <Link href="/vendor/nueva-tienda" className="cuenta-sidebar-comercio">
-                <Icon name="store" size={18} /> Convertirme en Comercio
               </Link>
             )}
 

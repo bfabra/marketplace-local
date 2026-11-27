@@ -2,64 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ApiError, api, type EstadoPedidoTienda, type Modalidad, type Pedido } from '@/lib/api-client';
+import { useRouter } from 'next/navigation';
+import { ApiError, api, type Pedido } from '@/lib/api-client';
+import { useAuth } from '@/hooks/use-auth';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { COLOR_PAGO, ESTADO_PAGO, ESTADO_PEDIDO, MODALIDAD } from '@/lib/pedidos';
+import { PRODUCT_NAME } from '@/components/layout/logo';
 import { Alert } from '@/components/ui/alert';
-import { EncabezadoPagina } from '@/components/ui/encabezado-pagina';
-import { Icon } from '@/components/ui/icon';
-import { OrderStatus } from '@/components/ui/order-status';
 import { PageSkeleton } from '@/components/ui/skeleton';
+import { CuentaShell } from '@/components/layout/cuenta-shell';
 
-const hora = (fecha: string) =>
-  new Date(fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-
-const PASOS: Record<Modalidad, string[]> = {
-  entrega_plataforma: ['Pagado', 'En preparación', 'En camino', 'Entregado'],
-  retiro_en_local: ['Pagado', 'En preparación', 'Listo para retirar', 'Entregado'],
-};
-
-/** Cuántos pasos de la barra de seguimiento ya se cumplieron. */
-const AVANCE: Partial<Record<EstadoPedidoTienda, number>> = {
-  pendiente: 0,
-  pago_confirmado: 1,
-  en_preparacion: 2,
-  listo_para_recoleccion: 2,
-  listo_para_retiro: 3,
-  recolectado: 3,
-  en_camino: 3,
-  entregado: 4,
-};
-
-function Seguimiento({ modalidad, estado }: { modalidad: Modalidad; estado: EstadoPedidoTienda }) {
-  const avance = AVANCE[estado];
-  if (avance === undefined) return null;
-  return (
-    <ol className="seguimiento" aria-label="Avance del pedido">
-      {PASOS[modalidad].map((paso, i) => {
-        const hecho = i < avance;
-        const actual = i === avance - 1;
-        return (
-          <li
-            key={paso}
-            className={hecho ? 'seguimiento-paso seguimiento-hecho' : 'seguimiento-paso'}
-            aria-current={actual ? 'step' : undefined}
-          >
-            <span className="seguimiento-punto" aria-hidden="true">
-              {hecho ? <Icon name="check" size={14} strokeWidth={3} /> : i + 1}
-            </span>
-            <span className="seguimiento-texto">{paso}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
+function expiraTicket(creadoEn: string) {
+  const d = new Date(creadoEn);
+  d.setFullYear(d.getFullYear() + 1);
+  return formatDate(d.toISOString());
 }
 
+/** Detalle del ticket (#profile → purchase detail). */
 export default function MyOrderPage({ params }: { params: { id: string } }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recienPagado, setRecienPagado] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) router.replace(`/login?next=/mis-compras/${params.id}`);
+  }, [loading, user, router, params.id]);
 
   useEffect(() => {
     setRecienPagado(new URLSearchParams(window.location.search).get('pago') === 'aprobado');
@@ -68,171 +37,140 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Error inesperado'));
   }, [params.id]);
 
+  if (loading || !user) return <PageSkeleton />;
+
   if (error && !pedido) {
     return (
-      <div className="stack">
+      <CuentaShell user={user} titulo="Detalle del Ticket" descripcion="No pudimos cargar este comprobante.">
         <Alert>{error}</Alert>
-        <Link href="/mis-compras">Volver a mis compras</Link>
-      </div>
+        <Link href="/mis-compras" className="cuenta-ticket-volver">
+          ‹ Volver
+        </Link>
+      </CuentaShell>
     );
   }
+
   if (!pedido) return <PageSkeleton />;
 
   const dir = pedido.direccion_envio;
+  const comercio =
+    [...new Set(pedido.partes.map((p) => p.tienda?.nombre).filter(Boolean))].join(', ') || 'Comercio';
+  const estadoLabel = ESTADO_PAGO[pedido.estado_pago];
 
   return (
-    <div className="market-container market-page compra-detalle-page">
-      <nav className="cuenta-breadcrumb" aria-label="Navegación">
-        <Link href="/">Inicio</Link>
-        <span aria-hidden="true">›</span>
-        <Link href="/mis-compras">Mis compras</Link>
-        <span aria-hidden="true">›</span>
-        <span aria-current="page">Pedido #{pedido.numero}</span>
-      </nav>
-
-      <EncabezadoPagina
-        icono="receipt"
-        antetitulo={formatDate(pedido.creado_en)}
-        titulo={`Pedido #${pedido.numero}`}
-        descripcion={
-          <span className={`badge ${COLOR_PAGO[pedido.estado_pago]}`}>{ESTADO_PAGO[pedido.estado_pago]}</span>
-        }
-      >
-        {pedido.estado_pago === 'pendiente' && (
-          <Link href={`/pago-simulado/${pedido.id}`} className="btn btn-accent">
-            <Icon name="card" size={16} /> Pagar {formatPrice(pedido.total)}
+    <CuentaShell
+      user={user}
+      titulo={`Detalle del Ticket #${pedido.numero}`}
+      descripcion={`Comprobante de tu compra en ${PRODUCT_NAME} San Juan.`}
+    >
+      <div className="cuenta-ticket-detalle">
+        <div className="cuenta-ticket-detalle-cabecera">
+          <Link href="/mis-compras" className="cuenta-ticket-volver">
+            ‹ Volver
           </Link>
+          <span className={`badge ${COLOR_PAGO[pedido.estado_pago]}`}>{estadoLabel}</span>
+        </div>
+
+        {recienPagado && pedido.estado_pago === 'aprobado' && (
+          <Alert kind="success">¡Listo! Recibimos tu pago. Cada tienda ya está al tanto de tu pedido.</Alert>
         )}
-      </EncabezadoPagina>
+        {pedido.estado_pago === 'pendiente' && (
+          <div className="cuenta-ticket-pagar">
+            <Link href={`/pago-simulado/${pedido.id}`} className="market-primary-button">
+              Pagar {formatPrice(pedido.total)}
+            </Link>
+          </div>
+        )}
 
-      {recienPagado && pedido.estado_pago === 'aprobado' && (
-        <Alert kind="success">¡Listo! Recibimos tu pago. Cada tienda ya está al tanto de tu pedido.</Alert>
-      )}
-      {pedido.estado_pago === 'pendiente' && pedido.reservaHasta && (
-        <Alert kind="info">
-          Tenés el stock reservado hasta las{' '}
-          {new Date(pedido.reservaHasta).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-        </Alert>
-      )}
+        <div className="cuenta-ticket-cuerpo">
+          <div className="cuenta-ticket-meta">
+            <div>
+              <span>Comercio Vendedor</span>
+              <strong>{comercio}</strong>
+            </div>
+            <div>
+              <span>Fecha de Emisión</span>
+              <strong>{formatDate(pedido.creado_en)}</strong>
+            </div>
+            <div>
+              <span>Expiración del Ticket</span>
+              <strong>{expiraTicket(pedido.creado_en)}</strong>
+            </div>
+          </div>
 
-      <div className="compra-detalle">
-        <div className="stack">
           {pedido.partes.map((p) => (
-            <section key={p.id} className="card stack">
-              <div className="tarjeta-cabecera">
-                <span className="icono-suave" aria-hidden="true">
-                  <Icon name="store" size={20} />
-                </span>
-                <div>
-                  <h2>
-                    {p.tienda ? <Link href={`/tiendas/${p.tienda.slug}`}>{p.tienda.nombre}</Link> : 'Tienda'}
-                  </h2>
-                  <p>{MODALIDAD[p.modalidad]}</p>
-                </div>
-                <OrderStatus estado={p.estado} />
+            <div key={p.id} className="cuenta-ticket-bloque">
+              <div className="cuenta-ticket-bloque-cabecera">
+                <strong>{p.tienda?.nombre ?? 'Tienda'}</strong>
+                <em>
+                  {MODALIDAD[p.modalidad]} · {ESTADO_PEDIDO[p.estado]}
+                </em>
               </div>
-
-              <Seguimiento modalidad={p.modalidad} estado={p.estado} />
-
-              {p.modalidad === 'retiro_en_local' && p.tienda && (
-                <div className={p.estado === 'listo_para_retiro' ? 'aviso-banda compra-retiro-listo' : 'aviso-banda'}>
-                  <Icon name="pin" size={18} />
-                  <span>
-                    {p.estado === 'listo_para_retiro' ? 'Ya podés pasar a retirarlo' : 'Lo retirás'} en{' '}
-                    <strong>
-                      {p.tienda.direccion}, {p.tienda.localidad}
-                    </strong>
-                    {p.tienda.telefono ? ` · Tel. ${p.tienda.telefono}` : ''}.
-                  </span>
-                </div>
-              )}
-              {p.motivo_cancelacion && (
-                <Alert kind="info">
-                  Motivo de la cancelación: {p.motivo_cancelacion}
-                  {['aprobado', 'reembolsado_parcial', 'reembolsado'].includes(pedido.estado_pago)
-                    ? '. Te devolvemos el dinero de esta parte.'
-                    : ''}
-                </Alert>
-              )}
-
-              <ul className="compra-items">
+              <span className="cuenta-ticket-etiqueta">Productos Adquiridos</span>
+              <ul className="cuenta-ticket-items">
                 {p.items.map((i, n) => (
                   <li key={n}>
-                    <span className="compra-item-cantidad">{i.cantidad}×</span>
-                    <span className="compra-item-nombre">
+                    <div>
                       <strong>{i.nombre}</strong>
-                      {i.variante && <span className="muted">{i.variante}</span>}
-                    </span>
-                    <span className="compra-item-precio">
-                      <strong>{formatPrice(i.subtotal)}</strong>
-                      {i.cantidad > 1 && <span className="muted">{formatPrice(i.precio)} c/u</span>}
-                    </span>
+                      <span>
+                        Cantidad: {i.cantidad}
+                        {i.variante ? ` · ${i.variante}` : ''}
+                      </span>
+                    </div>
+                    <strong>{formatPrice(i.subtotal)}</strong>
                   </li>
                 ))}
               </ul>
-
-              {(p.historial ?? []).length > 0 && (
-                <details className="compra-historial">
-                  <summary>
-                    <Icon name="history" size={16} /> Ver todos los movimientos
-                  </summary>
-                  <ol className="historial">
-                    {(p.historial ?? []).map((h, n) => (
-                      <li key={n}>
-                        <time className="muted" dateTime={h.fecha}>
-                          {hora(h.fecha)}
-                        </time>
-                        <p>{ESTADO_PEDIDO[h.estado]}</p>
-                      </li>
-                    ))}
-                  </ol>
-                </details>
+              {p.motivo_cancelacion && (
+                <Alert kind="info">Motivo de la cancelación: {p.motivo_cancelacion}</Alert>
               )}
-            </section>
+            </div>
           ))}
-        </div>
 
-        <aside className="card stack compra-resumen">
-          <div className="tarjeta-cabecera">
-            <span className="icono-suave" aria-hidden="true">
-              <Icon name="receipt" size={20} />
-            </span>
+          <div className="cuenta-ticket-montos">
             <div>
-              <h2>Resumen</h2>
-              <p>{pedido.partes.length === 1 ? '1 tienda' : `${pedido.partes.length} tiendas`}</p>
+              <span>Subtotal Productos:</span>
+              <span>{formatPrice(pedido.subtotal)}</span>
+            </div>
+            <div>
+              <span>Costo de Envío Local:</span>
+              <span>{pedido.costo_envio > 0 ? formatPrice(pedido.costo_envio) : 'Sin costo'}</span>
+            </div>
+            <div className="cuenta-ticket-montos-total">
+              <span>Total Abonado:</span>
+              <span>{formatPrice(pedido.total)}</span>
             </div>
           </div>
-          {dir && (
-            <div className="compra-entrega">
-              <Icon name="pin" size={18} />
+
+          <div className="cuenta-ticket-pie">
+            <div>
+              <strong>Método de pago:</strong> {estadoLabel}
+            </div>
+            {dir && (
               <div>
-                <strong>Entrega en</strong>
-                <span>
-                  {dir.calle} {dir.numero}
-                  {dir.piso_depto ? `, ${dir.piso_depto}` : ''}
-                </span>
-                <span className="muted">
-                  {dir.localidad}, {dir.provincia}
-                </span>
+                <strong>Dirección de entrega:</strong> {dir.calle} {dir.numero}
+                {dir.piso_depto ? `, ${dir.piso_depto}` : ''}, {dir.localidad}, {dir.provincia}
+                {dir.referencias ? ` — ${dir.referencias}` : ''}
               </div>
-            </div>
-          )}
-          <dl className="compra-montos">
+            )}
+          </div>
+
+          <div className="cuenta-ticket-opiniones">
             <div>
-              <dt>Productos</dt>
-              <dd>{formatPrice(pedido.subtotal)}</dd>
+              <strong>¿Recibiste tu pedido? Compartí tu experiencia</strong>
+              <span>Tus opiniones verificadas impulsan el prestigio de los comercios locales.</span>
             </div>
-            <div>
-              <dt>Envío</dt>
-              <dd>{pedido.costo_envio > 0 ? formatPrice(pedido.costo_envio) : 'Sin costo'}</dd>
+            <div className="cuenta-ticket-opiniones-btns">
+              <button type="button" disabled title="Próximamente">
+                ★ Opinar sobre el producto
+              </button>
+              <button type="button" disabled title="Próximamente">
+                ★ Valorar atención del comercio
+              </button>
             </div>
-            <div className="compra-montos-total">
-              <dt>Total</dt>
-              <dd>{formatPrice(pedido.total)}</dd>
-            </div>
-          </dl>
-        </aside>
+          </div>
+        </div>
       </div>
-    </div>
+    </CuentaShell>
   );
 }

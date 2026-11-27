@@ -88,10 +88,6 @@ export const changePasswordSchema = z.object({
   body: z.object({
     actual: z.string().optional(),
     nueva: z.string().min(8, 'La contraseña nueva debe tener al menos 8 caracteres').max(72, 'Máximo 72 caracteres'),
-    codigo2fa: z
-      .string({ required_error: 'Ingresá el código de doble autenticación' })
-      .trim()
-      .regex(/^\d{6}$/, 'El código 2FA debe tener 6 dígitos'),
   }),
 });
 

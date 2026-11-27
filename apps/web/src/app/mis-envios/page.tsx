@@ -3,18 +3,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ApiError, api, type EstadoPedidoTienda, type ResumenPedido } from '@/lib/api-client';
+import {
+  ApiError,
+  api,
+  type EstadoPedidoTienda,
+  type Modalidad,
+  type Pedido,
+  type ResumenPedido,
+} from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
-import { formatDate, formatPrice } from '@/lib/utils';
-import { ESTADO_PEDIDO, MODALIDAD } from '@/lib/pedidos';
+import { formatPrice } from '@/lib/utils';
+import { ESTADO_PEDIDO } from '@/lib/pedidos';
+import { PRODUCT_NAME } from '@/components/layout/logo';
 import { Alert } from '@/components/ui/alert';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Icon } from '@/components/ui/icon';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { CuentaShell } from '@/components/layout/cuenta-shell';
 
-/** Estados con movimiento de envío/retiro (el backend ya los expone por parte). */
-const SEGUIMIENTO: EstadoPedidoTienda[] = [
+const EN_CURSO: EstadoPedidoTienda[] = [
   'pago_confirmado',
   'en_preparacion',
   'listo_para_recoleccion',
@@ -23,24 +29,74 @@ const SEGUIMIENTO: EstadoPedidoTienda[] = [
   'en_camino',
 ];
 
-const PASOS_ENVIO = ['Pago', 'Preparación', 'En camino', 'Entregado'] as const;
+const PASOS_ENTREGA = [
+  { label: 'Procesando compra', desc: 'Pago acreditado y tienda preparando el pedido' },
+  { label: 'Entregado al repartidor', desc: 'Paquete retirado por el cadete' },
+  { label: 'Envío en camino', desc: 'En viaje hacia tu domicilio en San Juan' },
+  { label: 'Entregado', desc: 'Recibido conforme en destino' },
+] as const;
 
-function avanceEnvio(estado: EstadoPedidoTienda): number {
-  if (estado === 'pago_confirmado') return 1;
-  if (estado === 'en_preparacion' || estado === 'listo_para_recoleccion') return 2;
-  if (estado === 'recolectado' || estado === 'en_camino' || estado === 'listo_para_retiro') return 3;
+const PASOS_RETIRO = [
+  { label: 'Procesando compra', desc: 'Pago acreditado y tienda preparando el pedido' },
+  { label: 'En preparación', desc: 'El comercio está armando tu pedido' },
+  { label: 'Listo para retirar', desc: 'Podés pasar a buscarlo al local' },
+  { label: 'Entregado', desc: 'Retirado conforme en el local' },
+] as const;
+
+function pasoActual(estado: EstadoPedidoTienda, modalidad: Modalidad): number {
+  if (modalidad === 'retiro_en_local') {
+    if (estado === 'pago_confirmado') return 1;
+    if (estado === 'en_preparacion') return 2;
+    if (estado === 'listo_para_retiro') return 3;
+    if (estado === 'entregado') return 4;
+    return 1;
+  }
+  if (estado === 'pago_confirmado' || estado === 'en_preparacion' || estado === 'listo_para_recoleccion') return 1;
+  if (estado === 'recolectado') return 2;
+  if (estado === 'en_camino') return 3;
   if (estado === 'entregado') return 4;
-  return 0;
+  return 1;
 }
 
-/**
- * Estado de envíos: UI mínima basada en estados reales de cada parte del pedido.
- * Sin timeline inventado: el detalle con historial está en /mis-compras/[id].
- */
+function descActual(estado: EstadoPedidoTienda, modalidad: Modalidad): string {
+  if (modalidad === 'retiro_en_local') {
+    if (estado === 'listo_para_retiro') return 'Tu pedido ya está listo para retirar en el local.';
+    if (estado === 'en_preparacion') return 'El comercio está preparando tu pedido.';
+    return ESTADO_PEDIDO[estado];
+  }
+  if (estado === 'en_camino') return 'El repartidor se encuentra en ruta por San Juan.';
+  if (estado === 'recolectado') return 'El cadete ya retiró el paquete de la tienda.';
+  if (estado === 'en_preparacion' || estado === 'listo_para_recoleccion') {
+    return 'La tienda está preparando y empaquetando tu pedido.';
+  }
+  return ESTADO_PEDIDO[estado];
+}
+
+function horaLog(fecha: string) {
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+type EnvioActivo = {
+  pedidoId: string;
+  numero: number;
+  total: number;
+  parteIdx: number;
+  tienda: string | null;
+  estado: EstadoPedidoTienda;
+  modalidad: Modalidad;
+};
+
+/** Estado de envíos y trazabilidad (#profile → shipments). */
 export default function MisEnviosPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [pedidos, setPedidos] = useState<ResumenPedido[] | null>(null);
+  const [detalles, setDetalles] = useState<Record<string, Pedido>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,25 +110,61 @@ export default function MisEnviosPage() {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Error inesperado'));
   }, [user]);
 
-  const envios = useMemo(() => {
-    if (!pedidos) return [];
+  const activos = useMemo(() => {
+    if (!pedidos) return [] as EnvioActivo[];
     return pedidos.flatMap((p) =>
       p.partes
-        .filter((parte) => SEGUIMIENTO.includes(parte.estado) || parte.estado === 'entregado')
-        .filter((parte) => parte.modalidad === 'entrega_plataforma' || parte.estado === 'listo_para_retiro')
-        .map((parte) => ({ pedido: p, parte }))
+        .map((parte, parteIdx) => ({ p, parte, parteIdx }))
+        .filter(
+          ({ parte }) =>
+            EN_CURSO.includes(parte.estado) &&
+            (parte.modalidad === 'entrega_plataforma' || parte.modalidad === 'retiro_en_local')
+        )
+        .map(({ p, parte, parteIdx }) => ({
+          pedidoId: p.id,
+          numero: p.numero,
+          total: p.total,
+          parteIdx,
+          tienda: parte.tienda,
+          estado: parte.estado,
+          modalidad: parte.modalidad,
+        }))
     );
   }, [pedidos]);
 
-  const activos = envios.filter((e) => SEGUIMIENTO.includes(e.parte.estado));
+  useEffect(() => {
+    const ids = [...new Set(activos.map((e) => e.pedidoId))];
+    if (ids.length === 0) return;
+    let vivo = true;
+    Promise.all(
+      ids.map(async (id) => {
+        try {
+          const pedido = await api<Pedido>(`/orders/${id}`);
+          return [id, pedido] as const;
+        } catch {
+          return null;
+        }
+      })
+    ).then((pares) => {
+      if (!vivo) return;
+      const mapa: Record<string, Pedido> = {};
+      for (const par of pares) {
+        if (par) mapa[par[0]] = par[1];
+      }
+      setDetalles(mapa);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [activos]);
 
   if (loading || !user) return <PageSkeleton />;
 
   return (
     <CuentaShell
       user={user}
-      titulo="Estado de envíos"
-      descripcion="Seguimiento según el estado que informa cada comercio. El detalle completo está en cada pedido."
+      titulo="Estado de Envíos y Trazabilidad"
+      descripcion={`Seguimiento en tiempo real de tus envíos locales en ${PRODUCT_NAME} San Juan.`}
     >
       {error && <Alert>{error}</Alert>}
 
@@ -88,45 +180,95 @@ export default function MisEnviosPage() {
             </Link>
           }
         >
-          Cuando un pedido esté en preparación o en camino, vas a verlo acá.
+          Cuando un pedido esté en preparación o en camino, vas a ver el seguimiento acá.
         </EmptyState>
       ) : (
-        <ul className="cuenta-envios">
-          {activos.map(({ pedido, parte }, i) => {
-            const avance = avanceEnvio(parte.estado);
+        <div className="cuenta-trazabilidad">
+          {activos.map((envio) => {
+            const detalle = detalles[envio.pedidoId];
+            const parte = detalle?.partes[envio.parteIdx];
+            const pasos = envio.modalidad === 'retiro_en_local' ? PASOS_RETIRO : PASOS_ENTREGA;
+            const actual = pasoActual(envio.estado, envio.modalidad);
+            const producto =
+              parte?.items.map((i) => i.nombre).join(', ') ||
+              (detalle ? `${detalle.partes.reduce((n, p) => n + p.items.reduce((a, i) => a + i.cantidad, 0), 0)} unidad(es)` : 'Cargando productos…');
+            const monto = parte?.subtotal ?? envio.total;
+            const dir = detalle?.direccion_envio;
+            const logs = [...(parte?.historial ?? [])].reverse();
+
             return (
-              <li key={`${pedido.id}-${i}`}>
-                <div className="cuenta-envio-cabecera">
+              <article key={`${envio.pedidoId}-${envio.parteIdx}`} className="cuenta-envio-card">
+                <header className="cuenta-envio-card-cabecera">
                   <div>
                     <strong>
-                      Pedido #{pedido.numero}
-                      {parte.tienda ? ` — ${parte.tienda}` : ''}
+                      Pedido #{envio.numero}
+                      {envio.tienda ? ` — ${envio.tienda}` : ''}
                     </strong>
-                    <span>
-                      {formatDate(pedido.creado_en)} · {MODALIDAD[parte.modalidad]}
-                    </span>
+                    <span>Producto: {producto}</span>
                   </div>
-                  <em>{formatPrice(pedido.total)}</em>
-                </div>
+                  <em>{formatPrice(monto)}</em>
+                </header>
 
-                <p className="cuenta-envio-estado">
-                  <Icon name="truck" size={16} /> {ESTADO_PEDIDO[parte.estado]}
-                </p>
-
-                <ol className="cuenta-envio-pasos" aria-label="Avance del envío">
-                  {PASOS_ENVIO.map((paso, idx) => (
-                    <li key={paso} className={idx < avance ? 'is-hecho' : undefined} aria-current={idx === avance - 1 ? 'step' : undefined}>
-                      <span aria-hidden="true">{idx < avance ? <Icon name="check" size={12} strokeWidth={3} /> : idx + 1}</span>
-                      {paso}
-                    </li>
-                  ))}
+                <ol className="cuenta-envio-timeline" aria-label="Avance del envío">
+                  {pasos.map((paso, idx) => {
+                    const step = idx + 1;
+                    const hecho = step < actual;
+                    const corriente = step === actual;
+                    return (
+                      <li
+                        key={paso.label}
+                        className={hecho ? 'is-hecho' : corriente ? 'is-actual' : undefined}
+                        aria-current={corriente ? 'step' : undefined}
+                      >
+                        <span className="cuenta-envio-timeline-punto" aria-hidden="true">
+                          {hecho ? '✓' : step}
+                        </span>
+                        <div>
+                          <strong>{paso.label}</strong>
+                          <span>{corriente ? descActual(envio.estado, envio.modalidad) : paso.desc}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ol>
 
-                <Link href={`/mis-compras/${pedido.id}`}>Ver detalle del pedido</Link>
-              </li>
+                <div className="cuenta-envio-historial">
+                  <strong>Historial de Seguimiento</strong>
+                  {logs.length === 0 ? (
+                    <p>Todavía no hay movimientos registrados para este envío.</p>
+                  ) : (
+                    <ul>
+                      {logs.map((h, n) => (
+                        <li key={`${h.fecha}-${n}`}>
+                          <time dateTime={h.fecha}>{horaLog(h.fecha)}</time>
+                          <span>{ESTADO_PEDIDO[h.estado]}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {envio.modalidad === 'entrega_plataforma' && dir && (
+                  <p className="cuenta-envio-destino">
+                    <strong>Dirección de Destino:</strong> {dir.calle} {dir.numero}
+                    {dir.piso_depto ? `, ${dir.piso_depto}` : ''}, {dir.localidad}, {dir.provincia}
+                    {dir.referencias ? ` (${dir.referencias})` : ''}
+                  </p>
+                )}
+                {envio.modalidad === 'retiro_en_local' && parte?.tienda && (
+                  <p className="cuenta-envio-destino">
+                    <strong>Retiro en:</strong> {parte.tienda.direccion}, {parte.tienda.localidad}
+                    {parte.tienda.telefono ? ` · Tel. ${parte.tienda.telefono}` : ''}
+                  </p>
+                )}
+
+                <Link href={`/mis-compras/${envio.pedidoId}`} className="cuenta-ticket-btn">
+                  Ver Ticket ›
+                </Link>
+              </article>
             );
           })}
-        </ul>
+        </div>
       )}
     </CuentaShell>
   );

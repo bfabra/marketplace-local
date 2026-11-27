@@ -37,7 +37,7 @@ export default function MisTiendasPage() {
   return (
     <CuentaShell
       user={user}
-      titulo="Mis tiendas favoritas"
+      titulo="Mis Tiendas Favoritas"
       descripcion={`Acceso rápido a tus comercios preferidos en ${PRODUCT_NAME}.`}
     >
       {error ? (

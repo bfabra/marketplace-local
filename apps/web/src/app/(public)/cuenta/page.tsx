@@ -33,7 +33,7 @@ export default function AccountPage() {
   return (
     <CuentaShell
       user={user}
-      titulo="Datos personales y domicilio de envío"
+      titulo="Datos Personales y Domicilio de Envío"
       descripcion="Información de contacto y domicilio para el repartidor en San Juan."
     >
       <div className="cuenta-datos">
@@ -42,15 +42,13 @@ export default function AccountPage() {
         <section className="cuenta-bloque">
           <div className="cuenta-bloque-cabecera">
             <h3>Seguridad de la cuenta</h3>
-            {user.tiendas[0] ? (
-              <Link href={`/vendor/tiendas/${user.tiendas[0].id}/seguridad`}>Cambiar contraseña →</Link>
-            ) : (
-              <Link href="/cuenta#clave">Ver opciones →</Link>
-            )}
+            <Link href="/cuenta/seguridad">
+              {user.tieneClave ? 'Cambiar contraseña →' : 'Crear contraseña →'}
+            </Link>
           </div>
           <p className="muted">
             {user.tieneClave
-              ? 'Podés actualizar tu contraseña con doble autenticación desde el panel de seguridad.'
+              ? 'Actualizá tu contraseña o recuperála por correo si la olvidás.'
               : 'Entrás con Google. Podés crear una contraseña para ingresar también con correo.'}
           </p>
         </section>

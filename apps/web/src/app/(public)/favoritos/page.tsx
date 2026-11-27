@@ -43,7 +43,7 @@ export default function FavoritesPage() {
   return (
     <CuentaShell
       user={user}
-      titulo="Productos favoritos"
+      titulo="Productos Guardados"
       descripcion={
         visibles
           ? `${plural(visibles.length, 'producto guardado', 'productos guardados')} para encontrar rápido después.`

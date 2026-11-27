@@ -3,9 +3,28 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, type Direccion, type Localidad, type Usuario } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { localidadesDeDepartamento } from '@/lib/san-juan-territorio';
 import { Field, SelectField } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 import { useFormErrors } from './use-form-errors';
+
+/** Extrae Barrio / Zona guardados en referencias (#profile). */
+function partirReferencias(refs: string | null | undefined) {
+  let resto = (refs ?? '').trim();
+  let barrio = '';
+  let zona = '';
+  const mBarrio = resto.match(/(?:^|·)\s*Barrio:\s*([^·]+)/i);
+  if (mBarrio) {
+    barrio = mBarrio[1].trim();
+    resto = resto.replace(mBarrio[0], '').replace(/^\s*·\s*/, '').trim();
+  }
+  const mZona = resto.match(/(?:^|·)\s*Zona:\s*([^·]+)/i);
+  if (mZona) {
+    zona = mZona[1].trim();
+    resto = resto.replace(mZona[0], '').replace(/^\s*·\s*/, '').trim();
+  }
+  return { barrio, zona, resto: resto.replace(/^\s*·\s*|\s*·\s*$/g, '').trim() };
+}
 
 const PAISES = [
   { value: '+54', label: 'Argentina (+54)' },
@@ -49,6 +68,14 @@ export function ProfileForm({ user }: { user: Usuario }) {
   const [prefijo, setPrefijo] = useState(telIni.prefijo.startsWith('+54') ? '+54' : telIni.prefijo || '+54');
   const [tipoTel, setTipoTel] = useState('WhatsApp');
   const [localidadId, setLocalidadId] = useState('');
+  const [zona, setZona] = useState('');
+
+  function zonaInicial(deptoNombre: string, refs: string | null | undefined) {
+    const villas = localidadesDeDepartamento(deptoNombre);
+    const guardada = partirReferencias(refs).zona;
+    if (guardada && (villas.length === 0 || villas.includes(guardada))) return guardada;
+    return villas[0] ?? '';
+  }
 
   useEffect(() => {
     let vivo = true;
@@ -61,6 +88,7 @@ export function ProfileForm({ user }: { user: Usuario }) {
       const principal = lista.find((d) => d.es_principal) ?? lista[0] ?? null;
       setDireccion(principal);
       setLocalidadId(principal?.localidad?.id ?? '');
+      setZona(zonaInicial(principal?.localidad?.nombre ?? '', principal?.referencias));
       setDomListo(true);
     });
     return () => {
@@ -90,12 +118,27 @@ export function ProfileForm({ user }: { user: Usuario }) {
         })
       );
 
+      const depto = localidades.find((l) => l.id === (localidadId || texto('localidad_id')));
+      const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+      if (villas.length > 0 && !zona.trim()) {
+        errors.field('zona', 'Elegí localidad / villa / zona');
+        setSending(false);
+        return;
+      }
+
       const domicilio = {
         calle: texto('calle'),
         numero: texto('numero'),
         piso_depto: texto('piso_depto') || null,
         localidad_id: localidadId || texto('localidad_id'),
-        referencias: [texto('barrio') && `Barrio: ${texto('barrio')}`, texto('referencias')].filter(Boolean).join(' · ') || null,
+        referencias:
+          [
+            texto('barrio') && `Barrio: ${texto('barrio')}`,
+            zona.trim() && `Zona: ${zona.trim()}`,
+            texto('referencias'),
+          ]
+            .filter(Boolean)
+            .join(' · ') || null,
         alias: texto('barrio') || direccion?.alias || 'Casa',
         es_principal: true,
       };
@@ -107,6 +150,7 @@ export function ProfileForm({ user }: { user: Usuario }) {
         const actual = lista.find((d) => d.es_principal) ?? lista[0] ?? null;
         setDireccion(actual);
         setLocalidadId(actual?.localidad?.id ?? '');
+        setZona(zonaInicial(actual?.localidad?.nombre ?? '', actual?.referencias));
       }
 
       setSaved(true);
@@ -119,15 +163,15 @@ export function ProfileForm({ user }: { user: Usuario }) {
   }
 
   const bloqueado = !editando;
-  const refs = direccion?.referencias ?? '';
-  const barrioMatch = refs.match(/^Barrio:\s*([^·]+)/);
-  const barrio = barrioMatch?.[1]?.trim() ?? '';
-  const refsLimpias = refs.replace(/^Barrio:\s*[^·]+(?:\s*·\s*)?/, '').trim();
+  const { barrio, resto: refsLimpias } = partirReferencias(direccion?.referencias);
   const sj = localidades.filter((l) => /san juan/i.test(l.provincia));
-  const opcionesLoc = (sj.length ? sj : localidades).map((l) => ({
+  const opcionesDepto = (sj.length ? sj : localidades).map((l) => ({
     value: l.id,
     label: sj.length ? l.nombre : `${l.nombre} (${l.provincia})`,
   }));
+  const deptoElegido = localidades.find((l) => l.id === localidadId);
+  const villasZona = localidadesDeDepartamento(deptoElegido?.nombre ?? '');
+  const opcionesZona = villasZona.map((z) => ({ value: z, label: z }));
 
   return (
     <form className={`cuenta-perfil-form${editando ? ' is-editando' : ''}`} onSubmit={onSubmit} noValidate>
@@ -190,9 +234,11 @@ export function ProfileForm({ user }: { user: Usuario }) {
 
         <div className="cuenta-perfil-full">
           <Field
-            label="Número de teléfono (sin 0 ni 15, ej: 2645160508)"
+            label="Número de teléfono (máx. 10 dígitos, sin 0 ni 15)"
             name="telefono_num"
             type="tel"
+            inputMode="numeric"
+            maxLength={10}
             defaultValue={telIni.numero}
             placeholder="2645160508"
             disabled={bloqueado}
@@ -202,19 +248,24 @@ export function ProfileForm({ user }: { user: Usuario }) {
         </div>
 
         <Field
-          label="DNI (no lo ven las tiendas)"
+          label="DNI (7 u 8 números, sin puntos)"
           name="dni"
-          defaultValue={user.dni ?? ''}
+          defaultValue={(user.dni ?? '').replace(/\D/g, '').slice(0, 8)}
           inputMode="numeric"
-          maxLength={10}
+          maxLength={8}
+          pattern="\d{7,8}"
           disabled={bloqueado}
           readOnly={bloqueado}
           error={errors.fields.dni}
+          onChange={(e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
+            errors.dismiss('dni');
+          }}
         />
       </div>
 
       <div className="cuenta-domicilio">
-        <h3>Domicilio de entrega para el repartidor / cadete</h3>
+        <h3>Domicilio de Entrega para el Repartidor / Cadete</h3>
         {!domListo ? (
           <p className="muted">Cargando domicilio…</p>
         ) : (
@@ -254,18 +305,43 @@ export function ProfileForm({ user }: { user: Usuario }) {
               readOnly={bloqueado}
               error={errors.fields.piso_depto}
             />
-            <div className="cuenta-perfil-full">
-              <SelectField
-                label="Departamento (San Juan)"
-                name="localidad_id"
-                value={localidadId}
-                onChange={(e) => setLocalidadId(e.target.value)}
-                placeholder={opcionesLoc.length ? 'Seleccioná el departamento' : 'Cargando…'}
-                options={opcionesLoc}
-                disabled={bloqueado}
-                error={errors.fields.localidad_id}
-              />
-            </div>
+            <SelectField
+              label="Departamento (San Juan)"
+              name="localidad_id"
+              value={localidadId}
+              onChange={(e) => {
+                const id = e.target.value;
+                const depto = localidades.find((l) => l.id === id);
+                const villas = localidadesDeDepartamento(depto?.nombre ?? '');
+                setLocalidadId(id);
+                setZona(villas[0] ?? '');
+                errors.dismiss('localidad_id');
+                errors.dismiss('zona');
+              }}
+              placeholder={opcionesDepto.length ? 'Seleccioná el departamento' : 'Cargando…'}
+              options={opcionesDepto}
+              disabled={bloqueado}
+              error={errors.fields.localidad_id}
+            />
+            <SelectField
+              label="Localidad / Villa / Zona"
+              name="zona"
+              value={zona}
+              onChange={(e) => {
+                setZona(e.target.value);
+                errors.dismiss('zona');
+              }}
+              placeholder={
+                !localidadId
+                  ? 'Primero elegí el departamento'
+                  : opcionesZona.length
+                    ? 'Seleccioná localidad'
+                    : 'Sin localidades cargadas'
+              }
+              options={opcionesZona}
+              disabled={bloqueado || !localidadId || opcionesZona.length === 0}
+              error={errors.fields.zona}
+            />
             <div className="cuenta-perfil-full">
               <Field
                 label="Referencias adicionales para el cadete"
@@ -290,6 +366,7 @@ export function ProfileForm({ user }: { user: Usuario }) {
               onClick={() => {
                 setEditando(false);
                 setLocalidadId(direccion?.localidad?.id ?? '');
+                setZona(zonaInicial(direccion?.localidad?.nombre ?? '', direccion?.referencias));
                 errors.clear();
                 setSaved(false);
               }}

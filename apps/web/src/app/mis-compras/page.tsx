@@ -3,47 +3,40 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ApiError, api, type EstadoPago, type EstadoPedidoTienda, type ResumenPedido } from '@/lib/api-client';
+import { ApiError, api, type ResumenPedido } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { formatDate, formatPrice } from '@/lib/utils';
-import { plural } from '@/lib/visual';
-import { COLOR_PAGO, ESTADO_PAGO, MODALIDAD } from '@/lib/pedidos';
+import { PRODUCT_NAME } from '@/components/layout/logo';
 import { Alert } from '@/components/ui/alert';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Icon } from '@/components/ui/icon';
-import { OrderStatus } from '@/components/ui/order-status';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { CuentaShell } from '@/components/layout/cuenta-shell';
 
-const EN_CURSO: EstadoPedidoTienda[] = [
-  'pago_confirmado',
-  'en_preparacion',
-  'listo_para_recoleccion',
-  'listo_para_retiro',
-  'recolectado',
-  'en_camino',
-];
-const COBRADO: EstadoPago[] = ['aprobado', 'reembolsado_parcial'];
+const MESES_HISTORIAL = 6;
 
-type Filtro = 'todas' | 'en_curso' | 'por_pagar' | 'terminadas';
+function haceMeses(meses: number) {
+  const d = new Date();
+  d.setMonth(d.getMonth() - meses);
+  return d;
+}
 
-const FILTROS: { id: Filtro; label: string; cumple: (p: ResumenPedido) => boolean }[] = [
-  { id: 'todas', label: 'Todas', cumple: () => true },
-  { id: 'en_curso', label: 'En curso', cumple: (p) => p.partes.some((x) => EN_CURSO.includes(x.estado)) },
-  { id: 'por_pagar', label: 'Por pagar', cumple: (p) => p.estado_pago === 'pendiente' },
-  {
-    id: 'terminadas',
-    label: 'Terminadas',
-    cumple: (p) => p.estado_pago !== 'pendiente' && !p.partes.some((x) => EN_CURSO.includes(x.estado)),
-  },
-];
+function expiraTicket(creadoEn: string) {
+  const d = new Date(creadoEn);
+  d.setFullYear(d.getFullYear() + 1);
+  return formatDate(d.toISOString());
+}
 
+function comerciosDe(p: ResumenPedido) {
+  const nombres = p.partes.map((x) => x.tienda).filter(Boolean) as string[];
+  return [...new Set(nombres)].join(', ') || 'Compra';
+}
+
+/** Mis compras — historial de tickets (#profile → purchases). */
 export default function MyOrdersPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [pedidos, setPedidos] = useState<ResumenPedido[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState<Filtro>('todas');
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login?next=/mis-compras');
@@ -56,24 +49,21 @@ export default function MyOrdersPage() {
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Error inesperado'));
   }, [user]);
 
-  const resumen = useMemo(() => {
-    const lista = pedidos ?? [];
-    return {
-      enCurso: lista.filter(FILTROS[1].cumple).length,
-      porPagar: lista.filter(FILTROS[2].cumple).length,
-      gastado: lista.filter((p) => COBRADO.includes(p.estado_pago)).reduce((t, p) => t + Number(p.total), 0),
-    };
+  const visibles = useMemo(() => {
+    if (!pedidos) return [];
+    const desde = haceMeses(MESES_HISTORIAL);
+    return pedidos.filter(
+      (p) => p.estado_pago === 'pendiente' || new Date(p.creado_en) >= desde
+    );
   }, [pedidos]);
 
   if (loading || !user) return <PageSkeleton />;
 
-  const visibles = (pedidos ?? []).filter(FILTROS.find((f) => f.id === filtro)!.cumple);
-
   return (
     <CuentaShell
       user={user}
-      titulo="Mis compras"
-      descripcion="Seguí tus pedidos: cada tienda prepara su parte y te avisa cuando está lista."
+      titulo="Mis Compras (Historial)"
+      descripcion={`Historial detallado de tickets y comprobantes en ${PRODUCT_NAME} San Juan.`}
     >
       {error && <Alert>{error}</Alert>}
 
@@ -82,83 +72,48 @@ export default function MyOrdersPage() {
       ) : pedidos.length === 0 ? (
         <EmptyState
           icono="bag"
-          titulo="Todavía no hiciste ninguna compra"
+          titulo="No hay compras registradas en este período"
           acciones={
             <Link href="/tiendas" className="market-primary-button">
               Explorar tiendas
             </Link>
           }
         >
-          Cuando compres en los comercios de tu ciudad, vas a ver acá el estado de cada pedido.
+          Cuando compres en los comercios de tu ciudad, vas a ver acá tus tickets.
         </EmptyState>
       ) : (
-        <div className="cuenta-compras">
-          <section className="cuenta-cifras" aria-label="Resumen de tus compras">
-            <div>
-              <strong>{pedidos.length}</strong>
-              <span>{pedidos.length === 1 ? 'Compra' : 'Compras'}</span>
-            </div>
-            <div className={resumen.enCurso > 0 ? 'is-destacada' : undefined}>
-              <strong>{resumen.enCurso}</strong>
-              <span>En curso</span>
-            </div>
-            <div>
-              <strong>{resumen.porPagar}</strong>
-              <span>Por pagar</span>
-            </div>
-            <div>
-              <strong>{formatPrice(resumen.gastado)}</strong>
-              <span>Total pagado</span>
-            </div>
-          </section>
-
-          <div className="cuenta-filtros" role="group" aria-label="Filtrar compras">
-            {FILTROS.map((f) => (
-              <button key={f.id} type="button" aria-pressed={filtro === f.id} onClick={() => setFiltro(f.id)}>
-                {f.label} <em>{pedidos.filter(f.cumple).length}</em>
-              </button>
-            ))}
+        <div className="cuenta-compras-historial">
+          <div className="cuenta-compras-aviso" role="note">
+            <span aria-hidden="true">ℹ️</span>
+            <p>
+              El historial muestra únicamente los últimos <strong>{MESES_HISTORIAL} meses</strong> de todas las
+              compras realizadas en la plataforma antes de su limpieza automática.
+            </p>
           </div>
 
           {visibles.length === 0 ? (
-            <p className="cuenta-vacio-filtro">No hay compras en esta sección.</p>
+            <p className="cuenta-vacio-filtro">No hay compras registradas en este período.</p>
           ) : (
-            <ul className="cuenta-lista-compras">
+            <ul className="cuenta-tickets">
               {visibles.map((p) => (
-                <li key={p.id}>
-                  <div className="cuenta-compra-cabecera">
-                    <div>
-                      <Link href={`/mis-compras/${p.id}`}>Pedido #{p.numero}</Link>
-                      <span>
-                        {formatDate(p.creado_en)} · {plural(p.unidades, 'unidad', 'unidades')}
-                        {p.partes[0]?.tienda ? ` · ${p.partes.map((x) => x.tienda).filter(Boolean).join(', ')}` : ''}
-                      </span>
-                    </div>
-                    <div className="cuenta-compra-total">
-                      <strong>{formatPrice(p.total)}</strong>
-                      <span className={`badge ${COLOR_PAGO[p.estado_pago]}`}>{ESTADO_PAGO[p.estado_pago]}</span>
-                    </div>
+                <li key={p.id} className="cuenta-ticket">
+                  <div className="cuenta-ticket-info">
+                    <strong>
+                      #{p.numero} — {comerciosDe(p)}
+                    </strong>
+                    <span>
+                      Fecha de compra: {formatDate(p.creado_en)} · Expira el: {expiraTicket(p.creado_en)}
+                    </span>
                   </div>
-                  <ul className="cuenta-compra-partes">
-                    {p.partes.map((parte, i) => (
-                      <li key={i}>
-                        <span>
-                          <Icon name={parte.modalidad === 'retiro_en_local' ? 'store' : 'truck'} size={15} />
-                          <strong>{parte.tienda ?? 'Tienda'}</strong>
-                          <em>· {MODALIDAD[parte.modalidad]}</em>
-                        </span>
-                        <OrderStatus estado={parte.estado} />
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="cuenta-compra-acciones">
+                  <div className="cuenta-ticket-acciones">
+                    <strong className="cuenta-ticket-total">{formatPrice(p.total)}</strong>
                     {p.estado_pago === 'pendiente' && (
                       <Link href={`/pago-simulado/${p.id}`} className="market-primary-button">
                         Pagar
                       </Link>
                     )}
-                    <Link href={`/mis-compras/${p.id}`} className="btn btn-secondary">
-                      Ver detalle
+                    <Link href={`/mis-compras/${p.id}`} className="cuenta-ticket-btn">
+                      Ver Ticket ›
                     </Link>
                   </div>
                 </li>
