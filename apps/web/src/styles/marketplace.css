@@ -3384,6 +3384,15 @@
   cursor: not-allowed;
 }
 
+.cuenta-perfil-form .field .telefono-numero {
+  width: 100%;
+}
+
+.cuenta-perfil-form .field .telefono-numero input {
+  width: 100%;
+  padding-left: 3.6rem;
+}
+
 .cuenta-perfil-form.is-editando .field input:not(:disabled):not([readonly]),
 .cuenta-perfil-form.is-editando .field select:not(:disabled) {
   background: #fff;
@@ -3625,8 +3634,22 @@
 }
 
 .cuenta-ticket-info span {
+  display: block;
   font-size: 12px;
   color: var(--muted, #64748b);
+  line-height: 1.45;
+}
+
+.cuenta-ticket-retencion {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .cuenta-ticket-acciones {
@@ -4122,6 +4145,25 @@
   font-size: 16px;
   font-weight: 800;
   color: var(--primary, #fd6910);
+}
+
+.cuenta-envio-timeline-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.cuenta-envio-timeline-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .cuenta-envio-timeline {

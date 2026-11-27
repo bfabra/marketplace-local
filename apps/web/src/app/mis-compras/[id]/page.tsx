@@ -5,20 +5,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ApiError, api, type Pedido } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
-import { formatDate, formatPrice } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
+import {
+  MESES_HISTORIAL_COMPRAS,
+  estaEnHistorial,
+  expiraHistorialTexto,
+  fechaCompraTexto,
+} from '@/lib/compras-historial';
 import { COLOR_PAGO, ESTADO_PAGO, ESTADO_PEDIDO, MODALIDAD } from '@/lib/pedidos';
 import { PRODUCT_NAME } from '@/components/layout/logo';
 import { Alert } from '@/components/ui/alert';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { CuentaShell } from '@/components/layout/cuenta-shell';
 
-function expiraTicket(creadoEn: string) {
-  const d = new Date(creadoEn);
-  d.setFullYear(d.getFullYear() + 1);
-  return formatDate(d.toISOString());
-}
-
-/** Detalle del ticket (#profile → purchase detail). */
+/** Detalle del Ticket — historial de compra del cliente (#profile). */
 export default function MyOrderPage({ params }: { params: { id: string } }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -56,6 +56,8 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
   const comercio =
     [...new Set(pedido.partes.map((p) => p.tienda?.nombre).filter(Boolean))].join(', ') || 'Comercio';
   const estadoLabel = ESTADO_PAGO[pedido.estado_pago];
+  const enHistorial = estaEnHistorial(pedido.creado_en, pedido.estado_pago);
+  const expiraEl = expiraHistorialTexto(pedido.creado_en);
 
   return (
     <CuentaShell
@@ -70,6 +72,13 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
           </Link>
           <span className={`badge ${COLOR_PAGO[pedido.estado_pago]}`}>{estadoLabel}</span>
         </div>
+
+        {!enHistorial && (
+          <Alert kind="info">
+            Este ticket ya superó los {MESES_HISTORIAL_COMPRAS} meses de historial y puede dejar de listarse en Mis
+            Compras.
+          </Alert>
+        )}
 
         {recienPagado && pedido.estado_pago === 'aprobado' && (
           <Alert kind="success">¡Listo! Recibimos tu pago. Cada tienda ya está al tanto de tu pedido.</Alert>
@@ -89,14 +98,19 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
               <strong>{comercio}</strong>
             </div>
             <div>
-              <span>Fecha de Emisión</span>
-              <strong>{formatDate(pedido.creado_en)}</strong>
+              <span>Fecha de Compra</span>
+              <strong>{fechaCompraTexto(pedido.creado_en)}</strong>
             </div>
             <div>
-              <span>Expiración del Ticket</span>
-              <strong>{expiraTicket(pedido.creado_en)}</strong>
+              <span>Visible en Historial Hasta</span>
+              <strong>{expiraEl}</strong>
             </div>
           </div>
+
+          <p className="cuenta-ticket-retencion">
+            El historial de compras conserva este ticket <strong>{MESES_HISTORIAL_COMPRAS} meses</strong> desde la
+            fecha de compra ({fechaCompraTexto(pedido.creado_en)}). Después de {expiraEl} se limpia automáticamente.
+          </p>
 
           {pedido.partes.map((p) => (
             <div key={p.id} className="cuenta-ticket-bloque">
@@ -115,6 +129,7 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
                       <span>
                         Cantidad: {i.cantidad}
                         {i.variante ? ` · ${i.variante}` : ''}
+                        {i.cantidad > 1 ? ` · ${formatPrice(i.precio)} c/u` : ''}
                       </span>
                     </div>
                     <strong>{formatPrice(i.subtotal)}</strong>
@@ -144,7 +159,10 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
 
           <div className="cuenta-ticket-pie">
             <div>
-              <strong>Método de pago:</strong> {estadoLabel}
+              <strong>Estado de pago:</strong> {estadoLabel}
+            </div>
+            <div>
+              <strong>Fecha del ticket:</strong> {fechaCompraTexto(pedido.creado_en)}
             </div>
             {dir && (
               <div>
@@ -153,6 +171,16 @@ export default function MyOrderPage({ params }: { params: { id: string } }) {
                 {dir.referencias ? ` — ${dir.referencias}` : ''}
               </div>
             )}
+            {!dir &&
+              pedido.partes.some((p) => p.modalidad === 'retiro_en_local') &&
+              pedido.partes.map((p) =>
+                p.modalidad === 'retiro_en_local' && p.tienda ? (
+                  <div key={p.id}>
+                    <strong>Retiro en:</strong> {p.tienda.direccion}, {p.tienda.localidad}
+                    {p.tienda.telefono ? ` · Tel. ${p.tienda.telefono}` : ''}
+                  </div>
+                ) : null
+              )}
           </div>
 
           <div className="cuenta-ticket-opiniones">

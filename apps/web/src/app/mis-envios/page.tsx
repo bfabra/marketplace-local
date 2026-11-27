@@ -20,26 +20,41 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { CuentaShell } from '@/components/layout/cuenta-shell';
 
-const EN_CURSO: EstadoPedidoTienda[] = [
+/** Pedidos con seguimiento activo o recién entregados (para ver la línea de tiempo completa). */
+const CON_SEGUIMIENTO: EstadoPedidoTienda[] = [
   'pago_confirmado',
   'en_preparacion',
   'listo_para_recoleccion',
   'listo_para_retiro',
   'recolectado',
   'en_camino',
+  'entregado',
 ];
 
+/** Línea de tiempo de envío a domicilio (#profile → shipments). */
 const PASOS_ENTREGA = [
-  { label: 'Procesando compra', desc: 'Pago acreditado y tienda preparando el pedido' },
-  { label: 'Entregado al repartidor', desc: 'Paquete retirado por el cadete' },
-  { label: 'Envío en camino', desc: 'En viaje hacia tu domicilio en San Juan' },
-  { label: 'Entregado', desc: 'Recibido conforme en destino' },
+  {
+    label: 'Procesando la Compra',
+    desc: 'La tienda recibió el pago y está preparando tu pedido',
+  },
+  {
+    label: 'Entregado al Repartidor',
+    desc: 'El paquete fue retirado por el cadete en el comercio',
+  },
+  {
+    label: 'Envío en Camino',
+    desc: 'El repartidor va hacia tu domicilio en San Juan',
+  },
+  {
+    label: 'Entregado',
+    desc: 'Recibido conforme en tu domicilio',
+  },
 ] as const;
 
 const PASOS_RETIRO = [
-  { label: 'Procesando compra', desc: 'Pago acreditado y tienda preparando el pedido' },
-  { label: 'En preparación', desc: 'El comercio está armando tu pedido' },
-  { label: 'Listo para retirar', desc: 'Podés pasar a buscarlo al local' },
+  { label: 'Procesando la Compra', desc: 'La tienda recibió el pago y está preparando tu pedido' },
+  { label: 'En Preparación', desc: 'El comercio está armando tu pedido' },
+  { label: 'Listo para Retirar', desc: 'Podés pasar a buscarlo al local' },
   { label: 'Entregado', desc: 'Retirado conforme en el local' },
 ] as const;
 
@@ -62,13 +77,16 @@ function descActual(estado: EstadoPedidoTienda, modalidad: Modalidad): string {
   if (modalidad === 'retiro_en_local') {
     if (estado === 'listo_para_retiro') return 'Tu pedido ya está listo para retirar en el local.';
     if (estado === 'en_preparacion') return 'El comercio está preparando tu pedido.';
+    if (estado === 'entregado') return 'Ya retiraste tu pedido en el local.';
     return ESTADO_PEDIDO[estado];
   }
+  if (estado === 'entregado') return 'Tu pedido fue entregado en el domicilio.';
   if (estado === 'en_camino') return 'El repartidor se encuentra en ruta por San Juan.';
   if (estado === 'recolectado') return 'El cadete ya retiró el paquete de la tienda.';
   if (estado === 'en_preparacion' || estado === 'listo_para_recoleccion') {
     return 'La tienda está preparando y empaquetando tu pedido.';
   }
+  if (estado === 'pago_confirmado') return 'Pago acreditado; la tienda está por empezar a preparar el pedido.';
   return ESTADO_PEDIDO[estado];
 }
 
@@ -117,7 +135,7 @@ export default function MisEnviosPage() {
         .map((parte, parteIdx) => ({ p, parte, parteIdx }))
         .filter(
           ({ parte }) =>
-            EN_CURSO.includes(parte.estado) &&
+            CON_SEGUIMIENTO.includes(parte.estado) &&
             (parte.modalidad === 'entrega_plataforma' || parte.modalidad === 'retiro_en_local')
         )
         .map(({ p, parte, parteIdx }) => ({
@@ -173,14 +191,15 @@ export default function MisEnviosPage() {
       ) : activos.length === 0 ? (
         <EmptyState
           icono="truck"
-          titulo="No tenés envíos en curso"
+          titulo="No tenés envíos para seguir"
           acciones={
             <Link href="/mis-compras" className="btn btn-secondary">
               Ver mis compras
             </Link>
           }
         >
-          Cuando un pedido esté en preparación o en camino, vas a ver el seguimiento acá.
+          Cuando una tienda procese tu compra, vas a ver acá la línea de tiempo: procesando, repartidor, en camino y
+          entregado.
         </EmptyState>
       ) : (
         <div className="cuenta-trazabilidad">
@@ -191,7 +210,9 @@ export default function MisEnviosPage() {
             const actual = pasoActual(envio.estado, envio.modalidad);
             const producto =
               parte?.items.map((i) => i.nombre).join(', ') ||
-              (detalle ? `${detalle.partes.reduce((n, p) => n + p.items.reduce((a, i) => a + i.cantidad, 0), 0)} unidad(es)` : 'Cargando productos…');
+              (detalle
+                ? `${detalle.partes.reduce((n, p) => n + p.items.reduce((a, i) => a + i.cantidad, 0), 0)} unidad(es)`
+                : 'Cargando productos…');
             const monto = parte?.subtotal ?? envio.total;
             const dir = detalle?.direccion_envio;
             const logs = [...(parte?.historial ?? [])].reverse();
@@ -209,28 +230,38 @@ export default function MisEnviosPage() {
                   <em>{formatPrice(monto)}</em>
                 </header>
 
-                <ol className="cuenta-envio-timeline" aria-label="Avance del envío">
-                  {pasos.map((paso, idx) => {
-                    const step = idx + 1;
-                    const hecho = step < actual;
-                    const corriente = step === actual;
-                    return (
-                      <li
-                        key={paso.label}
-                        className={hecho ? 'is-hecho' : corriente ? 'is-actual' : undefined}
-                        aria-current={corriente ? 'step' : undefined}
-                      >
-                        <span className="cuenta-envio-timeline-punto" aria-hidden="true">
-                          {hecho ? '✓' : step}
-                        </span>
-                        <div>
-                          <strong>{paso.label}</strong>
-                          <span>{corriente ? descActual(envio.estado, envio.modalidad) : paso.desc}</span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
+                <div className="cuenta-envio-timeline-bloque">
+                  <h3 className="cuenta-envio-timeline-titulo">Línea de Tiempo del Pedido</h3>
+                  <ol className="cuenta-envio-timeline" aria-label="Línea de tiempo del envío">
+                    {pasos.map((paso, idx) => {
+                      const step = idx + 1;
+                      const hecho = step < actual || (envio.estado === 'entregado' && step <= actual);
+                      const corriente = envio.estado !== 'entregado' && step === actual;
+                      const completo = envio.estado === 'entregado' && step === 4;
+                      return (
+                        <li
+                          key={paso.label}
+                          className={
+                            hecho || completo ? 'is-hecho' : corriente ? 'is-actual' : undefined
+                          }
+                          aria-current={corriente ? 'step' : undefined}
+                        >
+                          <span className="cuenta-envio-timeline-punto" aria-hidden="true">
+                            {hecho || completo ? '✓' : step}
+                          </span>
+                          <div>
+                            <strong>{paso.label}</strong>
+                            <span>
+                              {corriente || completo
+                                ? descActual(envio.estado, envio.modalidad)
+                                : paso.desc}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
 
                 <div className="cuenta-envio-historial">
                   <strong>Historial de Seguimiento</strong>

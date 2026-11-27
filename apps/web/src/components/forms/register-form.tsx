@@ -103,6 +103,10 @@ export function RegisterForm() {
       return;
     }
     const telefono = armarTelefonoPerfil(pais, tipoTel, digitosTel);
+    if (!telefono) {
+      errors.field('telefono', 'Ingresá tu teléfono');
+      return;
+    }
     const barrio = texto('barrio');
     const refs = texto('referencias');
     const referencias = [barrio ? `Barrio: ${barrio}` : '', refs].filter(Boolean).join(' · ') || undefined;
